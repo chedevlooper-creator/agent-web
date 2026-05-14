@@ -21,6 +21,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "pnpm -s build && node --test tests/terminal-tool.test.mjs",
     "dev": "tsc -p tsconfig.json --watch",
     "clean": "rimraf dist"
   },
