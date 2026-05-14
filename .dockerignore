@@ -1,0 +1,42 @@
+# Dependencies
+node_modules
+.pnpm-store
+npm-debug.log
+.pnpm-debug.log
+
+# Next.js
+.next
+out
+
+# Build outputs
+dist
+build
+*.tsbuildinfo
+
+# Database
+*.db
+*.db-journal
+packages/db/data
+/drizzle
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# Misc
+README.md
+CLAUDE.md
+AGENTS.md
+*.md
+.DS_Store
+*.log

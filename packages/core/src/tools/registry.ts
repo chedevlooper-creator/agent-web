@@ -1,39 +1,31 @@
-import { Tool } from "../types.js";
 import { terminalTool } from "./terminal.js";
-import { fileTools } from "./file.js";
-import { webTools } from "./web.js";
+import { readFileTool } from "./file-read.js";
+import { webSearchTool } from "./web-search.js";
 
-class ToolRegistry {
-  private tools = new Map<string, Tool>();
+export const tools = {
+  terminal: terminalTool,
+  read_file: readFileTool,
+  web_search: webSearchTool,
+} as const;
 
-  constructor() {
-    this.register(terminalTool);
-    fileTools.forEach((t) => this.register(t));
-    webTools.forEach((t) => this.register(t));
-  }
+export type ToolName = keyof typeof tools;
 
-  register(tool: Tool): void {
-    this.tools.set(tool.name, tool);
-  }
+export const toolDescriptions: Record<ToolName, { name: string; description: string; status: "active" | "disabled" }> = {
+  terminal: {
+    name: "Terminal",
+    description: "Execute shell commands on the local machine",
+    status: "active",
+  },
+  read_file: {
+    name: "Read File",
+    description: "Read text files from the local filesystem",
+    status: "active",
+  },
+  web_search: {
+    name: "Web Search",
+    description: "Search the web via DuckDuckGo",
+    status: "active",
+  },
+};
 
-  get(name: string): Tool | undefined {
-    return this.tools.get(name);
-  }
-
-  list(): Tool[] {
-    return Array.from(this.tools.values());
-  }
-
-  toOpenAIFormat() {
-    return this.list().map((tool) => ({
-      type: "function" as const,
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      },
-    }));
-  }
-}
-
-export const registry = new ToolRegistry();
+export { terminalTool, readFileTool, webSearchTool };

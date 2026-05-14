@@ -1,25 +1,10 @@
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { z } from "zod";
+import { tools } from "@agent-web/core";
 
-const terminalTool = {
-  description: "Execute a shell command",
-  parameters: z.object({ command: z.string(), timeout: z.number().optional() }),
-  execute: async () => "[Terminal disabled]",
-};
-
-const readFileTool = {
-  description: "Read a file",
-  parameters: z.object({ path: z.string() }),
-  execute: async () => "[File disabled]",
-};
-
-const webSearchTool = {
-  description: "Search web",
-  parameters: z.object({ query: z.string() }),
-  execute: async () => "[Search disabled]",
-};
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,23 +14,43 @@ export async function POST(req: NextRequest) {
     if (provider === "openai") {
       client = createOpenAI({ apiKey })(model);
     } else if (provider === "openrouter") {
-      client = createOpenAI({ apiKey, baseURL: "https://openrouter.ai/api/v1" })(model);
+      client = createOpenAI({
+        apiKey,
+        baseURL: "https://openrouter.ai/api/v1",
+      })(model);
     } else if (provider === "opencode") {
-      client = createOpenAI({ apiKey, baseURL: "https://api.opencode.ai/v1" })(model);
+      client = createOpenAI({
+        apiKey,
+        baseURL: "https://api.opencode.ai/v1",
+      })(model);
     } else {
-      return new Response("Unknown provider", { status: 400 });
+      return new Response(
+        JSON.stringify({ error: `Unknown provider: ${provider}` }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const result = streamText({
       model: client,
-      messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-      tools: { terminal: terminalTool, read_file: readFileTool, web_search: webSearchTool },
-      maxSteps: 5,
+      messages: (messages as Array<{ role: string; content: string }>).map(
+        (m) => ({ role: m.role as "user" | "assistant" | "system", content: m.content })
+      ),
+      tools,
+      maxSteps: 8,
+      system:
+        "You are a helpful AI assistant. You have access to tools: 'terminal' to execute shell commands, 'read_file' to read local files, and 'web_search' to search the web. Use them whenever they help answer the user's request more accurately. Be concise.",
     });
 
-    return result.toDataStreamResponse({ getErrorMessage: (e) => e.message });
-  } catch (e: any) {
-    console.error("API Error:", e);
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    return result.toDataStreamResponse({
+      getErrorMessage: (e: unknown) =>
+        e instanceof Error ? e.message : String(e),
+    });
+  } catch (e: unknown) {
+    const err = e as Error;
+    console.error("/api/chat error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

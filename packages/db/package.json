@@ -1,22 +1,35 @@
 {
   "name": "@agent-web/db",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
-    "drizzle-orm": "^0.36.0"
+    "drizzle-orm": "^0.36.4"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
-    "drizzle-kit": "^0.28.0",
-    "@types/node": "^22.10.0"
+    "@types/node": "^20",
+    "typescript": "^5"
   }
 }

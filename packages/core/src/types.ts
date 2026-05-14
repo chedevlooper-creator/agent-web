@@ -1,32 +1,23 @@
-export interface Tool {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-  handler: (args: Record<string, unknown>) => Promise<string>;
-}
+export type Role = "user" | "assistant" | "system";
 
-export interface Message {
+export interface ChatMessageData {
   id: string;
-  role: "user" | "assistant" | "system" | "tool";
+  role: Role;
   content: string;
-  toolCalls?: ToolCall[];
-  toolResults?: ToolResult[];
+  model?: string;
+  timestamp: number;
 }
 
-export interface ToolCall {
+export interface SessionData {
   id: string;
-  name: string;
-  arguments: Record<string, unknown>;
+  title: string;
+  messages: ChatMessageData[];
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface ToolResult {
-  toolCallId: string;
-  result: string;
-}
-
-export interface LLMConfig {
-  provider: "openai" | "openrouter" | "opencode";
-  model: string;
-  apiKey: string;
-  baseUrl?: string;
+  ok: boolean;
+  output: string;
+  error?: string;
 }

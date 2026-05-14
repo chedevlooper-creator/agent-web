@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graphify Report</title>
+<style>
+:root{--bg:#0b0c10;--fg:#c5c6c7;--surface:#1f2833;--accent:#66fcf1;--muted:#45a29e;}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);margin:0;padding:2rem;}
+h1,h2{color:var(--accent);}
+table{border-collapse:collapse;width:100%;margin-top:1rem;}
+th,td{border:1px solid #333;padding:.5rem;text-align:left;}
+th{background:var(--surface);}
+tr:nth-child(even){background:#161b22;}
+.community{margin-bottom:1.5rem;padding:1rem;background:var(--surface);border-radius:.5rem;}
+.community h3{margin:.2rem 0;color:var(--muted);}
+.tag{display:inline-block;background:#222;padding:.2rem .5rem;border-radius:.25rem;margin:.15rem;font-size:.85rem;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin:1rem 0;}
+.stat{background:var(--surface);padding:1rem;border-radius:.5rem;text-align:center;}
+.stat strong{display:block;font-size:1.5rem;color:var(--accent);}
+</style>
+</head>
+<body>
+<h1>Graphify Report</h1>
+<p>Generated: {{ generated }}</p>
+<div class="stats">
+  <div class="stat"><strong>{{ audit.node_count }}</strong>Nodes</div>
+  <div class="stat"><strong>{{ audit.edge_count }}</strong>Edges</div>
+  <div class="stat"><strong>{{ audit.community_count }}</strong>Communities</div>
+  <div class="stat"><strong>{{ audit.orphan_count }}</strong>Orphans</div>
+  <div class="stat"><strong>{{ "%.4f"|format(audit.density) }}</strong>Density</div>
+</div>
+<h2>Communities</h2>
+{% for cid, members in communities.items() %}
+<div class="community">
+  <h3>Community {{ cid }} ({{ members|length }} nodes)</h3>
+  <div>{% for m in members %}<span class="tag">{{ m }}</span>{% endfor %}</div>
+</div>
+{% endfor %}
+<h2>Audit</h2>
+<pre>{{ audit | tojson(indent=2) }}</pre>
+<h2>Nodes</h2>
+<table>
+<tr><th>ID</th><th>Label</th><th>Kind</th><th>Community</th><th>Degree</th></tr>
+{% for n in nodes %}
+<tr><td>{{ n.id }}</td><td>{{ n.label }}</td><td>{{ n.kind }}</td><td>{{ n.community }}</td><td>{{ n.degree }}</td></tr>
+{% endfor %}
+</table>
+</body>
+</html>

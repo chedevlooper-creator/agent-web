@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: agent-web
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:./packages/db/data/local.db
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    volumes:
+      - db_data:/app/packages/db/data
+      # Mount Docker socket for Docker-in-Docker sandbox support
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 512M
+
+  # Sandbox container for isolated terminal execution
+  sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: sandbox
+    container_name: agent-web-sandbox
+    volumes:
+      - sandbox_workspace:/workspace
+    environment:
+      - SANDBOX_ENABLED=true
+      - SANDBOX_MAX_CPU_MS=5000
+      - SANDBOX_MAX_MEMORY_MB=256
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+
+volumes:
+  db_data:
+  sandbox_workspace:

@@ -1,17 +1,11 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
-  title: text("title").notNull().default("New Chat"),
-  model: text("model").notNull().default("gpt-4o-mini"),
-  provider: text("provider").notNull().default("openai"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  title: text("title").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
 });
 
 export const messages = sqliteTable("messages", {
@@ -19,14 +13,22 @@ export const messages = sqliteTable("messages", {
   sessionId: text("session_id")
     .notNull()
     .references(() => sessions.id, { onDelete: "cascade" }),
-  role: text("role", { enum: ["user", "assistant", "system", "tool"] }).notNull(),
-  content: text("content").notNull().default(""),
-  toolCalls: text("tool_calls"), // JSON
-  toolResults: text("tool_results"), // JSON
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
+  content: text("content").notNull(),
+  model: text("model"),
+  timestamp: integer("timestamp").notNull(),
 });
+
+export const sessionsRelations = relations(sessions, ({ many }) => ({
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  session: one(sessions, {
+    fields: [messages.sessionId],
+    references: [sessions.id],
+  }),
+}));
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
