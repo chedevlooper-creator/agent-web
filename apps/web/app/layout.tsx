@@ -1,7 +1,21 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
+import { initializeServer } from "@/lib/server-init";
+
+// Initialize server once
+if (process.env.NODE_ENV !== "development" || !globalThis.__initialized) {
+  if (process.env.NODE_ENV === "development") {
+    globalThis.__initialized = true;
+  }
+  initializeServer().catch(console.error);
+}
+
+declare global {
+  var __initialized: boolean | undefined;
+}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +29,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Agent Web",
-  description: "AI Agent powered web interface",
+  description: "Hermes-style AI Agent platform",
 };
 
 export default function RootLayout({
@@ -24,10 +38,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

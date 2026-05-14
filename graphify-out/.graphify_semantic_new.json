@@ -1,0 +1,397 @@
+{
+  "nodes": [
+    {
+      "id": "agent_web",
+      "label": "Agent Web",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\isaha\\agent-web\\README.md",
+      "source_location": null
+    },
+    {
+      "id": "design_system",
+      "label": "Agent Web Design System",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\DESIGN_SYSTEM.md",
+      "source_location": null
+    },
+    {
+      "id": "agents_md",
+      "label": "AGENTS.md",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\AGENTS.md",
+      "source_location": null
+    },
+    {
+      "id": "claude_md",
+      "label": "CLAUDE.md",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\CLAUDE.md",
+      "source_location": null
+    },
+    {
+      "id": "readme_md",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\README.md",
+      "source_location": null
+    },
+    {
+      "id": "docker_compose_prod",
+      "label": "docker-compose.prod.yml",
+      "file_type": "code",
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.prod.yml",
+      "source_location": null
+    },
+    {
+      "id": "docker_compose_dev",
+      "label": "docker-compose.yml (dev)",
+      "file_type": "code",
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.yml",
+      "source_location": null
+    },
+    {
+      "id": "pnpm_workspace",
+      "label": "pnpm-workspace.yaml",
+      "file_type": "code",
+      "source_file": "C:\\Users\\isaha\\agent-web\\pnpm-workspace.yaml",
+      "source_location": null
+    },
+    {
+      "id": "skill_9router",
+      "label": "9router Skill",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router\\SKILL.md",
+      "source_location": null
+    },
+    {
+      "id": "skill_9router_chat",
+      "label": "9router-chat Skill",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router-chat\\SKILL.md",
+      "source_location": null
+    },
+    {
+      "id": "skill_code_review",
+      "label": "code-review Skill",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\code-review\\SKILL.md",
+      "source_location": null
+    },
+    {
+      "id": "skill_plan",
+      "label": "plan Skill",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\plan\\SKILL.md",
+      "source_location": null
+    },
+    {
+      "id": "skill_web_research",
+      "label": "web-research Skill",
+      "file_type": "document",
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\web-research\\SKILL.md",
+      "source_location": null
+    },
+    {
+      "id": "file_icon",
+      "label": "File Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\file.svg",
+      "source_location": null
+    },
+    {
+      "id": "globe_icon",
+      "label": "Globe Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\globe.svg",
+      "source_location": null
+    },
+    {
+      "id": "nextjs_logo",
+      "label": "Next.js Logo",
+      "file_type": "image",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\next.svg",
+      "source_location": null
+    },
+    {
+      "id": "vercel_logo",
+      "label": "Vercel Logo",
+      "file_type": "image",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\vercel.svg",
+      "source_location": null
+    },
+    {
+      "id": "window_icon",
+      "label": "Window Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\window.svg",
+      "source_location": null
+    },
+    {
+      "id": "nextjs",
+      "label": "Next.js",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\README.md",
+      "source_location": null
+    },
+    {
+      "id": "vercel",
+      "label": "Vercel",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\isaha\\agent-web\\README.md",
+      "source_location": null
+    },
+    {
+      "id": "pnpm",
+      "label": "pnpm",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\isaha\\agent-web\\pnpm-workspace.yaml",
+      "source_location": null
+    },
+    {
+      "id": "docker",
+      "label": "Docker",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.yml",
+      "source_location": null
+    },
+    {
+      "id": "sqlite",
+      "label": "SQLite",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.yml",
+      "source_location": null
+    },
+    {
+      "id": "9router",
+      "label": "9Router AI Gateway",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router\\SKILL.md",
+      "source_location": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "claude_md",
+      "target": "agents_md",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_md",
+      "target": "nextjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_md",
+      "target": "vercel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_md",
+      "target": "pnpm",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docker_compose_prod",
+      "target": "docker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.prod.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docker_compose_dev",
+      "target": "docker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docker_compose_prod",
+      "target": "sqlite",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.prod.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docker_compose_dev",
+      "target": "sqlite",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docker_compose_dev",
+      "target": "nextjs",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docker_compose_prod",
+      "target": "agent_web",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\docker-compose.prod.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pnpm_workspace",
+      "target": "pnpm",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\pnpm-workspace.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "skill_9router",
+      "target": "9router",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router\\SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "skill_9router_chat",
+      "target": "9router",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router-chat\\SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "skill_9router_chat",
+      "target": "skill_9router",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router-chat\\SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "design_system",
+      "target": "nextjs",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\DESIGN_SYSTEM.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_web",
+      "target": "design_system",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\DESIGN_SYSTEM.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_web",
+      "target": "skill_9router",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router\\SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_web",
+      "target": "skill_code_review",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\code-review\\SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_web",
+      "target": "skill_plan",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\plan\\SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_web",
+      "target": "skill_web_research",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\web-research\\SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "nextjs_logo",
+      "target": "nextjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\next.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "vercel_logo",
+      "target": "vercel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\vercel.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

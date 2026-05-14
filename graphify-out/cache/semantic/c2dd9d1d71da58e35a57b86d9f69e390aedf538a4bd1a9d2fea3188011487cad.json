@@ -1,0 +1,1 @@
+{"nodes": [{"id": "page_home", "label": "Home Page", "file_type": "code", "source_file": "apps/web/app/page.tsx", "source_location": "Home"}], "edges": [{"source": "page_home", "target": "config_route_get", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "apps/web/app/page.tsx", "weight": 1.0}], "hyperedges": []}

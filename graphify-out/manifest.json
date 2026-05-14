@@ -1,0 +1,454 @@
+{
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\eslint.config.mjs": {
+    "mtime": 1778655463.0539339,
+    "hash": "6c4307ffa009658f5c97f5629094c0c2"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\next-env.d.ts": {
+    "mtime": 1778694485.2631216,
+    "hash": "d0f8375ae1199dc7acd3977fc33b78b8"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\next.config.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "1a85c58d6f57ea209da1977538797759"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\postcss.config.mjs": {
+    "mtime": 1778655463.0546412,
+    "hash": "481fac0fdecd70e1821cc30b86030c1a"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\layout.tsx": {
+    "mtime": 1778754785.2455077,
+    "hash": "93cc8beb18d25e929526dea4d809ee4b"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\page.tsx": {
+    "mtime": 1778754785.2403855,
+    "hash": "850dd638c881c5852f074ae013ff368f"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\chat\\route.ts": {
+    "mtime": 1778754785.2324178,
+    "hash": "3f0f1ca0d4d54b671d472715642796e7"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\chat\\approve\\route.ts": {
+    "mtime": 1778746946.9111042,
+    "hash": "a418011a093fb2f2cf991f0eca38eef8"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\config\\route.ts": {
+    "mtime": 1778754785.2455077,
+    "hash": "75e752357969cb6f9f5d53b74e670378"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\cron\\route.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "a9db2e926f2134d63716e3549677b215"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\cron\\[id]\\route.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "35501de84ace9ab699371d3f321d9a23"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\mcp\\route.ts": {
+    "mtime": 1778661823.1898744,
+    "hash": "2b5c90d0d3a8174c3589796a3f8aa680"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\mcp\\[id]\\route.ts": {
+    "mtime": 1778754785.278077,
+    "hash": "7863752406af7de4396fb5a6041339ba"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\memory\\route.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "d2e025f7bf333525e52f9fe2f5019d7a"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\memory\\usage\\route.ts": {
+    "mtime": 1778754785.2363286,
+    "hash": "8fbdf2a2cc3d3df8978afe449f479513"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\memory\\[id]\\route.ts": {
+    "mtime": 1778661796.6653972,
+    "hash": "fbb85e5a52c0b8f0ee6dfa46d45a5905"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\provider\\route.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "01503afdd42182a5ce30369e79afd0cd"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\search\\route.ts": {
+    "mtime": 1778754785.2383647,
+    "hash": "cdf27bd7a138943858eeb53cbf325d6b"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\sessions\\route.ts": {
+    "mtime": 1778661770.516948,
+    "hash": "59cd617721bea251a6b0c61698130623"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\sessions\\[id]\\route.ts": {
+    "mtime": 1778661781.718789,
+    "hash": "13be7c3468279eab0c34a923f2eee77c"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\skills\\route.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "8bf464ff3d90f08c55122de5a0a15ca8"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\skills\\[id]\\route.ts": {
+    "mtime": 1778754785.278077,
+    "hash": "0764dbd35b626f768becb72906de4383"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\skills-hub\\route.ts": {
+    "mtime": 1778754785.2363286,
+    "hash": "ce7e1d695a82e0b6067db8323b6294a5"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\skills-new\\route.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "a23b526da620647d47e1cb97206aecc9"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\skills-new\\[id]\\route.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "ade0caaf1f9ec30d637735b531a39c1b"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\skills-new\\[id]\\files\\route.ts": {
+    "mtime": 1778754785.278077,
+    "hash": "bc07639fac5e3180788e6642c88b7f9b"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\subagents\\route.ts": {
+    "mtime": 1778661841.9606287,
+    "hash": "835e03401eab3c60db8d47696fbd1a61"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\subagents\\[id]\\route.ts": {
+    "mtime": 1778661844.5661695,
+    "hash": "870b3b42f2bce3cdd8ba095d4d96baad"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\subagents\\[id]\\messages\\route.ts": {
+    "mtime": 1778754785.2324178,
+    "hash": "1358e297f5ce986ba9c8849ff49def69"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\app\\api\\tools\\route.ts": {
+    "mtime": 1778754785.278077,
+    "hash": "77a2ca930cbc3a88172cc804294a82cd"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\context-panel.tsx": {
+    "mtime": 1778754785.278077,
+    "hash": "8452bdea6cc90fcd5e7f4038f355a460"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\cron-manager.tsx": {
+    "mtime": 1778754785.2383647,
+    "hash": "64520c7c5b2e4ce2ec80d1532009668d"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\memory-viewer.tsx": {
+    "mtime": 1778754785.2403855,
+    "hash": "939b3b5b5c60fb92b73681e6c19dc048"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\provider-selector.tsx": {
+    "mtime": 1778754785.2403855,
+    "hash": "3fb91e91448f41e11ea8421eb09a3f46"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\session-sidebar.tsx": {
+    "mtime": 1778754785.2403855,
+    "hash": "b30687030eea03837c8187bf7a83dd23"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\settings-panel.tsx": {
+    "mtime": 1778754785.2455077,
+    "hash": "e9c794a8370a93588d8ee43c0864f6d5"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\skill-browser.tsx": {
+    "mtime": 1778754785.2403855,
+    "hash": "015d50272ece7f3de79a8e1383cf3ad1"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\streaming-display.tsx": {
+    "mtime": 1778754785.2455077,
+    "hash": "1140c66449e9027f9d12d43fad950109"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\subagent-dashboard.tsx": {
+    "mtime": 1778754785.278077,
+    "hash": "68f7ec733317b489d08d9a20b168a791"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\theme-toggle.tsx": {
+    "mtime": 1778683998.9565227,
+    "hash": "7bca36f90b6a7dd3fb175d0f268ef4a5"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\tool-approval-modal.tsx": {
+    "mtime": 1778746547.8182383,
+    "hash": "a5cbc59d7b9608643297c8b3c8796d8c"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\tool-call-panel.tsx": {
+    "mtime": 1778754785.2403855,
+    "hash": "1662c6ea2e48db045d7bd3d826cd7748"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\tool-panel.tsx": {
+    "mtime": 1778746547.845674,
+    "hash": "347aa4a1fdc3a64a0d010beff6df054f"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\toolset-manager.tsx": {
+    "mtime": 1778754785.2455077,
+    "hash": "c12d961c949d4af6d8167a749dd9276b"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\chat\\chat-interface.tsx": {
+    "mtime": 1778754785.2985585,
+    "hash": "80bd8323fa3fc2b58865e4a41d54ed8a"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\avatar.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "027beea3f5aab3ffb39aaf085cb78f95"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\badge.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "1ff3e04a7fd408f9bd7520187dce5d19"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\button.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "5b8c55aa099ec79bc7bdf3ebf0b638d0"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\card.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "ee74a83be6bb8fc3473cb6cceffe8813"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\dropdown-menu.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "89728fd5784555d58a9ad1c72b6a803d"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\input.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "da33823853390b57ac04230a67657585"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\scroll-area.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "7e213fb00f86a1b00b2df7cfab32525d"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\separator.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "bb51ace4279e49d0a4628fafa6ea10b9"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\sonner.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "7005ed2984ab498ef51f3ed910e1abf2"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\textarea.tsx": {
+    "mtime": 1778655463.0487561,
+    "hash": "378ccca2b6eee051a23c1e6d7bc80952"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\components\\ui\\tooltip.tsx": {
+    "mtime": 1778655463.0539339,
+    "hash": "498f1fcb6267150c8026b8e17a400607"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\api-keys.ts": {
+    "mtime": 1778746547.8602464,
+    "hash": "a1cab1d969728b38e6b44b3466974051"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\cron.ts": {
+    "mtime": 1778754785.2363286,
+    "hash": "bd0a50c76adb29123c81c7d0269330d4"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\errors.ts": {
+    "mtime": 1778696612.3124828,
+    "hash": "fa26009d7338e63b35b1c78dca61a861"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\openrouter-models.ts": {
+    "mtime": 1778754785.278077,
+    "hash": "5ad69d193821cade0d8ff4ddbb503070"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\providers-catalog.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "69c522278a6110447d0e4846f2d348c5"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\rate-limit-helpers.ts": {
+    "mtime": 1778746547.8683176,
+    "hash": "a87df0e1a6dd314a2db6b14af07e6b04"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\rate-limit.ts": {
+    "mtime": 1778746547.8763895,
+    "hash": "90dc501db62634c84e4314d29652376c"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\server-init.ts": {
+    "mtime": 1778754785.2383647,
+    "hash": "1e199599a5a84ead98ead19ef3096de4"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\store.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "43395b33171243b155c7247ffaf43f64"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\stream-parser.ts": {
+    "mtime": 1778754785.2985585,
+    "hash": "4e0726cb73fcb95d07c9fff1947e0c9c"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\lib\\utils.ts": {
+    "mtime": 1778655463.0546412,
+    "hash": "1d8011eb18769078bf77502b220daa5e"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\constants.ts": {
+    "mtime": 1778746547.9017801,
+    "hash": "1158e16bed7034519e4e672e1a358cc4"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\errors.ts": {
+    "mtime": 1778746547.9084697,
+    "hash": "186613839a0dc6a3a923a8d518e451d1"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\index.ts": {
+    "mtime": 1778754785.2324178,
+    "hash": "ea0a65fc95bb0275a49dfc8ea61aa32d"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\schemas.ts": {
+    "mtime": 1778746547.9301448,
+    "hash": "34a924f07629f5fcb2faf78784bb96c8"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\types.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "001424f7827b48fe2fb356db09802d7c"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\chat\\engine.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "14a03b6f947511ffbb607304c7eea197"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\llm\\client.ts": {
+    "mtime": 1778657339.9998345,
+    "hash": "a897799078ef76c7ab8a907950a73801"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\mcp\\client.ts": {
+    "mtime": 1778754785.2413852,
+    "hash": "176155fdd3367a46a76875850291be08"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\mcp\\manager.ts": {
+    "mtime": 1778754785.2985585,
+    "hash": "e19badf5d9ef4c3e8075f72567db398a"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\memory\\manager.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "191cc78645a554a4fef4c919fcf5a1ba"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\providers\\resolver.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "1a402cdf5e6da93ecf6622780fc71de9"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\manager.ts": {
+    "mtime": 1778754785.2455077,
+    "hash": "8d20b862c46e5630493e206de5397d2e"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\parser.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "20d3f84b9f891bdac802f8f040e2e06d"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\subagent\\manager.ts": {
+    "mtime": 1778677233.9523988,
+    "hash": "f65c97e248854adffd1e78f3b94e7e9d"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\approval.ts": {
+    "mtime": 1778754785.2383647,
+    "hash": "6e921d91d174577479124e490ec811fa"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\browser_tools.ts": {
+    "mtime": 1778754785.2324178,
+    "hash": "c8deaecf5b21d8c844cf12d405e2f5be"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\code_execution.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "49ac28a3669ff84def6f803d0a9e4859"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\delegate_tools.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "f43bbfcfbe8e1848fb7773353f74377e"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\file.ts": {
+    "mtime": 1778754785.2324178,
+    "hash": "99bf483d8dfb0f8196de115636b5c9c1"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\memory_tools.ts": {
+    "mtime": 1778754785.278077,
+    "hash": "77e95aa1b73dde0ce9624bb9d7c22424"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\registry.ts": {
+    "mtime": 1778754785.2985585,
+    "hash": "004a15b27e2ca3fecfbeb3055f96e241"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\terminal.ts": {
+    "mtime": 1778754785.2455077,
+    "hash": "53b53fd302a0f2b1bb697b7cc211426c"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\todo_tools.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "a51bd649e790a5bab3a6a888dda8316b"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\vision_tools.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "bd64bfd18c24d1d2d115b0c31ab3a0d5"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\tools\\web.ts": {
+    "mtime": 1778754785.2455077,
+    "hash": "df88db2da708ab97d7f037334ed31834"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\utils\\path.ts": {
+    "mtime": 1778746547.9551885,
+    "hash": "342642b72aa614c6c18d24500d2f5789"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\db\\drizzle.config.ts": {
+    "mtime": 1778655463.0546412,
+    "hash": "a718acb757db6875a50cf0d51718ce79"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\db\\src\\index.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "0588bcb6fff6e960b8ba961dbf1f2715"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\db\\src\\schema.ts": {
+    "mtime": 1778754785.2403855,
+    "hash": "58dba183a4da6125c2beccfb6ba72280"
+  },
+  "C:\\Users\\isaha\\agent-web\\docker-compose.prod.yml": {
+    "mtime": 1778754785.2455077,
+    "hash": "54b407d041324753f84da6570d407c1e"
+  },
+  "C:\\Users\\isaha\\agent-web\\docker-compose.yml": {
+    "mtime": 1778754785.2403855,
+    "hash": "67572f827f2156b94d3a5b2516a67842"
+  },
+  "C:\\Users\\isaha\\agent-web\\pnpm-workspace.yaml": {
+    "mtime": 1778655463.0605397,
+    "hash": "62cf619ba44cea403e3ab3ed2f69673b"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\AGENTS.md": {
+    "mtime": 1778655463.0487561,
+    "hash": "9346a4897ff955555ddedb7bebf77adb"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\CLAUDE.md": {
+    "mtime": 1778655463.0487561,
+    "hash": "771faa62feb60b7de901a397aebb29b0"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\DESIGN_SYSTEM.md": {
+    "mtime": 1778746546.0795107,
+    "hash": "6ccc17c95998979293ba2e63d5d0d74c"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\README.md": {
+    "mtime": 1778655463.0487561,
+    "hash": "9162add00befbcdb432430f405c4ad8d"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router\\SKILL.md": {
+    "mtime": 1778754785.2455077,
+    "hash": "ff3a63386d15aebe7b179a061e96d479"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\9router-chat\\SKILL.md": {
+    "mtime": 1778754785.2403855,
+    "hash": "75bbee1551cbe29b1a579b5d2ae52f50"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\code-review\\SKILL.md": {
+    "mtime": 1778754785.2985585,
+    "hash": "89f70eb8905b4b8ac6437d35003fc714"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\plan\\SKILL.md": {
+    "mtime": 1778754785.2403855,
+    "hash": "73bf5e516bd377427d67bbe29a14fd38"
+  },
+  "C:\\Users\\isaha\\agent-web\\packages\\core\\src\\skills\\bundled\\web-research\\SKILL.md": {
+    "mtime": 1778754785.2403855,
+    "hash": "d220159ea07a36cc1efb225dc869680b"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\file.svg": {
+    "mtime": 1778655463.0546412,
+    "hash": "d09f95206c3fa0bb9bd9fefabfd0ea71"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\globe.svg": {
+    "mtime": 1778655463.0546412,
+    "hash": "2aaafa6a49b6563925fe440891e32717"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\next.svg": {
+    "mtime": 1778655463.0546412,
+    "hash": "8e061864f388b47f33a1c3780831193e"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\vercel.svg": {
+    "mtime": 1778655463.0546412,
+    "hash": "c0af2f507b369b085b35ef4bbe3bcf1e"
+  },
+  "C:\\Users\\isaha\\agent-web\\apps\\web\\public\\window.svg": {
+    "mtime": 1778655463.0546412,
+    "hash": "a2760511c65806022ad20adf74370ff3"
+  }
+}

@@ -1,0 +1,83 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: agent-web-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+
+      # Isolate node_modules to prevent host OS binaries from leaking in.
+      # Named volumes override the bind-mount for these specific paths.
+      - node_modules_root:/app/node_modules
+      - node_modules_web:/app/apps/web/node_modules
+      - node_modules_core:/app/packages/core/node_modules
+      - node_modules_db:/app/packages/db/node_modules
+
+      # Preserve TypeScript build artifacts across restarts.
+      # On first run Docker copies the pre-built dist from the image into the volume.
+      # tsc --watch then updates them as you edit source files.
+      - dist_core:/app/packages/core/dist
+      - dist_db:/app/packages/db/dist
+
+      # Preserve Next.js build cache / output
+      - next_cache:/app/apps/web/.next
+
+      # Persist SQLite database outside the container lifecycle
+      - db_data:/app/packages/db/data
+
+    environment:
+      # SQLite path relative to /app (the working directory)
+      - DATABASE_URL=file:./packages/db/data/local.db
+
+      # Polling required for file-watcher to work inside Docker volumes on Windows/macOS
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+
+      # Bind Next.js dev server to all interfaces so the host can reach it
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      - NODE_ENV=development
+
+      # Terminal sandbox configuration
+      - TERMINAL_BACKEND=local
+
+      # Memory limits
+      - MEMORY_CHAR_LIMIT=2200
+      - USER_CHAR_LIMIT=1375
+
+    working_dir: /app
+    stdin_open: true
+    tty: true
+
+  # Sandbox container for isolated terminal execution
+  sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: sandbox
+    container_name: agent-web-sandbox
+    volumes:
+      - sandbox_workspace:/workspace
+    environment:
+      - SANDBOX_ENABLED=true
+      - SANDBOX_MAX_CPU_MS=5000
+      - SANDBOX_MAX_MEMORY_MB=256
+    restart: unless-stopped
+    profiles:
+      - sandbox
+
+volumes:
+  node_modules_root:
+  node_modules_web:
+  node_modules_core:
+  node_modules_db:
+  dist_core:
+  dist_db:
+  next_cache:
+  db_data:
+  sandbox_workspace:

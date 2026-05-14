@@ -1,0 +1,17 @@
+C:\Users\isaha\agent-web\apps\web\eslint.config.mjs
+C:\Users\isaha\agent-web\apps\web\next-env.d.ts
+C:\Users\isaha\agent-web\apps\web\next.config.ts
+C:\Users\isaha\agent-web\apps\web\postcss.config.mjs
+C:\Users\isaha\agent-web\apps\web\app\api\chat\approve\route.ts
+C:\Users\isaha\agent-web\apps\web\lib\errors.ts
+C:\Users\isaha\agent-web\apps\web\lib\openrouter-models.ts
+C:\Users\isaha\agent-web\apps\web\lib\providers-catalog.ts
+C:\Users\isaha\agent-web\apps\web\lib\utils.ts
+C:\Users\isaha\agent-web\packages\core\src\constants.ts
+C:\Users\isaha\agent-web\packages\core\src\errors.ts
+C:\Users\isaha\agent-web\packages\core\src\index.ts
+C:\Users\isaha\agent-web\packages\core\src\schemas.ts
+C:\Users\isaha\agent-web\packages\core\src\types.ts
+C:\Users\isaha\agent-web\apps\web\AGENTS.md
+C:\Users\isaha\agent-web\apps\web\CLAUDE.md
+C:\Users\isaha\agent-web\apps\web\README.md

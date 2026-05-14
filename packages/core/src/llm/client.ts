@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText, convertToModelMessages } from "ai";
+import { streamText } from "ai";
 import { LLMConfig, Message } from "../types.js";
 import { registry } from "../tools/registry.js";
 

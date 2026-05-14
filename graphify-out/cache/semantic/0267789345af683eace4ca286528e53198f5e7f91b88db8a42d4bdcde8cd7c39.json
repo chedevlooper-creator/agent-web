@@ -1,0 +1,1 @@
+{"nodes": [{"id": "config_route_get", "label": "GET /api/config", "file_type": "code", "source_file": "apps/web/app/api/config/route.ts", "source_location": "GET"}, {"id": "config_route_patch", "label": "PATCH /api/config", "file_type": "code", "source_file": "apps/web/app/api/config/route.ts", "source_location": "PATCH"}], "edges": [], "hyperedges": []}

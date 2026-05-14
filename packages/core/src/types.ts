@@ -3,6 +3,8 @@ export interface Tool {
   description: string;
   parameters: Record<string, unknown>;
   handler: (args: Record<string, unknown>) => Promise<string>;
+  toolset?: string; // e.g., "web", "terminal", "file", "browser", "vision"
+  check_fn?: () => boolean; // Optional gate to control tool availability
 }
 
 export interface Message {
@@ -25,7 +27,7 @@ export interface ToolResult {
 }
 
 export interface LLMConfig {
-  provider: "openai" | "openrouter" | "opencode";
+  provider: string; // expanded: openai, openrouter, opencode, anthropic, deepseek, gemini, etc.
   model: string;
   apiKey: string;
   baseUrl?: string;
