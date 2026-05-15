@@ -298,7 +298,7 @@ function FilePreviewCard({
 function TypingIndicator({ label }: { label?: string }) {
   return (
     <div
-      className="agent-message-row flex items-start gap-2 animate-message-in sm:gap-3"
+      className="agent-message-row flex w-full items-start gap-2 animate-message-in sm:gap-3"
       role="status"
     >
       <div className="agent-avatar-cube agent-avatar-cube--assistant">
@@ -547,7 +547,7 @@ function MessageBubble({
   return (
     <div
       className={cn(
-        "agent-message-row group/message flex gap-2 animate-message-in sm:gap-3",
+        "agent-message-row group/message flex w-full items-start gap-2 animate-message-in sm:gap-3",
         isUser ? "flex-row-reverse" : "flex-row",
       )}
       style={{ animationDelay: `${Math.min(index * 30, 150)}ms` }}
@@ -909,7 +909,7 @@ function CompareRow({
 function CompareCell({ message }: { message: ChatMessage }) {
   const isError = message.content.startsWith("Error:");
   return (
-    <div className="agent-message-row flex items-start gap-2">
+    <div className="agent-message-row flex w-full items-start gap-2">
       <div className="agent-avatar-cube agent-avatar-cube--assistant agent-avatar-cube--sm">
         <Bot className="text-[var(--primary)]" />
       </div>
@@ -1362,7 +1362,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="agent-chat-stage flex h-full flex-col relative">
+    <div className="agent-chat-stage relative flex h-full min-w-0 flex-col overflow-hidden">
       {/* Messages Area */}
       {messages.length === 0 ? (
         <EmptyState onPrompt={handleStarterPrompt} />
@@ -1370,9 +1370,9 @@ export function ChatInterface() {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 overflow-x-hidden overflow-y-auto"
+          className="relative min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
         >
-          <div className="mx-auto flex max-w-5xl flex-col gap-6 py-6 pl-4 pr-10 sm:px-6">
+          <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6">
             {renderItems.map((item) =>
               item.kind === "single" ? (
                 <MessageBubble
@@ -1432,8 +1432,8 @@ export function ChatInterface() {
       )}
 
       {/* Input Area */}
-      <div className="shrink-0 border-t border-[var(--border)] bg-[var(--background)] safe-bottom">
-        <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6">
+      <div className="w-full min-w-0 shrink-0 overflow-hidden border-t border-[var(--border)] bg-[var(--background)] safe-bottom">
+        <div className="mx-auto w-full min-w-0 max-w-4xl px-4 py-3 sm:px-6">
           {compareMode && effectiveModels.length > 1 && (
             <Badge variant="outline" className="agent-compare-badge mb-2">
               <GitCompare data-icon="inline-start" />
@@ -1480,8 +1480,8 @@ export function ChatInterface() {
               ))}
             </div>
           )}
-          <Card className="agent-composer gap-0 py-0">
-            <CardContent className="flex items-end gap-2 px-2 py-2">
+          <Card className="agent-composer w-full min-w-0 gap-0 py-0">
+            <CardContent className="flex min-w-0 items-end gap-2 px-2 py-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1522,7 +1522,7 @@ export function ChatInterface() {
                 }
                 disabled={!hasApiKey}
                 rows={1}
-                className="min-h-10 max-h-[320px] flex-1 resize-none border-0 bg-transparent px-2 py-2 font-mono text-xs shadow-none focus-visible:ring-0"
+                className="min-h-10 max-h-[320px] min-w-0 flex-1 resize-none border-0 bg-transparent px-2 py-2 font-mono text-xs shadow-none focus-visible:ring-0"
               />
               <TooltipIconButton
                 type="button"
@@ -1552,7 +1552,7 @@ export function ChatInterface() {
                   ? effectiveModels.join(", ")
                   : model}
               </p>
-              <p className="flex shrink-0 items-center gap-1 font-mono text-[10px] text-[var(--dim-foreground)]">
+              <p className="hidden shrink-0 items-center gap-1 font-mono text-[10px] text-[var(--dim-foreground)] sm:flex">
                 <CornerDownLeft />
                 Enter to send
               </p>
