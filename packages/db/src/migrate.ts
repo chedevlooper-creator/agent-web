@@ -33,6 +33,20 @@ const CREATE_INDEX_SESSIONS_UPDATED = `
 CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON sessions(updated_at);
 `;
 
+const CREATE_MEMORIES = `
+CREATE TABLE IF NOT EXISTS memories (
+  id TEXT PRIMARY KEY,
+  key TEXT NOT NULL UNIQUE,
+  value TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+`;
+
+const CREATE_INDEX_MEMORIES_KEY = `
+CREATE INDEX IF NOT EXISTS idx_memories_key ON memories(key);
+`;
+
 let migrated = false;
 
 export async function runMigrations(url?: string, authToken?: string) {
@@ -49,6 +63,8 @@ export async function runMigrations(url?: string, authToken?: string) {
   await client.execute(CREATE_INDEX_MESSAGES_SESSION);
   await client.execute(CREATE_INDEX_MESSAGES_TIMESTAMP);
   await client.execute(CREATE_INDEX_SESSIONS_UPDATED);
+  await client.execute(CREATE_MEMORIES);
+  await client.execute(CREATE_INDEX_MEMORIES_KEY);
 
   migrated = true;
 }

@@ -1,6 +1,6 @@
 import "server-only";
-import { getDb, sessions, messages, ensureMigrated } from "@agent-web/db";
-import { eq, desc, asc } from "drizzle-orm";
+import { getDb, sessions, messages, memories, ensureMigrated } from "@agent-web/db";
+import { eq, desc, asc, and, gt, gte } from "drizzle-orm";
 
 export type Role = "user" | "assistant" | "system";
 
@@ -200,16 +200,14 @@ export async function deleteMessagesAfter(
 ): Promise<void> {
   await ready();
   const db = getDb();
-  const all = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.sessionId, sessionId));
-  const toDelete = all.filter((m) =>
-    inclusive ? m.timestamp >= afterTimestamp : m.timestamp > afterTimestamp
+  await db.delete(messages).where(
+    and(
+      eq(messages.sessionId, sessionId),
+      inclusive
+        ? gte(messages.timestamp, afterTimestamp)
+        : gt(messages.timestamp, afterTimestamp)
+    )
   );
-  for (const m of toDelete) {
-    await db.delete(messages).where(eq(messages.id, m.id));
-  }
 }
 
 export async function clearMessages(sessionId: string): Promise<void> {
@@ -257,4 +255,76 @@ export async function importSessions(
     }
   }
   return { sessions: sCount, messages: mCount };
+}
+
+// ===== Memory CRUD =====
+
+export interface DbMemory {
+  id: string;
+  key: string;
+  value: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export async function listMemories(): Promise<DbMemory[]> {
+  await ready();
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(memories)
+    .orderBy(asc(memories.key));
+  return rows.map((r) => ({
+    id: r.id,
+    key: r.key,
+    value: r.value,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  }));
+}
+
+export async function upsertMemory(input: {
+  key: string;
+  value: string;
+}): Promise<DbMemory> {
+  await ready();
+  const db = getDb();
+  const now = Date.now();
+
+  // Check if key already exists
+  const existing = await db
+    .select()
+    .from(memories)
+    .where(eq(memories.key, input.key));
+
+  if (existing.length > 0) {
+    await db
+      .update(memories)
+      .set({ value: input.value, updatedAt: now })
+      .where(eq(memories.key, input.key));
+    return {
+      id: existing[0].id,
+      key: input.key,
+      value: input.value,
+      createdAt: existing[0].createdAt,
+      updatedAt: now,
+    };
+  }
+
+  const id = Math.random().toString(36).slice(2, 11) + Date.now().toString(36).slice(-4);
+  const row = {
+    id,
+    key: input.key,
+    value: input.value,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.insert(memories).values(row);
+  return row;
+}
+
+export async function deleteMemory(key: string): Promise<void> {
+  await ready();
+  const db = getDb();
+  await db.delete(memories).where(eq(memories.key, key));
 }

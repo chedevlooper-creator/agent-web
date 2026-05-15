@@ -1,4 +1,4 @@
-import { terminalTool } from "./terminal.js";
+import { terminalTool } from "./terminal/index.js";
 import { readFileTool } from "./file-read.js";
 import { webSearchTool } from "./web-search.js";
 
@@ -13,7 +13,7 @@ export type ToolName = keyof typeof tools;
 export const toolDescriptions: Record<ToolName, { name: string; description: string; status: "active" | "disabled" }> = {
   terminal: {
     name: "Terminal",
-    description: "Execute shell commands on the local machine",
+    description: "Execute shell commands (sandboxed or local with safety restrictions)",
     status: "active",
   },
   read_file: {

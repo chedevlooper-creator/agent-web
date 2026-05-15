@@ -1,13 +1,20 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 // ===== Types =====
+export interface ToolCallInfo {
+  id: string;
+  name: string;
+  args: string;
+  result?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   model?: string;
   timestamp: number;
+  toolCalls?: ToolCallInfo[];
 }
 
 export interface Session {
@@ -33,8 +40,14 @@ interface ChatStore {
   provider: string;
   model: string;
   apiKey: string;
+  hasApiKey: boolean;
+  serverProviders: Record<string, boolean>;
   selectedModels: string[]; // for A/B comparison, max 2
   compareMode: boolean;
+
+  // Skills
+  skills: { name: string; description: string; path: string }[];
+  enabledSkills: string[];
 
   // Hydration
   hydrate: () => Promise<void>;
@@ -63,9 +76,14 @@ interface ChatStore {
 
   // Settings
   setConfig: (c: Partial<Pick<ChatStore, "provider" | "model" | "apiKey">>) => void;
+  checkApiKeyStatus: () => Promise<void>;
   setSelectedModels: (models: string[]) => void;
   toggleSelectedModel: (model: string) => void;
   setCompareMode: (v: boolean) => void;
+
+  // Skills
+  fetchSkills: () => Promise<void>;
+  toggleSkill: (name: string) => void;
 
   // Import/Export
   importFromJson: (json: string) => Promise<{ sessions: number; messages: number }>;
@@ -94,9 +112,7 @@ async function apiFetch(input: string, init?: RequestInit) {
   return res.json();
 }
 
-export const useChatStore = create<ChatStore>()(
-  persist(
-    (set, get) => ({
+export const useChatStore = create<ChatStore>()((set, get) => ({
       sessions: [],
       activeSessionId: null,
       hydrated: false,
@@ -107,8 +123,13 @@ export const useChatStore = create<ChatStore>()(
       provider: "openrouter",
       model: "openai/gpt-4o-mini",
       apiKey: "",
+      hasApiKey: false,
+      serverProviders: {},
       selectedModels: [],
       compareMode: false,
+
+      skills: [],
+      enabledSkills: [],
 
       hydrate: async () => {
         try {
@@ -384,6 +405,18 @@ export const useChatStore = create<ChatStore>()(
 
       setConfig: (c) => set((s) => ({ ...s, ...c })),
 
+      checkApiKeyStatus: async () => {
+        try {
+          const data = (await apiFetch("/api/config/status")) as {
+            providers: Record<string, boolean>;
+          };
+          const hasAny = Object.values(data.providers).some(Boolean);
+          set({ serverProviders: data.providers, hasApiKey: hasAny });
+        } catch {
+          set({ serverProviders: {}, hasApiKey: false });
+        }
+      },
+
       setSelectedModels: (models) =>
         set({ selectedModels: models.slice(0, 2), compareMode: models.length > 1 }),
 
@@ -408,6 +441,30 @@ export const useChatStore = create<ChatStore>()(
           compareMode: v && s.selectedModels.length > 1,
         })),
 
+      fetchSkills: async () => {
+        try {
+          const res = await fetch("/api/skills");
+          const data = (await res.json()) as {
+            name: string;
+            description: string;
+            path: string;
+          }[];
+          set({ skills: Array.isArray(data) ? data : [] });
+        } catch {
+          set({ skills: [] });
+        }
+      },
+
+      toggleSkill: (name) =>
+        set((s) => {
+          const exists = s.enabledSkills.includes(name);
+          return {
+            enabledSkills: exists
+              ? s.enabledSkills.filter((n) => n !== name)
+              : [...s.enabledSkills, name],
+          };
+        }),
+
       importFromJson: async (json) => {
         const payload = JSON.parse(json);
         const result = (await apiFetch("/api/sessions/import", {
@@ -417,20 +474,7 @@ export const useChatStore = create<ChatStore>()(
         await get().hydrate();
         return result;
       },
-    }),
-    {
-      name: "agent-web-store",
-      partialize: (state) => ({
-        sidebarOpen: state.sidebarOpen,
-        provider: state.provider,
-        model: state.model,
-        apiKey: state.apiKey,
-        selectedModels: state.selectedModels,
-        compareMode: state.compareMode,
-        activeSessionId: state.activeSessionId,
-      }),
-    }
-  )
+  })
 );
 
 async function loadSessionMessages(sessionId: string) {

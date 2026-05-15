@@ -30,7 +30,17 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const memories = sqliteTable("memories", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
+export type Memory = typeof memories.$inferSelect;
+export type NewMemory = typeof memories.$inferInsert;
