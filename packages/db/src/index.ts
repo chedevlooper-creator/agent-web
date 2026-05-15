@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/libsql";
+import { eq, and, desc } from "drizzle-orm";
 import { createClient } from "@libsql/client";
 import * as schema from "./schema.js";
 
@@ -165,6 +166,29 @@ export async function ensureSchema() {
       created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
       resolved_at INTEGER
     )`,
+    `CREATE TABLE IF NOT EXISTS documents (
+      id TEXT PRIMARY KEY,
+      session_id TEXT REFERENCES sessions(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      extension TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      storage_path TEXT NOT NULL,
+      content TEXT,
+      metadata TEXT,
+      uploaded_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS document_versions (
+      id TEXT PRIMARY KEY,
+      document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      version_number INTEGER NOT NULL,
+      storage_path TEXT NOT NULL,
+      change_summary TEXT,
+      created_by TEXT NOT NULL DEFAULT 'user',
+      created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
   ];
 
   for (const sql of statements) {
@@ -260,6 +284,109 @@ export async function searchSessions(query: string, opts?: { limit?: number; ses
     messageCreatedAt: row.message_created_at,
     relevance: row.relevance,
   }));
+}
+
+// ─── Document CRUD ────────────────────────────────────────────────────
+
+export async function createDocument(opts: {
+  id: string;
+  sessionId?: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  extension: string;
+  fileSize: number;
+  storagePath: string;
+  content?: string;
+  metadata?: string;
+}) {
+  const { id, sessionId, filename, originalName, mimeType, extension, fileSize, storagePath, content, metadata } = opts;
+  await db.insert(schema.documents).values({
+    id,
+    sessionId: sessionId ?? null,
+    filename,
+    originalName,
+    mimeType,
+    extension,
+    fileSize,
+    storagePath,
+    content: content ?? null,
+    metadata: metadata ?? null,
+  });
+  return id;
+}
+
+export async function getDocument(id: string) {
+  const rows = await db.select().from(schema.documents).where(eq(schema.documents.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listDocuments(opts?: { sessionId?: string; limit?: number; offset?: number }) {
+  const conditions: any[] = [];
+  if (opts?.sessionId) {
+    conditions.push(eq(schema.documents.sessionId, opts.sessionId));
+  }
+
+  const rows = await db
+    .select()
+    .from(schema.documents)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(schema.documents.uploadedAt))
+    .limit(opts?.limit ?? 50)
+    .offset(opts?.offset ?? 0);
+
+  return rows;
+}
+
+export async function updateDocument(
+  id: string,
+  data: Partial<{
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    extension: string;
+    fileSize: number;
+    storagePath: string;
+    content: string;
+    metadata: string;
+  }>
+) {
+  await db
+    .update(schema.documents)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(schema.documents.id, id));
+}
+
+export async function deleteDocument(id: string) {
+  await db.delete(schema.documents).where(eq(schema.documents.id, id));
+}
+
+export async function createDocumentVersion(opts: {
+  id: string;
+  documentId: string;
+  versionNumber: number;
+  storagePath: string;
+  changeSummary?: string;
+  createdBy: "user" | "ai";
+}) {
+  const { id, documentId, versionNumber, storagePath, changeSummary, createdBy } = opts;
+  await db.insert(schema.documentVersions).values({
+    id,
+    documentId,
+    versionNumber,
+    storagePath,
+    changeSummary: changeSummary ?? null,
+    createdBy,
+  });
+  return id;
+}
+
+export async function getDocumentVersions(documentId: string) {
+  return db
+    .select()
+    .from(schema.documentVersions)
+    .where(eq(schema.documentVersions.documentId, documentId))
+    .orderBy(desc(schema.documentVersions.versionNumber));
 }
 
 export async function getMemoryUsage() {

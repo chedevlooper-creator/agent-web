@@ -229,3 +229,42 @@ export type ToolAuditLog = typeof toolAuditLog.$inferSelect;
 export type NewToolAuditLog = typeof toolAuditLog.$inferInsert;
 export type PendingApprovalDB = typeof pendingApprovals.$inferSelect;
 export type NewPendingApprovalDB = typeof pendingApprovals.$inferInsert;
+
+// Documents
+export const documents = sqliteTable("documents", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(), // stored filename on disk
+  originalName: text("original_name").notNull(), // original filename with extension
+  mimeType: text("mime_type").notNull(),
+  extension: text("extension").notNull(), // pdf, docx, xlsx, etc.
+  fileSize: integer("file_size").notNull(), // size in bytes
+  storagePath: text("storage_path").notNull(), // path to file on disk
+  content: text("content"), // cached text content
+  metadata: text("metadata"), // JSON: author, pages, etc.
+  uploadedAt: integer("uploaded_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const documentVersions = sqliteTable("document_versions", {
+  id: text("id").primaryKey(),
+  documentId: text("document_id")
+    .notNull()
+    .references(() => documents.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  storagePath: text("storage_path").notNull(),
+  changeSummary: text("change_summary"), // AI-generated summary of changes
+  createdBy: text("created_by", { enum: ["user", "ai"] }).notNull().default("user"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;
+export type DocumentVersion = typeof documentVersions.$inferSelect;
+export type NewDocumentVersion = typeof documentVersions.$inferInsert;

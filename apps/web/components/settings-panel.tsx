@@ -1,6 +1,7 @@
 "use client";
 
 import { useChatStore } from "@/lib/store";
+import { getShortcutKeys, matchAnyShortcut } from "@/lib/shortcuts-config";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -15,6 +16,7 @@ import {
   Brain,
   Zap,
   Users,
+  Keyboard,
   KeyRound,
   Globe,
   Trash2,
@@ -26,21 +28,51 @@ import { useState, useEffect, useCallback } from "react";
 
 import { PROVIDER_CATALOG, getProviderDefaults, NINEROUTER_DEFAULT_BASE } from "@/lib/providers-catalog";
 
+import { ShortcutsConfigTab } from "@/components/shortcuts-config-tab";
+
 const TABS = [
   { id: "provider" as const, label: "Provider", icon: Zap, description: "LLM configuration" },
   { id: "mcp" as const, label: "MCP", icon: Server, description: "Model Context Protocol" },
   { id: "skills" as const, label: "Skills", icon: Wrench, description: "Custom capabilities" },
   { id: "memory" as const, label: "Memory", icon: Brain, description: "Agent knowledge" },
   { id: "subagents" as const, label: "Agents", icon: Users, description: "Spawn assistants" },
+  { id: "shortcuts" as const, label: "Shortcuts", icon: Keyboard, description: "Custom keybindings" },
 ];
 
 export function SettingsPanel() {
   const { provider, model, apiKey, baseUrl, setConfig } = useChatStore();
   const currentProvider = PROVIDER_CATALOG.find((p) => p.value === provider);
   const [tab, setTab] = useState<typeof TABS[number]["id"]>("provider");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Listen for toggle-settings custom event (dispatched by Ctrl+,)
+  useEffect(() => {
+    const handler = () => setSettingsOpen((prev) => !prev);
+    document.addEventListener("toggle-settings", handler);
+    return () => document.removeEventListener("toggle-settings", handler);
+  }, []);
+
+  // Alt+1-5 to switch tabs when settings is open (uses configured shortcuts)
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const overrides = useChatStore.getState().shortcutOverrides;
+      for (let i = 0; i < TABS.length; i++) {
+        const keys = getShortcutKeys(`settings-tab-${i + 1}`, overrides);
+        if (matchAnyShortcut(e, keys)) {
+          e.preventDefault();
+          e.stopPropagation();
+          setTab(TABS[i].id);
+          return;
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [settingsOpen]);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={settingsOpen} onOpenChange={setSettingsOpen}>
       <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon", className: "h-9 w-9 rounded-xl hover:bg-surface-muted transition-all duration-200" })}>
         <Settings size={18} className="text-muted-foreground" />
       </DropdownMenuTrigger>
@@ -52,12 +84,13 @@ export function SettingsPanel() {
               <p className="text-[10px] text-muted-foreground">Manage your workspace</p>
             </div>
             <div className="space-y-1 px-2 flex-1">
-              {TABS.map((t) => {
+              {TABS.map((t, i) => {
                 const Icon = t.icon;
                 const isActive = tab === t.id;
                 return (
                   <button
                     key={t.id}
+                    title={`${t.label} (Alt+${i + 1})`}
                     onClick={() => setTab(t.id)}
                     className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 ${
                       isActive
@@ -168,6 +201,7 @@ export function SettingsPanel() {
               {tab === "skills" && <SkillsTab />}
               {tab === "memory" && <MemoryTab />}
               {tab === "subagents" && <SubagentsTab />}
+              {tab === "shortcuts" && <ShortcutsConfigTab />}
             </div>
           </div>
         </div>

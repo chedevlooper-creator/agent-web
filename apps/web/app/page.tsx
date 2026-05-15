@@ -2,16 +2,18 @@
 
 import { useEffect } from "react";
 import { useChatStore } from "@/lib/store";
+import { getShortcutKeys, matchAnyShortcut } from "@/lib/shortcuts-config";
 import { SessionSidebar } from "@/components/session-sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { SettingsPanel } from "@/components/settings-panel";
 import { ContextPanel } from "@/components/context-panel";
+import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { PanelLeft, Bot, PanelRight, Sparkles } from "lucide-react";
 
 export default function Home() {
-  const { sidebarCollapsed, toggleSidebar, contextPanelOpen, setConfig } = useChatStore();
+  const { sidebarCollapsed, toggleSidebar, contextPanelOpen, showShortcuts, setShowShortcuts, setConfig, setContextPanelOpen } = useChatStore();
 
   useEffect(() => {
     fetch("/api/config")
@@ -27,6 +29,56 @@ export default function Home() {
       })
       .catch(() => {});
   }, [setConfig]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const state = useChatStore.getState();
+      const isInputting = e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.isContentEditable;
+
+      // Toggle shortcuts help
+      if (
+        matchAnyShortcut(e, getShortcutKeys("toggle-shortcuts", state.shortcutOverrides)) &&
+        !isInputting
+      ) {
+        e.preventDefault();
+        state.setShowShortcuts(!state.showShortcuts);
+        return;
+      }
+
+      // Esc : close shortcuts help (if open)
+      if (state.showShortcuts && matchAnyShortcut(e, getShortcutKeys("close-shortcuts", state.shortcutOverrides))) {
+        e.preventDefault();
+        state.setShowShortcuts(false);
+        return;
+      }
+
+      // Toggle context panel
+      if (
+        matchAnyShortcut(e, getShortcutKeys("toggle-context-panel", state.shortcutOverrides)) &&
+        !isInputting
+      ) {
+        e.preventDefault();
+        state.setContextPanelOpen(!state.contextPanelOpen);
+        return;
+      }
+
+      // Toggle settings panel
+      if (
+        matchAnyShortcut(e, getShortcutKeys("toggle-settings", state.shortcutOverrides)) &&
+        !isInputting
+      ) {
+        e.preventDefault();
+        document.dispatchEvent(new CustomEvent("toggle-settings"));
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []); // Empty deps: handler reads fresh state via getState()
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
@@ -72,8 +124,8 @@ export default function Home() {
                   ? "bg-primary/10 text-primary shadow-sm"
                   : "hover:bg-surface-muted text-muted-foreground"
               }`}
-              onClick={() => useChatStore.setState({ contextPanelOpen: !contextPanelOpen })}
-              title="Toggle context panel"
+              onClick={() => setContextPanelOpen(!contextPanelOpen)}
+              title="Toggle context panel (Ctrl+B)"
             >
               <PanelRight size={16} />
             </Button>
@@ -87,6 +139,7 @@ export default function Home() {
       </div>
 
       <ContextPanel />
+      <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }

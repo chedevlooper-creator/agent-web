@@ -1,6 +1,7 @@
 "use client";
 
 import { useChatStore } from "@/lib/store";
+import { getShortcutKeys, matchAnyShortcut } from "@/lib/shortcuts-config";
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,7 +26,9 @@ import {
   X,
   Sparkles,
   ChevronRight,
+  FileText,
 } from "lucide-react";
+import { DocumentTab } from "@/components/document-panel";
 
 const TABS = [
   { id: "tools" as const, label: "Tools", icon: Wrench },
@@ -34,10 +37,29 @@ const TABS = [
   { id: "subagents" as const, label: "Agents", icon: Users },
   { id: "cron" as const, label: "Cron", icon: Clock },
   { id: "search" as const, label: "Search", icon: Search },
+  { id: "documents" as const, label: "Documents", icon: FileText },
 ];
 
 export function ContextPanel() {
   const { contextPanelOpen, contextPanelTab, setContextPanelOpen, setContextPanelTab } = useChatStore();
+
+  // Alt+1-7 to switch tabs (uses configured shortcuts)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const overrides = useChatStore.getState().shortcutOverrides;
+      for (let i = 0; i < TABS.length; i++) {
+        const keys = getShortcutKeys(`context-tab-${i + 1}`, overrides);
+        if (matchAnyShortcut(e, keys)) {
+          e.preventDefault();
+          setContextPanelOpen(true);
+          setContextPanelTab(TABS[i].id);
+          return;
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [setContextPanelOpen, setContextPanelTab]);
 
   if (!contextPanelOpen) {
     return (
@@ -52,7 +74,7 @@ export function ContextPanel() {
           <PanelRightOpen size={18} className="text-muted-foreground" />
         </Button>
         <div className="w-8 h-px bg-border my-1" />
-        {TABS.map((t) => {
+        {TABS.map((t, i) => {
           const Icon = t.icon;
           return (
             <button
@@ -61,14 +83,17 @@ export function ContextPanel() {
                 setContextPanelOpen(true);
                 setContextPanelTab(t.id);
               }}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 relative ${
                 contextPanelTab === t.id
                   ? "bg-gradient-to-br from-primary/20 to-accent/20 text-primary shadow-sm"
                   : "hover:bg-surface-muted text-muted-foreground"
               }`}
-              title={t.label}
+              title={`${t.label} (Alt+${i + 1})`}
             >
               <Icon size={16} />
+              <kbd className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-muted/80 text-[7px] font-medium text-muted-foreground/60 border border-border/30">
+                {i + 1}
+              </kbd>
             </button>
           );
         })}
@@ -86,7 +111,7 @@ export function ContextPanel() {
           <span className="text-xs font-semibold text-foreground">Context</span>
         </div>
         <div className="flex items-center gap-1">
-          {TABS.map((t) => {
+          {TABS.map((t, i) => {
             const Icon = t.icon;
             return (
               <button
@@ -97,7 +122,7 @@ export function ContextPanel() {
                     ? "bg-primary/10 text-primary shadow-sm"
                     : "hover:bg-surface-muted text-muted-foreground"
                 }`}
-                title={t.label}
+                title={`${t.label} (Alt+${i + 1})`}
               >
                 <Icon size={14} />
               </button>
@@ -123,6 +148,7 @@ export function ContextPanel() {
           {contextPanelTab === "subagents" && <SubagentsTab />}
           {contextPanelTab === "cron" && <CronTab />}
           {contextPanelTab === "search" && <SearchTab />}
+          {contextPanelTab === "documents" && <DocumentTab />}
         </div>
       </ScrollArea>
     </div>

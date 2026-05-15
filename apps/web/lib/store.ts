@@ -110,6 +110,8 @@ interface ChatStore {
 
   contextPanelOpen: boolean;
   contextPanelTab: string;
+  showShortcuts: boolean;
+  shortcutOverrides: Record<string, string[]>;
 
   streamingTokens: number;
   streamingStart: number | null;
@@ -137,6 +139,9 @@ interface ChatStore {
   setCronJobs: (jobs: CronJobItem[]) => void;
   setContextPanelOpen: (open: boolean) => void;
   setContextPanelTab: (tab: string) => void;
+  setShowShortcuts: (open: boolean) => void;
+  updateShortcut: (id: string, keys: string[]) => void;
+  resetShortcut: (id: string) => void;
   setStreamingTokens: (count: number) => void;
   startStreaming: () => void;
   stopStreaming: () => void;
@@ -190,6 +195,8 @@ export const useChatStore = create<ChatStore>()(
 
       contextPanelOpen: false,
       contextPanelTab: "tools",
+      showShortcuts: false,
+      shortcutOverrides: {},
 
       streamingTokens: 0,
       streamingStart: null,
@@ -226,6 +233,17 @@ export const useChatStore = create<ChatStore>()(
       setCronJobs: (cronJobs) => set({ cronJobs }),
       setContextPanelOpen: (contextPanelOpen) => set({ contextPanelOpen }),
       setContextPanelTab: (contextPanelTab) => set({ contextPanelTab }),
+      setShowShortcuts: (showShortcuts) => set({ showShortcuts }),
+      updateShortcut: (id, keys) =>
+        set((s) => ({
+          shortcutOverrides: { ...s.shortcutOverrides, [id]: keys },
+        })),
+      resetShortcut: (id) =>
+        set((s) => {
+          const next = { ...s.shortcutOverrides };
+          delete next[id];
+          return { shortcutOverrides: next };
+        }),
       setStreamingTokens: (streamingTokens) => set({ streamingTokens }),
       startStreaming: () => set({ streamingTokens: 0, streamingStart: Date.now() }),
       stopStreaming: () => set({ streamingTokens: 0, streamingStart: null }),
@@ -270,6 +288,7 @@ export const useChatStore = create<ChatStore>()(
         toolsets: state.toolsets,
         contextPanelOpen: state.contextPanelOpen,
         contextPanelTab: state.contextPanelTab,
+        shortcutOverrides: state.shortcutOverrides,
       }),
     }
   )

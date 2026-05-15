@@ -6,6 +6,7 @@ export * from "./tools/vision_tools.js";
 export * from "./tools/todo_tools.js";
 export * from "./tools/memory_tools.js";
 export * from "./tools/delegate_tools.js";
+export * from "./tools/documents.js";
 export * from "./llm/client.js";
 export * from "./chat/engine.js";
 export * from "./memory/manager.js";

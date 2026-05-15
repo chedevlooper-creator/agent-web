@@ -7,8 +7,9 @@ import { visionTools } from "./vision_tools.js";
 import { todoTools } from "./todo_tools.js";
 import { memoryTools } from "./memory_tools.js";
 import { delegateTools } from "./delegate_tools.js";
+import { documentTools } from "./documents.js";
 
-const TOOLSET_NAMES = ["terminal", "file", "web", "code_execution", "browser", "vision", "todo", "memory", "delegate"] as const;
+const TOOLSET_NAMES = ["terminal", "file", "web", "code_execution", "browser", "vision", "todo", "memory", "delegate", "document"] as const;
 export type ToolsetName = typeof TOOLSET_NAMES[number];
 
 export class ToolRegistry {
@@ -25,6 +26,7 @@ export class ToolRegistry {
     todoTools.forEach((t) => this.register(t));
     memoryTools.forEach((t) => this.register(t));
     delegateTools.forEach((t) => this.register(t));
+    documentTools.forEach((t) => this.register(t));
   }
 
   register(tool: Tool): void {
