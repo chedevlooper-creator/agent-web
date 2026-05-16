@@ -1,10 +1,12 @@
 import { terminalTool } from "./terminal.js";
 import { readFileTool } from "./file-read.js";
+import { writeFileTool } from "./file-write.js";
 import { webSearchTool } from "./web-search.js";
 
 export const tools = {
   terminal: terminalTool,
   read_file: readFileTool,
+  write_file: writeFileTool,
   web_search: webSearchTool,
 } as const;
 
@@ -21,6 +23,11 @@ export const toolDescriptions: Record<ToolName, { name: string; description: str
     description: "Read text files from the local filesystem",
     status: "active",
   },
+  write_file: {
+    name: "Write File",
+    description: "Create or overwrite files on the local filesystem",
+    status: "active",
+  },
   web_search: {
     name: "Web Search",
     description: "Search the web via DuckDuckGo",
@@ -28,4 +35,4 @@ export const toolDescriptions: Record<ToolName, { name: string; description: str
   },
 };
 
-export { terminalTool, readFileTool, webSearchTool };
+export { terminalTool, readFileTool, writeFileTool, webSearchTool };
