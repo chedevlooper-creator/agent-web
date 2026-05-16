@@ -20,7 +20,8 @@ import { MarkdownRenderer } from "./markdown-renderer";
 import { CompareRow } from "./compare-row";
 import { ToolCallBubble } from "./tool-call-bubble";
 import { WelcomeHero } from "./welcome-hero";
-import { type UploadedFile, getFileIcon, formatFileSize } from "./file-upload";
+import { formatFileSize } from "./file-upload";
+import { useScrollAnchor, useFileUpload } from "@/lib/hooks";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
 
@@ -171,71 +172,10 @@ export function ChatInterface() {
   const messages = useActiveMessages();
 
   const [input, setInput] = useState("");
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const shouldAutoScroll = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
 
-  // File upload handler
-  const handleFileUpload = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setIsUploading(true);
-    const newFiles: UploadedFile[] = [];
-
-    for (const file of Array.from(files)) {
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = await res.json();
-        if (!res.ok) {
-          toast.error(`Failed to upload ${file.name}: ${data.error}`);
-          continue;
-        }
-        newFiles.push({
-          name: data.file.name,
-          storedName: data.file.storedName,
-          size: data.file.size,
-          type: data.file.type,
-          content: data.content,
-          uploadedAt: data.file.uploadedAt,
-        });
-        toast.success(`Uploaded ${file.name}`);
-      } catch (err) {
-        toast.error(`Failed to upload ${file.name}`);
-        console.error(err);
-      }
-    }
-
-    setAttachedFiles((prev) => [...prev, ...newFiles]);
-    setIsUploading(false);
-  }, []);
-
-  const removeAttachedFile = useCallback((storedName: string) => {
-    setAttachedFiles((prev) => prev.filter((f) => f.storedName !== storedName));
-  }, []);
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
-    if (shouldAutoScroll.current) {
-      scrollToBottom();
-    }
-  }, [messages.length, scrollToBottom]);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const nearBottom = distFromBottom < 100;
-    shouldAutoScroll.current = nearBottom;
-    setShowScrollBtn(!nearBottom);
-  }, []);
+  const { messagesEndRef, scrollContainerRef, showScrollBtn, scrollToBottom, handleScroll } = useScrollAnchor([messages.length]);
+  const { attachedFiles, isUploading, handleFileUpload, removeAttachedFile, clearAttachedFiles } = useFileUpload();
 
   const effectiveModels = useMemo(() => {
     if (compareMode && selectedModels.length >= 2) {
@@ -375,7 +315,7 @@ export function ChatInterface() {
     
     if (!isString) {
       setInput("");
-      setAttachedFiles([]);
+      clearAttachedFiles();
     }
 
     await addMessage(userMsg);
