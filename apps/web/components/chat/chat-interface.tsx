@@ -38,10 +38,8 @@ import {
   Trash2,
   Loader2 as UploadSpinner,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { TypingIndicator } from "./typing-indicator";
+import { MarkdownRenderer } from "./markdown-renderer";
 
 // Persist a single message directly via API
 async function persistMessage(
@@ -60,47 +58,6 @@ async function persistMessage(
   } finally {
     useChatStore.getState().setSyncing(false);
   }
-}
-
-// ===== Assistant Content Renderer =====
-function AssistantContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
-  return (
-    <div className={cn("chat-prose", isStreaming && "streaming-cursor")}>
-      <ReactMarkdown
-        components={{
-          code({ className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || "");
-            const isInline = !className?.includes("language-");
-            return !isInline && match ? (
-              <SyntaxHighlighter
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                style={vscDarkPlus as any}
-                language={match[1]}
-                PreTag="div"
-                customStyle={{
-                  margin: "0.5rem 0",
-                  borderRadius: "0.625rem",
-                  fontSize: "0.8125rem",
-                  border: "1px solid var(--border-muted)",
-                }}
-              >
-                {String(children).replace(/\n$/, "")}
-              </SyntaxHighlighter>
-            ) : (
-              <code
-                className="bg-muted px-1.5 py-0.5 rounded-md text-xs border border-border-muted"
-                {...props}
-              >
-                {children}
-              </code>
-            );
-          },
-        }}
-      >
-        {content + (isStreaming ? " ▍" : "")}
-      </ReactMarkdown>
-    </div>
-  );
 }
 
 // ===== Message Bubble =====
@@ -274,7 +231,7 @@ function MessageBubble({
               )}
             </div>
           ) : message.content || isStreaming ? (
-            <AssistantContent content={message.content} isStreaming={isStreaming} />
+            <MarkdownRenderer content={message.content} isStreaming={isStreaming} />
           ) : (
             <span className="text-muted-foreground text-xs italic">Waiting...</span>
           )}
@@ -594,7 +551,7 @@ function CompareCell({ message }: { message: ChatMessage }) {
           {isError ? (
             <p className="text-destructive whitespace-pre-wrap">{message.content}</p>
           ) : message.content ? (
-            <AssistantContent content={message.content} />
+            <MarkdownRenderer content={message.content} />
           ) : (
             <span className="text-muted-foreground text-xs italic">Waiting...</span>
           )}
