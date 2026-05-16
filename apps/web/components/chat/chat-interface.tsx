@@ -11,24 +11,18 @@ import { cn } from "@/lib/utils";
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  Send,
-  Sparkles,
   ArrowDown,
-  CornerDownLeft,
   Loader2,
-  GitCompare,
-  Square,
-  Paperclip,
   Trash2,
-  Loader2 as UploadSpinner,
 } from "lucide-react";
 import { TypingIndicator } from "./typing-indicator";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { CompareRow } from "./compare-row";
 import { ToolCallBubble } from "./tool-call-bubble";
 import { WelcomeHero } from "./welcome-hero";
-import { type UploadedFile, getFileIcon, formatFileSize, FilePreviewBar } from "./file-upload";
+import { type UploadedFile, getFileIcon, formatFileSize } from "./file-upload";
 import { MessageBubble } from "./message-bubble";
+import { ChatInput } from "./chat-input";
 
 // Persist a single message directly via API
 async function persistMessage(
@@ -182,8 +176,6 @@ export function ChatInterface() {
   const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldAutoScroll = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -220,8 +212,6 @@ export function ChatInterface() {
 
     setAttachedFiles((prev) => [...prev, ...newFiles]);
     setIsUploading(false);
-    // Reset file input
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
   const removeAttachedFile = useCallback((storedName: string) => {
@@ -245,13 +235,6 @@ export function ChatInterface() {
     const nearBottom = distFromBottom < 100;
     shouldAutoScroll.current = nearBottom;
     setShowScrollBtn(!nearBottom);
-  }, []);
-
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    const ta = e.target;
-    ta.style.height = "auto";
-    ta.style.height = Math.min(ta.scrollHeight, 320) + "px";
   }, []);
 
   const effectiveModels = useMemo(() => {
@@ -393,7 +376,6 @@ export function ChatInterface() {
     if (!isString) {
       setInput("");
       setAttachedFiles([]);
-      if (textareaRef.current) textareaRef.current.style.height = "auto";
     }
 
     await addMessage(userMsg);
@@ -443,16 +425,6 @@ export function ChatInterface() {
     [messages, updateMessage, truncateAfter, submitChat]
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend]
-  );
-
   const handleCancel = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
@@ -466,7 +438,6 @@ export function ChatInterface() {
     function onGlobalKey(e: KeyboardEvent) {
       if (e.key === "Escape" && isLoading) { e.preventDefault(); handleCancel(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "n") { e.preventDefault(); createSession(); }
-      if ((e.ctrlKey || e.metaKey) && e.key === "/") { e.preventDefault(); textareaRef.current?.focus(); }
     }
     window.addEventListener("keydown", onGlobalKey);
     return () => window.removeEventListener("keydown", onGlobalKey);
@@ -576,99 +547,22 @@ export function ChatInterface() {
       )}
 
       {/* ===== Unified Input Area ===== */}
-      <div className="shrink-0 z-10 w-full px-4 pb-4 pt-3">
-        <div className="max-w-3xl mx-auto">
-          {/* Compare mode badge */}
-          {compareMode && effectiveModels.length > 1 && (
-            <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] bg-accent/10 text-accent border border-accent/20 font-medium">
-              <GitCompare size={11} />
-              Compare: {effectiveModels.join(" vs ")}
-            </div>
-          )}
-
-          <FilePreviewBar files={attachedFiles} onRemove={removeAttachedFile} />
-
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json,.xml,.html,.py,.js,.ts,.tsx,.jsx,.css,.yaml,.yml,.sql"
-            onChange={(e) => handleFileUpload(e.target.files)}
-            className="hidden"
-          />
-
-          {/* Input bar — same design for both empty and chat modes */}
-          <div
-            className={cn(
-              "flex items-end gap-2 p-2.5 rounded-2xl",
-              "bg-surface-elevated/60 border border-border/50 backdrop-blur-sm",
-              "focus-within:ring-2 focus-within:ring-primary/15 focus-within:border-primary/30",
-              "shadow-sm hover:shadow-md",
-              "transition-all duration-300"
-            )}
-          >
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className={cn(
-                "min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg shrink-0 transition-all duration-200",
-                isUploading
-                  ? "text-primary animate-pulse"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-              aria-label="Attach file"
-            >
-              {isUploading ? <UploadSpinner size={16} className="animate-spin" /> : <Paperclip size={16} />}
-            </button>
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleInput}
-              onKeyDown={handleKeyDown}
-              placeholder={apiKey ? "Message Agent Web..." : "Configure API key in settings first"}
-              disabled={!apiKey}
-              rows={1}
-              className="flex-1 bg-transparent text-sm resize-none px-2.5 py-1.5 min-h-[40px] max-h-[320px]
-                         placeholder:text-muted-foreground/50 focus:outline-none
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <button
-              onClick={isLoading ? handleCancel : handleSend}
-              disabled={!isLoading && (!input.trim() || !apiKey)}
-              className={cn(
-                "min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl shrink-0 transition-all duration-200",
-                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                isLoading
-                  ? "bg-destructive text-white hover:bg-destructive/90 active:scale-95"
-                  : input.trim() && apiKey
-                    ? "bg-gradient-to-br from-primary to-accent text-white shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-95"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
-              )}
-              aria-label={isLoading ? "Stop generation" : "Send message"}
-            >
-              {isLoading ? <Square size={14} className="fill-current" /> : <Send size={16} />}
-            </button>
-          </div>
-
-          {/* Bottom hints — always visible */}
-          <div className="flex items-center justify-between mt-1.5 px-1">
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
-              <Sparkles className="w-3 h-3 text-primary/60" />
-              <span>{provider}</span>
-              <span className="text-border">/</span>
-              <span className="font-medium text-muted-foreground/80">{model}</span>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
-              <CornerDownLeft size={10} />
-              <span>Enter to send</span>
-              <span className="text-border">·</span>
-              <kbd className="px-1.5 py-0.5 rounded-md border border-border-muted bg-surface-muted font-mono text-[9px]">Ctrl+N</kbd>
-              <span>New chat</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ChatInput
+        input={input}
+        onInputChange={setInput}
+        onSend={() => handleSend()}
+        onCancel={handleCancel}
+        isLoading={isLoading}
+        hasApiKey={!!apiKey}
+        provider={provider}
+        model={model}
+        compareMode={compareMode}
+        effectiveModels={effectiveModels}
+        attachedFiles={attachedFiles}
+        isUploading={isUploading}
+        onFileUpload={handleFileUpload}
+        onRemoveFile={removeAttachedFile}
+      />
 
       {/* Live region for screen readers */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
