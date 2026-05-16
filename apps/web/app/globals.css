@@ -105,6 +105,10 @@
 
 /* ===== BASE ===== */
 @layer base {
+  html.dark {
+    color-scheme: dark;
+  }
+
   * {
     border-color: var(--border);
   }
