@@ -11,8 +11,8 @@
       "import": "./dist/index.js"
     },
     "./tools": {
-      "types": "./dist/tools/index.d.ts",
-      "import": "./dist/tools/index.js"
+      "types": "./dist/tools/registry.d.ts",
+      "import": "./dist/tools/registry.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",

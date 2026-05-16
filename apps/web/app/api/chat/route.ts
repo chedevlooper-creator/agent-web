@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { tools } from "@agent-web/core";
+import { tools } from "@agent-web/core/tools";
 import { z } from "zod";
 import { estimateTokens } from "@/lib/utils";
 
