@@ -7,18 +7,14 @@ import {
   type ChatMessage,
   type ToolInvocation,
 } from "@/lib/store";
-import { cn } from "@/lib/utils";
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
   ArrowDown,
   Loader2,
-  Trash2,
 } from "lucide-react";
 import { TypingIndicator } from "./typing-indicator";
-import { MarkdownRenderer } from "./markdown-renderer";
 import { CompareRow } from "./compare-row";
-import { ToolCallBubble } from "./tool-call-bubble";
 import { WelcomeHero } from "./welcome-hero";
 import { formatFileSize } from "./file-upload";
 import { useScrollAnchor, useFileUpload } from "@/lib/hooks";
