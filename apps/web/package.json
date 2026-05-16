@@ -8,7 +8,10 @@
     "prestart": "node -e \"require('fs').mkdirSync('./data',{recursive:true})\"",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@agent-web/core": "workspace:*",
