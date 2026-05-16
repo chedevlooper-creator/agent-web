@@ -16,13 +16,9 @@ import {
   ArrowDown,
   CornerDownLeft,
   Loader2,
-  X,
-  FileText,
   GitCompare,
   Square,
   Paperclip,
-  FileSpreadsheet,
-  File,
   Trash2,
   Loader2 as UploadSpinner,
 } from "lucide-react";
@@ -31,6 +27,7 @@ import { MarkdownRenderer } from "./markdown-renderer";
 import { CompareRow } from "./compare-row";
 import { ToolCallBubble } from "./tool-call-bubble";
 import { WelcomeHero } from "./welcome-hero";
+import { type UploadedFile, getFileIcon, formatFileSize, FilePreviewBar } from "./file-upload";
 import { MessageBubble } from "./message-bubble";
 
 // Persist a single message directly via API
@@ -157,29 +154,6 @@ async function streamChat(
     throw e;
   }
   return { text, error };
-}
-
-// ===== File Upload Types =====
-interface UploadedFile {
-  name: string;
-  storedName: string;
-  size: number;
-  type: string;
-  content: string;
-  uploadedAt: number;
-}
-
-function getFileIcon(type: string) {
-  if (type === ".pdf") return <FileText size={14} className="text-red-400" />;
-  if (type === ".docx" || type === ".doc") return <FileText size={14} className="text-blue-400" />;
-  if (type === ".xlsx" || type === ".xls" || type === ".csv") return <FileSpreadsheet size={14} className="text-green-400" />;
-  return <File size={14} className="text-muted-foreground" />;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
 // ===== Main Chat Interface =====
@@ -612,28 +586,7 @@ export function ChatInterface() {
             </div>
           )}
 
-          {/* Attached files preview */}
-          {attachedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {attachedFiles.map((f) => (
-                <div
-                  key={f.storedName}
-                  className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-primary/8 border border-primary/20 text-xs font-medium text-foreground animate-slide-up"
-                >
-                  {getFileIcon(f.type)}
-                  <span className="max-w-[120px] truncate">{f.name}</span>
-                  <span className="text-[10px] text-muted-foreground">{formatFileSize(f.size)}</span>
-                  <button
-                    onClick={() => removeAttachedFile(f.storedName)}
-                    className="p-0.5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors"
-                    aria-label={`Remove ${f.name}`}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          <FilePreviewBar files={attachedFiles} onRemove={removeAttachedFile} />
 
           {/* Hidden file input */}
           <input
