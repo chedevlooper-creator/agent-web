@@ -49,7 +49,7 @@ interface StreamCallbacks {
 }
 
 async function streamChat(
-  payload: { messages: { role: string; content: string }[]; provider: string; model: string; apiKey: string },
+  payload: { messages: { role: string; content: string }[]; provider: string; model: string; apiKey: string; projectRootPath?: string },
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<{ text: string; error?: string }> {
@@ -157,6 +157,10 @@ export function ChatInterface() {
   const selectedModels = useChatStore((s) => s.selectedModels);
   const compareMode = useChatStore((s) => s.compareMode);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
+  const projectRootPath = useChatStore((s) => {
+    const p = s.projects.find((p) => p.id === s.activeProjectId);
+    return p?.rootPath;
+  });
   const addMessage = useChatStore((s) => s.addMessage);
   const updateMessage = useChatStore((s) => s.updateMessage);
   const truncateAfter = useChatStore((s) => s.truncateAfter);
@@ -207,7 +211,7 @@ export function ChatInterface() {
       placeholderId: string
     ) => {
       const { text, error } = await streamChat(
-        { messages: msgs, provider, model: useModel, apiKey },
+        { messages: msgs, provider, model: useModel, apiKey, projectRootPath },
         {
           onText: (delta) => {
             patchLocalMessage(placeholderId, getCurrentText(placeholderId) + delta);
@@ -248,7 +252,7 @@ export function ChatInterface() {
         return ses?.messages.find((m) => m.id === id)?.content ?? "";
       }
     },
-    [provider, apiKey, patchLocalMessage, patchLocalToolInvocations]
+    [provider, apiKey, projectRootPath, patchLocalMessage, patchLocalToolInvocations]
   );
 
   const submitChat = useCallback(

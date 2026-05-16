@@ -8,9 +8,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const sessions = await listSessions();
+    const { searchParams } = new URL(req.url);
+    const projectId = searchParams.get("projectId") || undefined;
+    const sessions = await listSessions(projectId);
     return NextResponse.json({ sessions });
   } catch (e: unknown) {
     const err = e as Error;
@@ -21,9 +23,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, title } = body as { id?: string; title?: string };
+    const { id, projectId, title } = body as { id?: string; projectId?: string | null; title?: string };
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-    const session = await createSession({ id, title });
+    const session = await createSession({ id, projectId, title });
     return NextResponse.json({ session });
   } catch (e: unknown) {
     const err = e as Error;

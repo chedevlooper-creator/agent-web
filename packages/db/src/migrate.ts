@@ -1,11 +1,23 @@
 import { createClient } from "@libsql/client";
 
+const CREATE_PROJECTS = `
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  root_path TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+`;
+
 const CREATE_SESSIONS = `
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
+  project_id TEXT,
   title TEXT NOT NULL,
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 `;
 
@@ -44,6 +56,7 @@ export async function runMigrations(url?: string, authToken?: string) {
     ...(token ? { authToken: token } : {}),
   });
 
+  await client.execute(CREATE_PROJECTS);
   await client.execute(CREATE_SESSIONS);
   await client.execute(CREATE_MESSAGES);
   await client.execute(CREATE_INDEX_MESSAGES_SESSION);

@@ -1,25 +1,39 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { ChatMessageData, SessionData } from "@agent-web/core";
 
 // ===== Types =====
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  model?: string;
-  timestamp: number;
+export interface ToolInvocation {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  result?: string;
+  state: "pending" | "result";
 }
 
-export interface Session {
-  id: string;
-  title: string;
+export interface ChatMessage extends ChatMessageData {
+  toolInvocations?: ToolInvocation[];
+}
+
+export interface Session extends Omit<SessionData, "messages"> {
   messages: ChatMessage[];
+  projectId?: string | null;
+}
+
+export interface DbProject {
+  id: string;
+  name: string;
+  rootPath: string;
   createdAt: number;
   updatedAt: number;
 }
 
 // ===== Chat Store =====
 interface ChatStore {
+  // Projects
+  projects: DbProject[];
+  activeProjectId: string | null;
+
   // Sessions
   sessions: Session[];
   activeSessionId: string | null;
@@ -27,7 +41,9 @@ interface ChatStore {
 
   // UI State
   sidebarOpen: boolean;
+  contextPanelOpen: boolean;
   isLoading: boolean;
+  syncing: boolean;
 
   // Settings
   provider: string;
@@ -38,6 +54,12 @@ interface ChatStore {
 
   // Hydration
   hydrate: () => Promise<void>;
+
+  // Projects
+  createProject: (name: string) => Promise<string>;
+  deleteProject: (id: string) => Promise<void>;
+  setActiveProject: (id: string | null) => void;
+  renameProject: (id: string, name: string) => Promise<void>;
 
   // Sessions
   createSession: () => Promise<string>;
@@ -59,7 +81,10 @@ interface ChatStore {
   // UI
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  setContextPanelOpen: (open: boolean) => void;
+  toggleContextPanel: () => void;
   setLoading: (v: boolean) => void;
+  setSyncing: (v: boolean) => void;
 
   // Settings
   setConfig: (c: Partial<Pick<ChatStore, "provider" | "model" | "apiKey">>) => void;
@@ -71,7 +96,7 @@ interface ChatStore {
   importFromJson: (json: string) => Promise<{ sessions: number; messages: number }>;
 }
 
-function genId() {
+export function genId() {
   return Math.random().toString(36).slice(2, 11) + Date.now().toString(36).slice(-4);
 }
 
@@ -97,12 +122,16 @@ async function apiFetch(input: string, init?: RequestInit) {
 export const useChatStore = create<ChatStore>()(
   persist(
     (set, get) => ({
+      projects: [],
+      activeProjectId: null,
       sessions: [],
       activeSessionId: null,
       hydrated: false,
 
       sidebarOpen: true,
+      contextPanelOpen: false,
       isLoading: false,
+      syncing: false,
 
       provider: "openrouter",
       model: "openai/gpt-4o-mini",
@@ -112,14 +141,20 @@ export const useChatStore = create<ChatStore>()(
 
       hydrate: async () => {
         try {
-          const { sessions } = (await apiFetch("/api/sessions")) as {
-            sessions: { id: string; title: string; createdAt: number; updatedAt: number }[];
+          // Load projects first
+          const { projects } = (await apiFetch("/api/projects")) as {
+            projects: { id: string; name: string; rootPath: string; createdAt: number; updatedAt: number }[];
           };
-          // Eagerly load messages for active or first session; others load on click.
+
+          const projectId = get().activeProjectId;
+          const { sessions } = (await apiFetch(`/api/sessions${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`)) as {
+            sessions: { id: string; projectId?: string | null; title: string; createdAt: number; updatedAt: number }[];
+          };
           const enriched: Session[] = [];
           for (const s of sessions) {
             enriched.push({
               id: s.id,
+              projectId: s.projectId,
               title: s.title,
               createdAt: s.createdAt,
               updatedAt: s.updatedAt,
@@ -128,6 +163,7 @@ export const useChatStore = create<ChatStore>()(
           }
           const activeId = get().activeSessionId || enriched[0]?.id || null;
           set({
+            projects,
             sessions: enriched,
             activeSessionId: activeId,
             hydrated: true,
@@ -141,16 +177,91 @@ export const useChatStore = create<ChatStore>()(
         }
       },
 
+      // ===== Project actions =====
+      createProject: async (name: string) => {
+        set({ syncing: true });
+        try {
+          const { project } = (await apiFetch("/api/projects", {
+            method: "POST",
+            body: JSON.stringify({ name }),
+          })) as { project: DbProject };
+          set((s) => ({
+            projects: [project, ...s.projects],
+            activeProjectId: project.id,
+            syncing: false,
+          }));
+          return project.id;
+        } catch (e) {
+          console.error("Failed to create project:", e);
+          set({ syncing: false });
+          throw e;
+        }
+      },
+
+      deleteProject: async (id: string) => {
+        set({ syncing: true });
+        try {
+          await apiFetch(`/api/projects?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+        } catch (e) {
+          console.error("Failed to delete project:", e);
+        } finally {
+          set({ syncing: false });
+        }
+        set((s) => {
+          const projects = s.projects.filter((p) => p.id !== id);
+          return {
+            projects,
+            activeProjectId: s.activeProjectId === id ? null : s.activeProjectId,
+            sessions: s.activeProjectId === id ? [] : s.sessions,
+            activeSessionId: s.activeProjectId === id ? null : s.activeSessionId,
+          };
+        });
+        // Re-hydrate if switching to default
+        const next = get().activeProjectId;
+        if (!next) {
+          get().hydrate().catch(() => {});
+        }
+      },
+
+      setActiveProject: (id: string | null) => {
+        set({ activeProjectId: id, sessions: [], activeSessionId: null });
+        get().hydrate().catch(() => {});
+      },
+
+      renameProject: async (id: string, name: string) => {
+        set({ syncing: true });
+        try {
+          await apiFetch("/api/projects", {
+            method: "PATCH",
+            body: JSON.stringify({ id, name }),
+          });
+        } catch (e) {
+          console.error("Failed to rename project:", e);
+        } finally {
+          set({ syncing: false });
+        }
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id ? { ...p, name, updatedAt: Date.now() } : p
+          ),
+        }));
+      },
+
+      // ===== Session actions =====
       createSession: async () => {
         const id = genId();
         const now = Date.now();
+        const projectId = get().activeProjectId;
+        set({ syncing: true });
         try {
           await apiFetch("/api/sessions", {
             method: "POST",
-            body: JSON.stringify({ id, title: "New Chat" }),
+            body: JSON.stringify({ id, projectId, title: "New Chat" }),
           });
         } catch (e) {
           console.error("Failed to create session:", e);
+        } finally {
+          set({ syncing: false });
         }
         const session: Session = {
           id,
@@ -167,12 +278,15 @@ export const useChatStore = create<ChatStore>()(
       },
 
       deleteSession: async (id) => {
+        set({ syncing: true });
         try {
           await apiFetch(`/api/sessions?id=${encodeURIComponent(id)}`, {
             method: "DELETE",
           });
         } catch (e) {
           console.error("Failed to delete session:", e);
+        } finally {
+          set({ syncing: false });
         }
         set((s) => {
           const sessions = s.sessions.filter((ses) => ses.id !== id);
@@ -194,6 +308,7 @@ export const useChatStore = create<ChatStore>()(
       },
 
       renameSession: async (id, title) => {
+        set({ syncing: true });
         try {
           await apiFetch("/api/sessions", {
             method: "PATCH",
@@ -201,6 +316,8 @@ export const useChatStore = create<ChatStore>()(
           });
         } catch (e) {
           console.error("Failed to rename session:", e);
+        } finally {
+          set({ syncing: false });
         }
         set((s) => ({
           sessions: s.sessions.map((ses) =>
@@ -227,6 +344,7 @@ export const useChatStore = create<ChatStore>()(
           }),
         }));
         // Persist to DB
+        set({ syncing: true });
         try {
           await apiFetch(
             `/api/sessions/${encodeURIComponent(sessionId)}/messages`,
@@ -251,6 +369,8 @@ export const useChatStore = create<ChatStore>()(
           }
         } catch (e) {
           console.error("Failed to persist message:", e);
+        } finally {
+          set({ syncing: false });
         }
       },
 
@@ -269,6 +389,7 @@ export const useChatStore = create<ChatStore>()(
             };
           }),
         }));
+        set({ syncing: true });
         try {
           await apiFetch(
             `/api/sessions/${encodeURIComponent(sessionId)}/messages`,
@@ -279,6 +400,8 @@ export const useChatStore = create<ChatStore>()(
           );
         } catch (e) {
           console.error("Failed to update message:", e);
+        } finally {
+          set({ syncing: false });
         }
       },
 
@@ -295,6 +418,7 @@ export const useChatStore = create<ChatStore>()(
             };
           }),
         }));
+        set({ syncing: true });
         try {
           await apiFetch(
             `/api/sessions/${encodeURIComponent(sessionId)}/messages?messageId=${encodeURIComponent(id)}`,
@@ -302,6 +426,8 @@ export const useChatStore = create<ChatStore>()(
           );
         } catch (e) {
           console.error("Failed to delete message:", e);
+        } finally {
+          set({ syncing: false });
         }
       },
 
@@ -320,6 +446,7 @@ export const useChatStore = create<ChatStore>()(
             };
           }),
         }));
+        set({ syncing: true });
         try {
           await apiFetch(
             `/api/sessions/${encodeURIComponent(sessionId)}/messages?afterTimestamp=${timestamp}&inclusive=${inclusive}`,
@@ -327,6 +454,8 @@ export const useChatStore = create<ChatStore>()(
           );
         } catch (e) {
           console.error("Failed to truncate messages:", e);
+        } finally {
+          set({ syncing: false });
         }
       },
 
@@ -339,6 +468,7 @@ export const useChatStore = create<ChatStore>()(
             return { ...ses, messages: [], title: "New Chat", updatedAt: Date.now() };
           }),
         }));
+        set({ syncing: true });
         try {
           await apiFetch(
             `/api/sessions/${encodeURIComponent(sessionId)}/messages?clear=true`,
@@ -350,6 +480,8 @@ export const useChatStore = create<ChatStore>()(
           });
         } catch (e) {
           console.error("Failed to clear messages:", e);
+        } finally {
+          set({ syncing: false });
         }
       },
 
@@ -365,22 +497,41 @@ export const useChatStore = create<ChatStore>()(
           }),
         })),
 
-      patchLocalMessage: (id, content) =>
-        set((s) => ({
-          sessions: s.sessions.map((ses) => {
-            if (ses.id !== s.activeSessionId) return ses;
-            return {
-              ...ses,
-              messages: ses.messages.map((m) =>
-                m.id === id ? { ...m, content } : m
-              ),
-            };
-          }),
-        })),
+      patchLocalMessage: (id, content) => {
+        // Batch streaming updates: coalesce multiple per-token calls into
+        // a single React state write per animation frame to avoid 50+ re-renders/sec.
+        const state = useChatStore.getState() as ChatStore & { _pendingPatches?: Map<string, string>; _patchRaf?: number };
+        if (!state._pendingPatches) state._pendingPatches = new Map();
+        state._pendingPatches.set(id, content);
+
+        if (!state._patchRaf) {
+          state._patchRaf = requestAnimationFrame(() => {
+            const s2 = useChatStore.getState() as ChatStore & { _pendingPatches?: Map<string, string>; _patchRaf?: number };
+            const patches = s2._pendingPatches;
+            s2._pendingPatches = new Map();
+            s2._patchRaf = undefined;
+            if (!patches || patches.size === 0) return;
+            set((s) => ({
+              sessions: s.sessions.map((ses) => {
+                if (ses.id !== s.activeSessionId) return ses;
+                return {
+                  ...ses,
+                  messages: ses.messages.map((m) =>
+                    patches.has(m.id) ? { ...m, content: patches.get(m.id)! } : m
+                  ),
+                };
+              }),
+            }));
+          }) as unknown as number;
+        }
+      },
 
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+      setContextPanelOpen: (open) => set({ contextPanelOpen: open }),
+      toggleContextPanel: () => set((s) => ({ contextPanelOpen: !s.contextPanelOpen })),
       setLoading: (v) => set({ isLoading: v }),
+      setSyncing: (v) => set({ syncing: v }),
 
       setConfig: (c) => set((s) => ({ ...s, ...c })),
 
@@ -427,6 +578,7 @@ export const useChatStore = create<ChatStore>()(
         apiKey: state.apiKey,
         selectedModels: state.selectedModels,
         compareMode: state.compareMode,
+        activeProjectId: state.activeProjectId,
         activeSessionId: state.activeSessionId,
       }),
     }
@@ -478,3 +630,15 @@ export const useActiveMessages = () =>
     (s) =>
       s.sessions.find((ses) => ses.id === s.activeSessionId)?.messages ?? EMPTY_MESSAGES
   );
+
+export const useShowVideo = () =>
+  useChatStore((s) => {
+    const ses = s.sessions.find((ses) => ses.id === s.activeSessionId);
+    return ses ? ses.messages.length === 0 : true;
+  });
+
+export const useMessageCount = () =>
+  useChatStore((s) => {
+    const ses = s.sessions.find((ses) => ses.id === s.activeSessionId);
+    return ses ? ses.messages.length : 0;
+  });

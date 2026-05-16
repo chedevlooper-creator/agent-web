@@ -60,6 +60,80 @@ const GROUP_ORDER: Group[] = [
   "Older",
 ];
 
+// ===== Project Bar =====
+function ProjectBar() {
+  const projects = useChatStore((s) => s.projects);
+  const activeProjectId = useChatStore((s) => s.activeProjectId);
+  const setActiveProject = useChatStore((s) => s.setActiveProject);
+  const createProject = useChatStore((s) => s.createProject);
+  const deleteProject = useChatStore((s) => s.deleteProject);
+  const [creating, setCreating] = useState(false);
+
+  const activeProject = projects.find((p) => p.id === activeProjectId);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      await createProject(`Project ${projects.length + 1}`);
+    } catch {
+      toast.error("Failed to create project");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="px-3 py-2 border-b border-border/30 space-y-1.5 shrink-0">
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <select
+            value={activeProjectId ?? "__default__"}
+            onChange={(e) => {
+              const v = e.target.value;
+              setActiveProject(v === "__default__" ? null : v);
+            }}
+            className="w-full bg-surface-elevated border border-border/40 rounded-lg px-2 py-1.5 text-xs text-foreground truncate focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+            aria-label="Select project"
+          >
+            <option value="__default__">Default</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={handleCreate}
+            disabled={creating}
+            className="min-w-[28px] h-7 flex items-center justify-center rounded-lg bg-gradient-to-r from-primary to-primary-hover text-white text-xs transition-all duration-200 hover:shadow-md hover:shadow-primary/20 active:scale-95 disabled:opacity-50"
+            aria-label="Create new project"
+          >
+            <Plus size={13} />
+          </button>
+          {activeProject && (
+            <button
+              onClick={() => {
+                if (confirm(`Delete project "${activeProject.name}"? All sessions will be deleted.`)) {
+                  deleteProject(activeProject.id);
+                }
+              }}
+              className="min-w-[28px] h-7 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-200"
+              aria-label="Delete project"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+      {activeProject && (
+        <p className="text-[10px] text-muted-foreground/60 truncate px-1">
+          {activeProject.rootPath}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ===== Session Item =====
 function SessionItem({
   session,
@@ -654,6 +728,9 @@ export function Sidebar() {
             </button>
           )}
         </div>
+
+        {/* Project selector */}
+        {sidebarOpen && <ProjectBar />}
 
         {/* Tab bar — segmented control style */}
         {sidebarOpen ? (
