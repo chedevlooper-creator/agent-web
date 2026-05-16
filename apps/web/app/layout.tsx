@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { ChatErrorBoundary } from "@/components/error-boundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,7 +35,10 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        {children}
+        <ChatErrorBoundary>
+          {children}
+        </ChatErrorBoundary>
+        <Toaster theme="dark" position="top-center" />
       </body>
     </html>
   );
