@@ -124,7 +124,7 @@ export function ChatInput({
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={hasApiKey ? "Message Agent Web..." : "Configure API key in settings first"}
+            placeholder={hasApiKey ? "Message Agent Web…" : "Configure API key in settings first"}
             disabled={!hasApiKey}
             rows={1}
             className="flex-1 bg-transparent text-sm resize-none px-2.5 py-1.5 min-h-[40px] max-h-[320px]

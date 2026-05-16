@@ -41,7 +41,7 @@ function CompareCell({ message }: { message: ChatMessage }) {
           ) : message.content ? (
             <MarkdownRenderer content={message.content} />
           ) : (
-            <span className="text-muted-foreground text-xs italic">Waiting...</span>
+            <span className="text-muted-foreground text-xs italic">Waiting…</span>
           )}
         </div>
       </div>

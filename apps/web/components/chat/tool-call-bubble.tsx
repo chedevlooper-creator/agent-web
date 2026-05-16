@@ -16,7 +16,7 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
     if (entries.length === 0) return "";
     const first = entries[0];
     const val = typeof first[1] === "string" ? first[1] : JSON.stringify(first[1]);
-    return val.length > 60 ? val.slice(0, 57) + "..." : val;
+    return val.length > 60 ? val.slice(0, 57) + "…" : val;
   }, [invocation.args]);
 
   return (
@@ -54,7 +54,7 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {isPending ? (
-            <span className="text-[10px] text-warning font-semibold">Running...</span>
+            <span className="text-[10px] text-warning font-semibold">Running…</span>
           ) : (
             <span className="text-[10px] text-success font-semibold">Done</span>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useChatStore } from "@/lib/store";
+import { useChatStore, useShowVideo } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
@@ -12,9 +12,6 @@ import {
   Sparkles,
   Wrench,
   Puzzle,
-  Terminal,
-  FileText,
-  Globe,
   CheckCircle2,
   ChevronRight,
   RefreshCw,
@@ -22,7 +19,11 @@ import {
   Download,
   Upload,
   X,
+  Pencil,
 } from "lucide-react";
+import { toast } from "sonner";
+import { toolDescriptions } from "@agent-web/core";
+import { getToolIcon } from "@/lib/tool-icons";
 
 type SidebarTab = "chats" | "tools" | "skills";
 
@@ -31,28 +32,6 @@ interface SkillInfo {
   description: string;
   path: string;
 }
-
-// ===== Tools Data =====
-const TOOLS = [
-  {
-    name: "Terminal",
-    icon: Terminal,
-    description: "Execute shell commands (full access)",
-    status: "active" as const,
-  },
-  {
-    name: "File Reader",
-    icon: FileText,
-    description: "Read local files (UTF-8, max 5MB)",
-    status: "active" as const,
-  },
-  {
-    name: "Web Search",
-    icon: Globe,
-    description: "Search the web via DuckDuckGo",
-    status: "active" as const,
-  },
-];
 
 // ===== Date grouping =====
 type Group = "Today" | "Yesterday" | "Previous 7 Days" | "Previous 30 Days" | "Older";
@@ -81,18 +60,121 @@ const GROUP_ORDER: Group[] = [
   "Older",
 ];
 
+// ===== Session Item =====
+function SessionItem({
+  session,
+  isActive,
+  onSelect,
+  onDelete,
+  onRename,
+}: {
+  session: { id: string; title: string };
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onRename: (id: string, title: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(session.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    const trimmed = title.trim();
+    if (trimmed && trimmed !== session.title) {
+      onRename(session.id, trimmed);
+    } else {
+      setTitle(session.title);
+    }
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="group relative">
+      <button
+        onClick={onSelect}
+        className={cn(
+          "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-sm",
+          "transition-all duration-200",
+          isActive
+            ? "bg-primary/10 text-foreground font-medium"
+            : "text-muted-foreground hover:bg-surface-elevated/80 hover:text-foreground"
+        )}
+      >
+        <MessageSquare
+          size={15}
+          className={cn("shrink-0 transition-colors duration-200", isActive ? "text-primary" : "")}
+        />
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") {
+                setTitle(session.title);
+                setIsEditing(false);
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 bg-transparent text-sm border-none outline-none focus:ring-1 focus:ring-primary/50 rounded-sm px-1 py-0.5 -mx-1"
+          />
+        ) : (
+          <span className="truncate animate-fade-in pr-12">{session.title}</span>
+        )}
+        {/* Active indicator bar — gradient left edge */}
+        {isActive && !isEditing && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b from-primary to-accent animate-scale-in" />
+        )}
+      </button>
+      {!isEditing && (
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Rename session"
+          >
+            <Pencil size={11} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            aria-label="Delete session"
+          >
+            <Trash2 size={11} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ===== Chats Tab =====
 function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
   const sessions = useChatStore((s) => s.sessions);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
   const createSession = useChatStore((s) => s.createSession);
   const deleteSession = useChatStore((s) => s.deleteSession);
+  const renameSession = useChatStore((s) => s.renameSession);
   const setActiveSession = useChatStore((s) => s.setActiveSession);
   const importFromJson = useChatStore((s) => s.importFromJson);
 
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState(false);
-  const [importStatus, setImportStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDelete = (id: string) => {
@@ -127,8 +209,7 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
     try {
       const res = await fetch("/api/sessions/export");
       if (!res.ok) {
-        setImportStatus("Export failed");
-        setTimeout(() => setImportStatus(null), 3000);
+        toast.error("Export failed: Unable to fetch sessions");
         return;
       }
       const blob = await res.blob();
@@ -140,11 +221,9 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setImportStatus("Exported.");
-      setTimeout(() => setImportStatus(null), 2000);
+      toast.success("Sessions exported successfully");
     } catch {
-      setImportStatus("Export failed");
-      setTimeout(() => setImportStatus(null), 3000);
+      toast.error("Export failed due to a network error");
     }
   };
 
@@ -155,16 +234,13 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
     e.target.value = "";
     if (!file) return;
     setImporting(true);
-    setImportStatus(null);
     try {
       const text = await file.text();
       const stats = await importFromJson(text);
-      setImportStatus(`Imported ${stats.sessions} sessions, ${stats.messages} messages.`);
-      setTimeout(() => setImportStatus(null), 3500);
+      toast.success(`Imported ${stats.sessions} sessions, ${stats.messages} messages.`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Import failed";
-      setImportStatus(msg);
-      setTimeout(() => setImportStatus(null), 4000);
+      toast.error(`Import error: ${msg}`);
     } finally {
       setImporting(false);
     }
@@ -176,10 +252,10 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
         <div className="p-3 shrink-0">
           <button
             onClick={() => createSession()}
-            className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto
-                       border border-dashed border-[var(--border)]
-                       hover:bg-[var(--muted)] hover:border-[var(--primary)]
-                       active:scale-[0.97] transition-all duration-150"
+            className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto
+                       border border-dashed border-border/60
+                       hover:bg-primary/10 hover:border-primary/40 hover:text-primary
+                       active:scale-95 transition-all duration-200"
             aria-label="New chat"
           >
             <Plus size={16} />
@@ -193,10 +269,10 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
                 key={session.id}
                 onClick={() => setActiveSession(session.id)}
                 className={cn(
-                  "w-11 h-11 rounded-xl flex items-center justify-center mx-auto",
+                  "w-10 h-10 rounded-xl flex items-center justify-center mx-auto transition-all duration-200",
                   isActive
-                    ? "bg-[var(--primary-muted)] text-[var(--primary)]"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                 )}
                 title={session.title}
               >
@@ -211,15 +287,15 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
 
   return (
     <>
-      <div className="p-3 shrink-0 space-y-2">
+      <div className="p-3 shrink-0 space-y-2.5">
         {/* New chat */}
         <button
           onClick={() => createSession()}
           className={cn(
             "w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium",
-            "border border-dashed border-[var(--border)]",
-            "hover:bg-[var(--muted)] hover:border-[var(--primary)]",
-            "active:scale-[0.97] transition-all duration-150"
+            "border border-dashed border-border/50",
+            "hover:bg-primary/8 hover:border-primary/30 hover:text-primary",
+            "active:scale-[0.98] transition-all duration-200"
           )}
         >
           <Plus size={16} />
@@ -230,24 +306,25 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
         <div className="relative">
           <Search
             size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search chats..."
+            placeholder="Search chats…"
             className={cn(
-              "w-full pl-8 pr-8 py-2 rounded-lg text-sm",
-              "bg-[var(--muted)] border border-[var(--border)]",
-              "placeholder:text-[var(--muted-foreground)]",
-              "focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30 focus:border-[var(--primary)]"
+              "w-full pl-8 pr-8 py-2 rounded-xl text-sm",
+              "bg-surface-muted/70 border border-border-muted",
+              "placeholder:text-muted-foreground/50",
+              "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30",
+              "transition-all duration-200"
             )}
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground"
               aria-label="Clear search"
             >
               <X size={12} />
@@ -261,9 +338,10 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
             onClick={handleImportClick}
             disabled={importing}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs",
-              "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--surface-elevated)] hover:text-[var(--foreground)]",
-              "transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium",
+              "bg-surface-muted/50 text-muted-foreground hover:bg-surface-elevated hover:text-foreground",
+              "border border-border-muted hover:border-border",
+              "transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             )}
             title="Import sessions from JSON"
           >
@@ -272,9 +350,10 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
           </button>
           <button
             onClick={handleExport}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs
-                       bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--surface-elevated)] hover:text-[var(--foreground)]
-                       transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium
+                       bg-surface-muted/50 text-muted-foreground hover:bg-surface-elevated hover:text-foreground
+                       border border-border-muted hover:border-border
+                       transition-all duration-200"
             title="Export all sessions as JSON"
           >
             <Download size={11} />
@@ -288,70 +367,36 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
             className="hidden"
           />
         </div>
-        {importStatus && (
-          <p className="text-[11px] text-[var(--muted-foreground)] px-1 animate-fade-in">
-            {importStatus}
-          </p>
-        )}
       </div>
 
       {/* Session list */}
       <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-3">
         {sessions.length === 0 ? (
-          <div className="text-center text-[var(--muted-foreground)] text-xs py-8 px-4 animate-fade-in">
+          <div className="text-center text-muted-foreground text-xs py-8 px-4 animate-fade-in">
             No conversations yet.
             <br />
             Start a new chat to begin.
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center text-[var(--muted-foreground)] text-xs py-8 px-4 animate-fade-in">
+          <div className="text-center text-muted-foreground text-xs py-8 px-4 animate-fade-in">
             No chats match &quot;{search}&quot;.
           </div>
         ) : (
           grouped.map(({ group, sessions: groupSessions }) => (
             <div key={group} className="space-y-0.5">
-              <p className="text-[10px] uppercase tracking-widest text-[var(--muted-foreground)] font-medium px-3 pt-2">
+              <p className="section-label px-3 pt-2 pb-1">
                 {group}
               </p>
-              {groupSessions.map((session) => {
-                const isActive = session.id === activeSessionId;
-                return (
-                  <div key={session.id} className="group relative">
-                    <button
-                      onClick={() => setActiveSession(session.id)}
-                      className={cn(
-                        "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-sm",
-                        "transition-all duration-150",
-                        isActive
-                          ? "bg-[var(--primary-muted)] text-[var(--foreground)] font-medium"
-                          : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                      )}
-                    >
-                      <MessageSquare
-                        size={15}
-                        className={cn("shrink-0", isActive && "text-[var(--primary)]")}
-                      />
-                      <span className="truncate animate-fade-in pr-7">{session.title}</span>
-                      {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--primary)] animate-scale-in" />
-                      )}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(session.id);
-                      }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-md
-                                 opacity-0 group-hover:opacity-100 hover:bg-[var(--destructive)]/10
-                                 text-[var(--muted-foreground)] hover:text-[var(--destructive)]
-                                 transition-all duration-150"
-                      aria-label="Delete session"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                );
-              })}
+              {groupSessions.map((session) => (
+                <SessionItem
+                  key={session.id}
+                  session={session}
+                  isActive={session.id === activeSessionId}
+                  onSelect={() => setActiveSession(session.id)}
+                  onDelete={() => handleDelete(session.id)}
+                  onRename={(id, title) => renameSession(id, title)}
+                />
+              ))}
             </div>
           ))
         )}
@@ -362,49 +407,57 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
 
 // ===== Tools Tab =====
 function ToolsTab({ expanded }: { expanded: boolean }) {
+  const tools = Object.entries(toolDescriptions);
+
   if (!expanded) {
     return (
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
-        {TOOLS.map((tool) => (
-          <div
-            key={tool.name}
-            className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto
-                       text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors"
-            title={tool.name}
-          >
-            <tool.icon size={18} />
-          </div>
-        ))}
+        {tools.map(([key, tool]) => {
+          const Icon = getToolIcon(key);
+          return (
+            <div
+              key={key}
+              className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto
+                         text-muted-foreground hover:bg-surface-elevated hover:text-foreground transition-all duration-200"
+              title={tool.name}
+            >
+              <Icon size={18} />
+            </div>
+          );
+        })}
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 animate-fade-in">
-      <p className="text-[10px] uppercase tracking-widest text-[var(--muted-foreground)] font-medium px-1 mb-2">
+      <p className="section-label px-1 mb-2">
         Agent Tools
       </p>
-      {TOOLS.map((tool) => (
-        <div
-          key={tool.name}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)] transition-all duration-150 hover:border-[var(--primary)]/30"
-        >
-          <div className="w-8 h-8 rounded-lg bg-[var(--success)]/10 flex items-center justify-center shrink-0">
-            <tool.icon size={15} className="text-[var(--success)]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium truncate">{tool.name}</span>
-              <CheckCircle2 size={12} className="text-[var(--success)] shrink-0" />
+      {tools.map(([key, tool]) => {
+        const Icon = getToolIcon(key);
+        return (
+          <div
+            key={key}
+            className="flex items-center gap-3 px-3 py-3 rounded-xl glass-card transition-all duration-200 hover:border-primary/20 hover-lift"
+          >
+            <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+              <Icon size={15} className="text-success" />
             </div>
-            <p className="text-xs text-[var(--muted-foreground)] truncate">
-              {tool.description}
-            </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium truncate">{tool.name}</span>
+                {tool.status === "active" && <CheckCircle2 size={12} className="text-success shrink-0" />}
+              </div>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                {tool.description}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
-      <p className="text-[11px] text-[var(--muted-foreground)] px-1 pt-2 leading-relaxed">
+      <p className="text-[11px] text-muted-foreground/60 px-1 pt-2 leading-relaxed">
         Tools execute on the local machine with full permissions. Only use in
         trusted development environments.
       </p>
@@ -438,14 +491,14 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
           <div
             key={s.name}
             className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto
-                       text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors"
+                       text-muted-foreground hover:bg-surface-elevated hover:text-foreground transition-all duration-200"
             title={s.name}
           >
             <Puzzle size={18} />
           </div>
         ))}
         {skills.length === 0 && !loading && (
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto text-[var(--muted-foreground)]">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto text-muted-foreground">
             <Puzzle size={18} className="opacity-30" />
           </div>
         )}
@@ -456,12 +509,12 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
   return (
     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 animate-fade-in">
       <div className="flex items-center justify-between px-1 mb-2">
-        <p className="text-[10px] uppercase tracking-widest text-[var(--muted-foreground)] font-medium">
+        <p className="section-label">
           Installed Skills
         </p>
         <button
           onClick={fetchSkills}
-          className="p-1 rounded-md hover:bg-[var(--muted)] transition-colors text-[var(--muted-foreground)]"
+          className="p-1.5 rounded-lg hover:bg-surface-elevated transition-colors text-muted-foreground hover:text-foreground"
           aria-label="Refresh skills"
         >
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
@@ -476,32 +529,32 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
         </div>
       ) : skills.length === 0 ? (
         <div className="text-center py-8 px-4 space-y-2 animate-fade-in">
-          <Puzzle size={28} className="mx-auto text-[var(--muted-foreground)] opacity-40" />
-          <p className="text-xs text-[var(--muted-foreground)]">
+          <Puzzle size={28} className="mx-auto text-muted-foreground opacity-30" />
+          <p className="text-xs text-muted-foreground">
             No skills installed yet.
           </p>
-          <p className="text-[11px] text-[var(--muted-foreground)]">
-            Add skills to <code className="px-1 py-0.5 rounded bg-[var(--muted)] text-[10px]">.verdent/skills/</code>
+          <p className="text-[11px] text-muted-foreground/70">
+            Add skills to <code className="px-1.5 py-0.5 rounded-md bg-surface-muted text-[10px] border border-border-muted">.verdent/skills/</code>
           </p>
         </div>
       ) : (
         skills.map((skill, i) => (
           <div
             key={skill.name}
-            className="group px-3 py-3 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)]
-                       hover:border-[var(--accent)]/30 transition-all duration-150 animate-slide-up"
+            className="group px-3 py-3 rounded-xl glass-card
+                       hover:border-accent/20 transition-all duration-200 animate-slide-up hover-lift"
             style={{ animationDelay: `${i * 40}ms` }}
           >
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-muted)] to-[var(--primary-muted)] flex items-center justify-center shrink-0 mt-0.5">
-                <Puzzle size={14} className="text-[var(--accent)]" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-muted to-primary-muted flex items-center justify-center shrink-0 mt-0.5">
+                <Puzzle size={14} className="text-accent" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-medium truncate">{skill.name}</span>
-                  <ChevronRight size={12} className="text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  <ChevronRight size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </div>
-                <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 mt-0.5 leading-relaxed">
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
                   {skill.description}
                 </p>
               </div>
@@ -533,7 +586,6 @@ export function Sidebar() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && sidebarOpen) {
-        // Only collapse on mobile widths
         if (typeof window !== "undefined" && window.innerWidth < 768) {
           setSidebarOpen(false);
         }
@@ -542,6 +594,8 @@ export function Sidebar() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sidebarOpen, setSidebarOpen]);
+
+  const showVideo = useShowVideo();
 
   const tabs: { id: SidebarTab; icon: typeof MessageSquare; label: string }[] = [
     { id: "chats", icon: MessageSquare, label: "Chats" },
@@ -553,7 +607,7 @@ export function Sidebar() {
     <>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden animate-fade-in"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden animate-fade-in"
           onClick={toggleSidebar}
         />
       )}
@@ -561,74 +615,80 @@ export function Sidebar() {
       <aside
         className={cn(
           "fixed md:relative z-50 h-dvh flex flex-col",
-          "bg-[var(--surface)] border-r border-[var(--border)]",
-          "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          showVideo
+            ? "glass-subtle border-r border-border/20"
+            : "bg-surface border-r border-border/40",
+          "transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
           sidebarOpen
-            ? "w-[300px] translate-x-0"
+            ? "w-[280px] translate-x-0"
             : "w-0 md:w-[64px] -translate-x-full md:translate-x-0"
         )}
       >
-        <div className="flex items-center h-14 px-3 border-b border-[var(--border)] shrink-0">
+        {/* Header */}
+        <div className={cn("flex items-center h-14 px-3 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/40")}>
           {sidebarOpen ? (
             <>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center shrink-0">
-                  <Sparkles size={16} className="text-white" />
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-xl gradient-bg-primary flex items-center justify-center shrink-0 shadow-md shadow-primary/25 animate-glow-ring">
+                  <Sparkles size={15} className="text-white" />
                 </div>
-                <span className="font-semibold text-sm truncate animate-fade-in">
+                <span className="font-semibold text-sm tracking-tight truncate animate-fade-in">
                   Agent Web
                 </span>
               </div>
               <button
                 onClick={toggleSidebar}
-                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-[var(--muted)] transition-colors"
+                className="min-w-[34px] min-h-[34px] flex items-center justify-center rounded-xl hover:bg-muted transition-all duration-200 active:scale-95"
                 aria-label="Collapse sidebar"
               >
-                <PanelLeftClose size={18} className="text-[var(--muted-foreground)]" />
+                <PanelLeftClose size={16} className="text-muted-foreground" />
               </button>
             </>
           ) : (
             <button
               onClick={toggleSidebar}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-[var(--muted)] transition-colors mx-auto"
+              className="min-w-[34px] min-h-[34px] flex items-center justify-center rounded-xl hover:bg-muted transition-all duration-200 mx-auto active:scale-95"
               aria-label="Expand sidebar"
             >
-              <PanelLeft size={18} className="text-[var(--muted-foreground)]" />
+              <PanelLeft size={16} className="text-muted-foreground" />
             </button>
           )}
         </div>
 
+        {/* Tab bar — segmented control style */}
         {sidebarOpen ? (
-          <div className="flex items-center gap-1 px-3 py-2 border-b border-[var(--border)] shrink-0">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium",
-                  "transition-all duration-150 active:scale-[0.97]",
-                  activeTab === tab.id
-                    ? "bg-[var(--primary-muted)] text-[var(--foreground)]"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                )}
-              >
-                <tab.icon size={14} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
+          <div className={cn("px-3 py-2 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/40")}>
+            <div className="relative flex items-center gap-0.5 p-0.5 rounded-xl bg-surface-muted/40 border border-border-muted">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative z-10 flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium",
+                    "transition-all duration-250 active:scale-[0.97]",
+                    activeTab === tab.id
+                      ? "bg-gradient-to-r from-primary to-primary-hover text-primary-foreground shadow-sm shadow-primary/25"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <tab.icon size={13} />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-1 py-2 border-b border-[var(--border)] shrink-0">
+          <div className={cn("flex flex-col items-center gap-1 py-2 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/40")}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "w-11 h-11 rounded-xl flex items-center justify-center",
-                  "transition-all duration-150",
+                  "w-10 h-10 rounded-xl flex items-center justify-center",
+                  "transition-all duration-200",
                   activeTab === tab.id
-                    ? "bg-[var(--primary-muted)] text-[var(--primary)]"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                 )}
                 title={tab.label}
               >

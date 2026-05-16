@@ -409,7 +409,7 @@ export function ChatInterface() {
     return (
       <div className="flex-1 flex items-center justify-center" role="status" aria-label="Loading chat">
         <Loader2 size={20} className="animate-spin text-muted-foreground" aria-hidden="true" />
-        <span className="sr-only">Loading chat...</span>
+        <span className="sr-only">Loading chat…</span>
       </div>
     );
   }

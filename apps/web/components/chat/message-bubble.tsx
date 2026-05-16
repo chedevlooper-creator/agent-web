@@ -125,7 +125,7 @@ export function MessageBubble({
                   }
                 }}
                 className={cn(
-                  "w-full bg-transparent text-sm resize-none focus:outline-none",
+                  "w-full bg-transparent text-sm resize-none focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50",
                   "min-h-[44px] max-h-[320px]",
                   isUser ? "text-white placeholder:text-white/60" : "text-foreground"
                 )}
@@ -181,7 +181,7 @@ export function MessageBubble({
           ) : message.content || isStreaming ? (
             <MarkdownRenderer content={message.content} isStreaming={isStreaming} />
           ) : (
-            <span className="text-muted-foreground text-xs italic">Waiting...</span>
+            <span className="text-muted-foreground text-xs italic">Waiting…</span>
           )}
 
           {/* Tool invocations */}
