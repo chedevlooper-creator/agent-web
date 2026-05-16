@@ -79,7 +79,9 @@ export function ChatInput({
         <FilePreviewBar files={attachedFiles} onRemove={onRemoveFile} />
 
         {/* Hidden file input */}
+        <label htmlFor="file-upload-input" className="sr-only">Upload files</label>
         <input
+          id="file-upload-input"
           ref={fileInputRef}
           type="file"
           multiple
@@ -110,12 +112,14 @@ export function ChatInput({
             aria-label="Attach file"
           >
             {isUploading ? (
-              <Paperclip size={16} className="animate-spin" />
+              <Paperclip size={16} className="animate-spin" aria-hidden="true" />
             ) : (
-              <Paperclip size={16} />
+              <Paperclip size={16} aria-hidden="true" />
             )}
           </button>
+          <label htmlFor="chat-input-textarea" className="sr-only">Message</label>
           <textarea
+            id="chat-input-textarea"
             ref={textareaRef}
             value={input}
             onChange={handleInput}
@@ -141,7 +145,7 @@ export function ChatInput({
             )}
             aria-label={isLoading ? "Stop generation" : "Send message"}
           >
-            {isLoading ? <Square size={14} className="fill-current" /> : <Send size={16} />}
+            {isLoading ? <Square size={14} className="fill-current" aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
           </button>
         </div>
 

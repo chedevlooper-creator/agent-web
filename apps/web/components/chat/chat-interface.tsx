@@ -407,8 +407,9 @@ export function ChatInterface() {
 
   if (!hydrated) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 size={20} className="animate-spin text-muted-foreground" />
+      <div className="flex-1 flex items-center justify-center" role="status" aria-label="Loading chat">
+        <Loader2 size={20} className="animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">Loading chat...</span>
       </div>
     );
   }
@@ -477,7 +478,7 @@ export function ChatInterface() {
                        hover:shadow-xl hover:shadow-primary/35 active:scale-95 transition-all duration-200 animate-bounce-subtle"
             aria-label="Scroll to bottom"
           >
-            <ArrowDown size={16} />
+            <ArrowDown size={16} aria-hidden="true" />
           </button>
         </div>
       )}
