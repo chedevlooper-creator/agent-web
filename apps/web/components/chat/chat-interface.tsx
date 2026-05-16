@@ -3,10 +3,13 @@
 import {
   useChatStore,
   useActiveMessages,
+  genId,
   type ChatMessage,
+  type ToolInvocation,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import {
   Send,
   Bot,
@@ -20,26 +23,33 @@ import {
   Check,
   X,
   Copy,
+  Terminal,
+  FileText,
+  Globe,
+  ChevronDown,
+  ChevronRight,
+  Wrench,
   GitCompare,
+  Square,
+  Star,
+  Paperclip,
+  FileSpreadsheet,
+  File,
+  Trash2,
+  Loader2 as UploadSpinner,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { TypingIndicator } from "./typing-indicator";
 
-function genId() {
-  return (
-    Math.random().toString(36).slice(2, 11) +
-    Date.now().toString(36).slice(-4)
-  );
-}
-
-// Persist a single message directly via API (used when we want to insert
-// a streaming assistant result after stream completion).
+// Persist a single message directly via API
 async function persistMessage(
   sessionId: string,
   msg: { id: string; role: "user" | "assistant" | "system"; content: string; model?: string; timestamp: number }
 ) {
   try {
+    useChatStore.getState().setSyncing(true);
     await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -47,50 +57,15 @@ async function persistMessage(
     });
   } catch (e) {
     console.error("persistMessage failed:", e);
+  } finally {
+    useChatStore.getState().setSyncing(false);
   }
-}
-
-async function updateMessageRemote(
-  sessionId: string,
-  id: string,
-  content: string
-) {
-  try {
-    await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, content }),
-    });
-  } catch (e) {
-    console.error("updateMessageRemote failed:", e);
-  }
-}
-
-// ===== Typing Indicator =====
-function TypingIndicator({ label }: { label?: string }) {
-  return (
-    <div className="flex items-start gap-3 animate-message-in" role="status">
-      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] flex items-center justify-center shrink-0 ai-glow">
-        <Bot size={15} className="text-white" />
-      </div>
-      <div className="px-4 py-3 rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border)]">
-        <div className="flex gap-1.5 items-center h-5">
-          <span className="typing-dot" />
-          <span className="typing-dot" />
-          <span className="typing-dot" />
-          {label && (
-            <span className="ml-2 text-xs text-[var(--muted-foreground)]">{label}</span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ===== Assistant Content Renderer =====
-function AssistantContent({ content }: { content: string }) {
+function AssistantContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
   return (
-    <div className="chat-prose">
+    <div className={cn("chat-prose", isStreaming && "streaming-cursor")}>
       <ReactMarkdown
         components={{
           code({ className, children, ...props }) {
@@ -104,15 +79,16 @@ function AssistantContent({ content }: { content: string }) {
                 PreTag="div"
                 customStyle={{
                   margin: "0.5rem 0",
-                  borderRadius: "0.5rem",
+                  borderRadius: "0.625rem",
                   fontSize: "0.8125rem",
+                  border: "1px solid var(--border-muted)",
                 }}
               >
                 {String(children).replace(/\n$/, "")}
               </SyntaxHighlighter>
             ) : (
               <code
-                className="bg-[var(--muted)] px-1.5 py-0.5 rounded text-xs"
+                className="bg-muted px-1.5 py-0.5 rounded-md text-xs border border-border-muted"
                 {...props}
               >
                 {children}
@@ -121,7 +97,7 @@ function AssistantContent({ content }: { content: string }) {
           },
         }}
       >
-        {content}
+        {content + (isStreaming ? " ▍" : "")}
       </ReactMarkdown>
     </div>
   );
@@ -133,11 +109,13 @@ function MessageBubble({
   index,
   onRetry,
   onEdit,
+  isStreaming,
 }: {
   message: ChatMessage;
   index: number;
   onRetry?: () => void;
   onEdit?: (newContent: string) => void;
+  isStreaming?: boolean;
 }) {
   const isUser = message.role === "user";
   const isError = !isUser && message.content.startsWith("Error:");
@@ -195,32 +173,32 @@ function MessageBubble({
       {/* Avatar */}
       <div
         className={cn(
-          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
+          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-all duration-300",
           isUser
-            ? "bg-[var(--primary)]"
-            : "bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] ai-glow"
+            ? "gradient-bg-primary shadow-md shadow-primary/20"
+            : "bg-gradient-to-br from-primary to-accent shadow-md shadow-accent/15 ai-glow-subtle"
         )}
       >
         {isUser ? (
-          <User size={15} className="text-white" />
+          <User size={14} className="text-white" />
         ) : (
-          <Bot size={15} className="text-white" />
+          <Bot size={14} className="text-white" />
         )}
       </div>
 
       {/* Content */}
       <div className={cn("flex flex-col gap-1 max-w-[75%]", isUser ? "items-end" : "items-start")}>
         {message.model && !isUser && (
-          <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)] px-1">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 px-1 font-medium">
             {message.model}
           </span>
         )}
         <div
           className={cn(
-            "px-4 py-3 rounded-2xl text-sm w-full",
+            "px-4 py-3 rounded-2xl text-sm w-full transition-all duration-300",
             isUser
-              ? "bg-[var(--primary)] text-white rounded-br-md"
-              : "bg-[var(--surface-elevated)] border border-[var(--border)] rounded-bl-md"
+              ? "bg-gradient-to-br from-primary to-primary-hover text-white rounded-br-lg shadow-md shadow-primary/20"
+              : "glass-card rounded-bl-lg hover:shadow-md"
           )}
         >
           {editing ? (
@@ -244,34 +222,34 @@ function MessageBubble({
                 className={cn(
                   "w-full bg-transparent text-sm resize-none focus:outline-none",
                   "min-h-[44px] max-h-[320px]",
-                  isUser ? "text-white placeholder:text-white/60" : "text-[var(--foreground)]"
+                  isUser ? "text-white placeholder:text-white/60" : "text-foreground"
                 )}
               />
               <div className="flex items-center justify-end gap-1.5">
                 <button
                   onClick={handleCancelEdit}
                   className={cn(
-                    "min-w-[32px] h-7 px-2 rounded-md text-xs inline-flex items-center gap-1",
+                    "min-w-[32px] h-7 px-2.5 rounded-lg text-xs inline-flex items-center gap-1 font-medium transition-colors",
                     isUser
                       ? "bg-white/10 hover:bg-white/20 text-white"
-                      : "bg-[var(--muted)] hover:bg-[var(--border)] text-[var(--foreground)]"
+                      : "bg-muted hover:bg-border text-foreground"
                   )}
                   aria-label="Cancel edit"
                 >
-                  <X size={12} />
+                  <X size={11} />
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEdit}
                   className={cn(
-                    "min-w-[32px] h-7 px-2 rounded-md text-xs inline-flex items-center gap-1 font-medium",
+                    "min-w-[32px] h-7 px-2.5 rounded-lg text-xs inline-flex items-center gap-1 font-semibold transition-colors",
                     isUser
-                      ? "bg-white text-[var(--primary)] hover:bg-white/90"
-                      : "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]"
+                      ? "bg-white text-primary hover:bg-white/90"
+                      : "bg-primary text-white hover:bg-primary-hover"
                   )}
                   aria-label="Save edit"
                 >
-                  <Check size={12} />
+                  <Check size={11} />
                   Save
                 </button>
               </div>
@@ -280,25 +258,34 @@ function MessageBubble({
             <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
           ) : isError ? (
             <div className="space-y-2">
-              <p className="whitespace-pre-wrap leading-relaxed text-[var(--destructive)]">
+              <p className="whitespace-pre-wrap leading-relaxed text-destructive">
                 {message.content}
               </p>
               {onRetry && (
                 <button
                   onClick={onRetry}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                             bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--surface-elevated)]
-                             border border-[var(--border)] transition-colors"
+                             bg-muted text-foreground hover:bg-surface-elevated
+                             border border-border-muted transition-all duration-200 active:scale-[0.97]"
                 >
                   <RefreshCw size={12} />
                   Retry
                 </button>
               )}
             </div>
-          ) : message.content ? (
-            <AssistantContent content={message.content} />
+          ) : message.content || isStreaming ? (
+            <AssistantContent content={message.content} isStreaming={isStreaming} />
           ) : (
-            <span className="text-[var(--muted-foreground)] text-xs italic">Waiting...</span>
+            <span className="text-muted-foreground text-xs italic">Waiting...</span>
+          )}
+
+          {/* Tool invocations */}
+          {!isUser && message.toolInvocations && message.toolInvocations.length > 0 && (
+            <div className="mt-2.5 space-y-1.5">
+              {message.toolInvocations.map((inv) => (
+                <ToolCallBubble key={inv.toolCallId} invocation={inv} />
+              ))}
+            </div>
           )}
         </div>
 
@@ -306,7 +293,8 @@ function MessageBubble({
         {!editing && (
           <div
             className={cn(
-              "flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
+              "flex items-center gap-0.5 transition-opacity duration-200",
+              "opacity-100 md:opacity-0 md:group-hover:opacity-100",
               isUser ? "flex-row-reverse" : "flex-row"
             )}
           >
@@ -316,21 +304,21 @@ function MessageBubble({
                   setDraft(message.content);
                   setEditing(true);
                 }}
-                className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
                 title="Edit message"
                 aria-label="Edit message"
               >
-                <Pencil size={12} />
+                <Pencil size={11} />
               </button>
             )}
             {!isError && (
               <button
                 onClick={handleCopy}
-                className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
                 title={copied ? "Copied!" : "Copy"}
                 aria-label="Copy message"
               >
-                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? <Check size={11} className="text-success" /> : <Copy size={11} />}
               </button>
             )}
           </div>
@@ -340,44 +328,152 @@ function MessageBubble({
   );
 }
 
-// ===== Empty State =====
-function EmptyState() {
+// ===== Empty State (Cinematic) =====
+function EmptyStateHero() {
   return (
-    <div className="flex-1 flex items-center justify-center animate-fade-in">
-      <div className="text-center space-y-4 max-w-md px-6">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] flex items-center justify-center mx-auto ai-glow animate-pulse-glow">
-          <Sparkles size={28} className="text-white" />
+    <div className="relative flex-1 flex flex-col items-center justify-center overflow-hidden w-full h-full pb-[10vh]">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-1/4 left-1/3 w-64 h-64 bg-primary/5 rounded-full blur-3xl animate-glow-breathe pointer-events-none" />
+      <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-accent/4 rounded-full blur-3xl animate-glow-breathe pointer-events-none" style={{ animationDelay: '1s' }} />
+
+      <div className="relative z-10 flex flex-col items-center gap-7 animate-slide-up w-full px-6">
+        {/* Badge */}
+        <div className="glass flex items-center mx-auto rounded-full p-1 pr-3.5 w-fit shadow-sm animate-fade-in">
+          <span className="flex items-center gap-1 bg-gradient-to-r from-primary to-accent text-white rounded-full px-2.5 py-0.5 text-[10px] font-semibold mr-2 shadow-sm shadow-primary/25">
+            <Star className="w-2.5 h-2.5 fill-current" />
+            New
+          </span>
+          <span className="text-xs font-medium text-foreground">
+            Discover what&apos;s possible
+          </span>
         </div>
-        <h1 className="text-lg font-semibold">Agent Web</h1>
-        <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-          AI-powered assistant ready to help. Configure your API key in settings
-          and start a conversation.
+
+        {/* Headline — animated gradient text */}
+        <h1 className="text-center font-bold tracking-[-0.03em] leading-[1.08] text-4xl sm:text-5xl md:text-6xl gradient-text-hero max-w-3xl animate-float-gentle">
+          Transform Ideas Into Reality
+        </h1>
+
+        {/* Subtitle */}
+        <p className="text-center font-medium text-sm md:text-base leading-relaxed text-muted-foreground/80 max-w-xl">
+          Upload your information and get powerful insights right away. Work
+          smarter and achieve goals effortlessly.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-          {["Write code", "Analyze data", "Explain concepts"].map((s) => (
-            <span
-              key={s}
-              className="px-3 py-1.5 rounded-full text-xs bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]"
-            >
-              {s}
-            </span>
-          ))}
-        </div>
       </div>
     </div>
   );
 }
 
+// ===== Tool Call Bubble =====
+const TOOL_ICONS: Record<string, typeof Terminal> = {
+  terminal: Terminal,
+  read_file: FileText,
+  web_search: Globe,
+};
+
+function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
+  const [expanded, setExpanded] = useState(false);
+  const Icon = TOOL_ICONS[invocation.toolName] ?? Wrench;
+  const isPending = invocation.state === "pending";
+
+  const argsPreview = useMemo(() => {
+    const entries = Object.entries(invocation.args);
+    if (entries.length === 0) return "";
+    const first = entries[0];
+    const val = typeof first[1] === "string" ? first[1] : JSON.stringify(first[1]);
+    return val.length > 60 ? val.slice(0, 57) + "..." : val;
+  }, [invocation.args]);
+
+  return (
+    <div className={cn(
+      "my-1 rounded-xl overflow-hidden text-xs transition-all duration-200 border-l-[3px]",
+      isPending
+        ? "border-l-warning bg-warning/5 border border-warning/15"
+        : "border-l-success bg-success/5 border border-success/15"
+    )}>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/30 transition-colors text-left"
+      >
+        <div className={cn(
+          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+          isPending
+            ? "bg-warning/12 text-warning"
+            : "bg-success/12 text-success"
+        )}>
+          {isPending ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Icon size={12} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="font-medium text-foreground">
+            {invocation.toolName.replace(/_/g, " ")}
+          </span>
+          {argsPreview && (
+            <span className="ml-1.5 text-muted-foreground truncate">
+              {argsPreview}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {isPending ? (
+            <span className="text-[10px] text-warning font-semibold">Running...</span>
+          ) : (
+            <span className="text-[10px] text-success font-semibold">Done</span>
+          )}
+          {expanded ? <ChevronDown size={12} className="text-muted-foreground" /> : <ChevronRight size={12} className="text-muted-foreground" />}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-border-muted/50 animate-slide-up">
+          {Object.keys(invocation.args).length > 0 && (
+            <div className="px-3 py-2 border-b border-border-muted/50">
+              <p className="section-label mb-1">Arguments</p>
+              <pre className="text-[11px] text-foreground bg-muted/50 rounded-lg px-2.5 py-1.5 overflow-x-auto max-h-40 whitespace-pre-wrap break-all border border-border-muted">
+                {JSON.stringify(invocation.args, null, 2)}
+              </pre>
+            </div>
+          )}
+          {invocation.result != null && (
+            <div className="px-3 py-2">
+              <p className="section-label mb-1">Result</p>
+              <pre className="text-[11px] text-foreground bg-muted/50 rounded-lg px-2.5 py-1.5 overflow-x-auto max-h-60 whitespace-pre-wrap break-all border border-border-muted">
+                {invocation.result}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ===== Stream Parser =====
+interface StreamCallbacks {
+  onText: (delta: string) => void;
+  onToolCall: (toolCall: { toolCallId: string; toolName: string; args: Record<string, unknown> }) => void;
+  onToolResult: (toolResult: { toolCallId: string; result: string }) => void;
+}
+
 async function streamChat(
   payload: { messages: { role: string; content: string }[]; provider: string; model: string; apiKey: string },
-  onText: (delta: string) => void
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
 ): Promise<{ text: string; error?: string }> {
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal,
+    });
+  } catch (e: unknown) {
+    if ((e as Error).name === "AbortError") return { text: "", error: "Cancelled" };
+    throw e;
+  }
   if (!res.ok || !res.body) {
     let msg = `HTTP ${res.status}`;
     try {
@@ -390,35 +486,77 @@ async function streamChat(
   const decoder = new TextDecoder();
   let text = "";
   let error: string | undefined;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    for (const line of chunk.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      if (trimmed.startsWith("0:")) {
-        try {
-          const t = JSON.parse(trimmed.slice(2));
-          if (typeof t === "string") {
-            text += t;
-            onText(t);
-          }
-        } catch {}
-      } else if (trimmed.startsWith("3:")) {
-        try {
-          const e = JSON.parse(trimmed.slice(2));
-          error = typeof e === "string" ? e : JSON.stringify(e);
-        } catch {
-          error = trimmed.slice(2);
+  let buffer = "";
+
+  function parseLine(raw: string) {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+
+    if (trimmed.startsWith("0:")) {
+      try {
+        const t = JSON.parse(trimmed.slice(2));
+        if (typeof t === "string") {
+          text += t;
+          callbacks.onText(t);
         }
+      } catch {}
+    } else if (trimmed.startsWith("3:")) {
+      try {
+        const e = JSON.parse(trimmed.slice(2));
+        error = typeof e === "string" ? e : JSON.stringify(e);
+      } catch {
+        error = trimmed.slice(2);
+      }
+    } else if (trimmed.startsWith("9:")) {
+      try {
+        const tc = JSON.parse(trimmed.slice(2));
+        if (tc.toolCallId && tc.toolName) {
+          callbacks.onToolCall({
+            toolCallId: tc.toolCallId,
+            toolName: tc.toolName,
+            args: tc.args ?? {},
+          });
+        }
+      } catch {}
+    } else if (trimmed.startsWith("a:")) {
+      try {
+        const tr = JSON.parse(trimmed.slice(2));
+        if (tr.toolCallId) {
+          const result = typeof tr.result === "string" ? tr.result : JSON.stringify(tr.result);
+          callbacks.onToolResult({
+            toolCallId: tr.toolCallId,
+            result,
+          });
+        }
+      } catch {}
+    }
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        buffer += decoder.decode();
+        if (buffer.trim()) parseLine(buffer);
+        break;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        parseLine(line);
       }
     }
+  } catch (e: unknown) {
+    if ((e as Error).name === "AbortError") {
+      return { text, error: text ? undefined : "Cancelled" };
+    }
+    throw e;
   }
   return { text, error };
 }
 
-// ===== Compare Row (renders two assistant messages side by side) =====
+// ===== Compare Row =====
 function CompareRow({
   left,
   right,
@@ -443,32 +581,50 @@ function CompareCell({ message }: { message: ChatMessage }) {
   const isError = message.content.startsWith("Error:");
   return (
     <div className="flex gap-2 items-start">
-      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] flex items-center justify-center shrink-0 mt-0.5 ai-glow">
-        <Bot size={13} className="text-white" />
+      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 mt-0.5 shadow-sm shadow-accent/15">
+        <Bot size={12} className="text-white" />
       </div>
       <div className="flex-1 min-w-0">
         {message.model && (
-          <div className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)] mb-1">
+          <div className="section-label mb-1">
             {message.model}
           </div>
         )}
-        <div
-          className={cn(
-            "px-3 py-2.5 rounded-xl text-sm",
-            "bg-[var(--surface-elevated)] border border-[var(--border)]"
-          )}
-        >
+        <div className="px-3 py-2.5 rounded-xl text-sm glass-card">
           {isError ? (
-            <p className="text-[var(--destructive)] whitespace-pre-wrap">{message.content}</p>
+            <p className="text-destructive whitespace-pre-wrap">{message.content}</p>
           ) : message.content ? (
             <AssistantContent content={message.content} />
           ) : (
-            <span className="text-[var(--muted-foreground)] text-xs italic">Waiting...</span>
+            <span className="text-muted-foreground text-xs italic">Waiting...</span>
           )}
         </div>
       </div>
     </div>
   );
+}
+
+// ===== File Upload Types =====
+interface UploadedFile {
+  name: string;
+  storedName: string;
+  size: number;
+  type: string;
+  content: string;
+  uploadedAt: number;
+}
+
+function getFileIcon(type: string) {
+  if (type === ".pdf") return <FileText size={14} className="text-red-400" />;
+  if (type === ".docx" || type === ".doc") return <FileText size={14} className="text-blue-400" />;
+  if (type === ".xlsx" || type === ".xls" || type === ".csv") return <FileSpreadsheet size={14} className="text-green-400" />;
+  return <File size={14} className="text-muted-foreground" />;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
 // ===== Main Chat Interface =====
@@ -493,12 +649,56 @@ export function ChatInterface() {
 
   const [input, setInput] = useState("");
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldAutoScroll = useRef(true);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Auto-scroll
+  // File upload handler
+  const handleFileUpload = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    const newFiles: UploadedFile[] = [];
+
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(`Failed to upload ${file.name}: ${data.error}`);
+          continue;
+        }
+        newFiles.push({
+          name: data.file.name,
+          storedName: data.file.storedName,
+          size: data.file.size,
+          type: data.file.type,
+          content: data.content,
+          uploadedAt: data.file.uploadedAt,
+        });
+        toast.success(`Uploaded ${file.name}`);
+      } catch (err) {
+        toast.error(`Failed to upload ${file.name}`);
+        console.error(err);
+      }
+    }
+
+    setAttachedFiles((prev) => [...prev, ...newFiles]);
+    setIsUploading(false);
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
+
+  const removeAttachedFile = useCallback((storedName: string) => {
+    setAttachedFiles((prev) => prev.filter((f) => f.storedName !== storedName));
+  }, []);
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
@@ -509,7 +709,6 @@ export function ChatInterface() {
     }
   }, [messages.length, scrollToBottom]);
 
-  // Track scroll position
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
@@ -526,7 +725,6 @@ export function ChatInterface() {
     ta.style.height = Math.min(ta.scrollHeight, 320) + "px";
   }, []);
 
-  // Models to use for this submission
   const effectiveModels = useMemo(() => {
     if (compareMode && selectedModels.length >= 2) {
       return selectedModels.slice(0, 2);
@@ -534,7 +732,25 @@ export function ChatInterface() {
     return [model];
   }, [compareMode, selectedModels, model]);
 
-  // Core: send a list of messages to one model and stream into a placeholder
+  const patchLocalToolInvocations = useCallback(
+    (messageId: string, updater: (prev: ToolInvocation[]) => ToolInvocation[]) => {
+      useChatStore.setState((s) => ({
+        sessions: s.sessions.map((ses) => {
+          if (ses.id !== s.activeSessionId) return ses;
+          return {
+            ...ses,
+            messages: ses.messages.map((m) =>
+              m.id === messageId
+                ? { ...m, toolInvocations: updater(m.toolInvocations ?? []) }
+                : m
+            ),
+          };
+        }),
+      }));
+    },
+    []
+  );
+
   const runSingle = useCallback(
     async (
       sessionId: string,
@@ -543,19 +759,33 @@ export function ChatInterface() {
       placeholderId: string
     ) => {
       const { text, error } = await streamChat(
+        { messages: msgs, provider, model: useModel, apiKey },
         {
-          messages: msgs,
-          provider,
-          model: useModel,
-          apiKey,
+          onText: (delta) => {
+            patchLocalMessage(placeholderId, getCurrentText(placeholderId) + delta);
+          },
+          onToolCall: (tc) => {
+            patchLocalToolInvocations(placeholderId, (prev) => [
+              ...prev,
+              { toolCallId: tc.toolCallId, toolName: tc.toolName, args: tc.args, state: "pending" as const },
+            ]);
+          },
+          onToolResult: (tr) => {
+            patchLocalToolInvocations(placeholderId, (prev) =>
+              prev.map((inv) =>
+                inv.toolCallId === tr.toolCallId
+                  ? { ...inv, result: tr.result, state: "result" as const }
+                  : inv
+              )
+            );
+          },
         },
-        (delta) => {
-          patchLocalMessage(placeholderId, getCurrentText(placeholderId) + delta);
-        }
+        abortRef.current?.signal
       );
 
       const finalText = error ? "Error: " + error : text;
-      // Persist to DB at the end (placeholder was local-only)
+      if (error) toast.error(`Error generating response: ${error}`);
+
       await persistMessage(sessionId, {
         id: placeholderId,
         role: "assistant",
@@ -563,20 +793,16 @@ export function ChatInterface() {
         model: useModel,
         timestamp: Date.now(),
       });
-      // Ensure local state matches
       patchLocalMessage(placeholderId, finalText);
 
       function getCurrentText(id: string): string {
-        const ses = useChatStore
-          .getState()
-          .sessions.find((s) => s.id === sessionId);
+        const ses = useChatStore.getState().sessions.find((s) => s.id === sessionId);
         return ses?.messages.find((m) => m.id === id)?.content ?? "";
       }
     },
-    [provider, apiKey, patchLocalMessage]
+    [provider, apiKey, patchLocalMessage, patchLocalToolInvocations]
   );
 
-  // Submit chat: handles both single and compare modes
   const submitChat = useCallback(
     async (msgs: { role: string; content: string }[]) => {
       if (isLoading || !apiKey) return;
@@ -586,105 +812,103 @@ export function ChatInterface() {
       }
       setLoading(true);
 
+      const ac = new AbortController();
+      abortRef.current = ac;
+
       const placeholders = effectiveModels.map((useModel) => {
         const id = genId();
-        const msg: ChatMessage = {
-          id,
-          role: "assistant",
-          content: "",
-          model: useModel,
-          timestamp: Date.now(),
-        };
+        const msg: ChatMessage = { id, role: "assistant", content: "", model: useModel, timestamp: Date.now() };
         appendLocalMessage(msg);
         return { id, model: useModel };
       });
 
       try {
-        await Promise.all(
-          placeholders.map((p) =>
-            runSingle(sessionId!, msgs, p.model, p.id)
-          )
+        const results = await Promise.allSettled(
+          placeholders.map((p) => runSingle(sessionId!, msgs, p.model, p.id))
         );
+        results.forEach((r, i) => {
+          if (r.status === "rejected") {
+            const reason = r.reason instanceof Error ? r.reason.message : String(r.reason);
+            toast.error(`${placeholders[i].model}: ${reason}`);
+          }
+        });
       } finally {
+        abortRef.current = null;
         setLoading(false);
       }
     },
-    [
-      isLoading,
-      apiKey,
-      activeSessionId,
-      createSession,
-      setLoading,
-      effectiveModels,
-      appendLocalMessage,
-      runSingle,
-    ]
+    [isLoading, apiKey, activeSessionId, createSession, setLoading, effectiveModels, appendLocalMessage, runSingle]
   );
 
-  // Send message
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading || !apiKey) return;
+  const handleSend = useCallback(async (overrideInput?: string | React.MouseEvent) => {
+    const isString = typeof overrideInput === "string";
+    const textToUse = (isString ? overrideInput : input).trim();
+    if (!textToUse || isLoading || !apiKey) return;
 
-    const userMsg: ChatMessage = {
-      id: genId(),
-      role: "user",
-      content: input.trim(),
-      timestamp: Date.now(),
-    };
-    setInput("");
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
+    // Build message content: user text + attached file contents
+    let fullContent = textToUse;
+    if (attachedFiles.length > 0) {
+      const fileContextParts = attachedFiles.map((f) =>
+        `\n\n---\n📎 File: ${f.name} (${f.type}, ${formatFileSize(f.size)})\n\n${f.content}`
+      );
+      fullContent = textToUse + fileContextParts.join("");
     }
 
-    // Persist user message to DB
+    // Show only the user's typed text in the UI bubble
+    const displayContent = attachedFiles.length > 0
+      ? `${textToUse}\n\n📎 ${attachedFiles.map((f) => f.name).join(", ")}`
+      : textToUse;
+
+    const userMsg: ChatMessage = { id: genId(), role: "user", content: displayContent, timestamp: Date.now() };
+    
+    if (!isString) {
+      setInput("");
+      setAttachedFiles([]);
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+    }
+
     await addMessage(userMsg);
 
+    // For the API, use the full content with file data
     const currentMessages = [...useChatStore.getState().sessions.find((s) => s.id === useChatStore.getState().activeSessionId)?.messages ?? []];
-    // Build prompt history (skip empty assistant placeholders, drop model meta)
-    const msgs = currentMessages
-      .filter((m) => m.content)
-      .map((m) => ({ role: m.role, content: m.content }));
-
+    const msgs = currentMessages.filter((m) => m.content).map((m) => {
+      // Replace the display content with full content for the last user message
+      if (m.id === userMsg.id) {
+        return { role: m.role, content: fullContent };
+      }
+      return { role: m.role, content: m.content };
+    });
     await submitChat(msgs);
-  }, [input, isLoading, apiKey, addMessage, submitChat]);
+  }, [input, isLoading, apiKey, addMessage, submitChat, attachedFiles]);
 
-  // Retry: rebuild prompt from messages up to last user message and resubmit
   const handleRetry = useCallback(
     async (errorMessageId: string) => {
       const idx = messages.findIndex((m) => m.id === errorMessageId);
       if (idx === -1) return;
       const target = messages[idx];
-      // Truncate from this message inclusive
       await truncateAfter(target.timestamp, true);
-      const remaining = messages.slice(0, idx);
-      const msgs = remaining
-        .filter((m) => m.content)
-        .map((m) => ({ role: m.role, content: m.content }));
+      const freshSession = useChatStore.getState().sessions.find(
+        (s) => s.id === useChatStore.getState().activeSessionId
+      );
+      const remaining = freshSession?.messages ?? [];
+      const msgs = remaining.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content }));
       await submitChat(msgs);
     },
     [messages, truncateAfter, submitChat]
   );
 
-  // Edit a user message: update DB, truncate messages after, resubmit
   const handleEdit = useCallback(
     async (messageId: string, newContent: string) => {
       const idx = messages.findIndex((m) => m.id === messageId);
       if (idx === -1) return;
       const target = messages[idx];
-
-      // Update local + DB content
       await updateMessage(messageId, newContent);
-      // Drop everything after this message
       await truncateAfter(target.timestamp, false);
-
-      // Build prompt: messages up to and including edited message (with new content)
-      const remaining = messages.slice(0, idx + 1).map((m) =>
-        m.id === messageId ? { ...m, content: newContent } : m
+      const freshSession = useChatStore.getState().sessions.find(
+        (s) => s.id === useChatStore.getState().activeSessionId
       );
-      const msgs = remaining
-        .filter((m) => m.content)
-        .map((m) => ({ role: m.role, content: m.content }));
-
+      const remaining = freshSession?.messages ?? [];
+      const msgs = remaining.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content }));
       await submitChat(msgs);
     },
     [messages, updateMessage, truncateAfter, submitChat]
@@ -700,9 +924,25 @@ export function ChatInterface() {
     [handleSend]
   );
 
-  // Group messages for compare-mode rendering. Consecutive assistant messages
-  // sharing the same user-prompt timestamp (i.e., dispatched in parallel) are
-  // rendered side-by-side as a CompareRow.
+  const handleCancel = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+      setLoading(false);
+      toast("Generation stopped");
+    }
+  }, [setLoading]);
+
+  useEffect(() => {
+    function onGlobalKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && isLoading) { e.preventDefault(); handleCancel(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "n") { e.preventDefault(); createSession(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") { e.preventDefault(); textareaRef.current?.focus(); }
+    }
+    window.addEventListener("keydown", onGlobalKey);
+    return () => window.removeEventListener("keydown", onGlobalKey);
+  }, [isLoading, handleCancel, createSession]);
+
   const renderItems = useMemo(() => {
     type Item =
       | { kind: "single"; msg: ChatMessage; index: number }
@@ -711,14 +951,12 @@ export function ChatInterface() {
     let i = 0;
     while (i < messages.length) {
       const m = messages[i];
-      // Look-ahead for compare pair: assistant + assistant with close timestamps and different models
       if (
         m.role === "assistant" &&
         i + 1 < messages.length &&
         messages[i + 1].role === "assistant" &&
         Math.abs(messages[i + 1].timestamp - m.timestamp) < 2000 &&
-        m.model &&
-        messages[i + 1].model &&
+        m.model && messages[i + 1].model &&
         m.model !== messages[i + 1].model
       ) {
         items.push({ kind: "compare", left: m, right: messages[i + 1], index: i });
@@ -734,16 +972,16 @@ export function ChatInterface() {
   if (!hydrated) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 size={20} className="animate-spin text-[var(--muted-foreground)]" />
+        <Loader2 size={20} className="animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Messages Area */}
       {messages.length === 0 ? (
-        <EmptyState />
+        <EmptyStateHero />
       ) : (
         <div
           ref={scrollContainerRef}
@@ -757,9 +995,9 @@ export function ChatInterface() {
                   key={item.msg.id}
                   message={item.msg}
                   index={item.index}
+                  isStreaming={isLoading && item.index === messages.length - 1}
                   onRetry={
-                    item.msg.role === "assistant" &&
-                    item.msg.content.startsWith("Error:")
+                    item.msg.role === "assistant" && item.msg.content.startsWith("Error:")
                       ? () => handleRetry(item.msg.id)
                       : undefined
                   }
@@ -797,8 +1035,10 @@ export function ChatInterface() {
         <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={scrollToBottom}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--border)] shadow-lg
-                       hover:bg-[var(--muted)] active:scale-95 transition-all animate-slide-up"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full
+                       gradient-bg-primary text-white
+                       shadow-lg shadow-primary/25
+                       hover:shadow-xl hover:shadow-primary/35 active:scale-95 transition-all duration-200 animate-bounce-subtle"
             aria-label="Scroll to bottom"
           >
             <ArrowDown size={16} />
@@ -806,62 +1046,118 @@ export function ChatInterface() {
         </div>
       )}
 
-      {/* Input Area */}
-      <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)]">
-        <div className="max-w-3xl mx-auto px-4 py-3">
+      {/* ===== Unified Input Area ===== */}
+      <div className="shrink-0 z-10 w-full px-4 pb-4 pt-3">
+        <div className="max-w-3xl mx-auto">
+          {/* Compare mode badge */}
           {compareMode && effectiveModels.length > 1 && (
-            <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/30">
+            <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] bg-accent/10 text-accent border border-accent/20 font-medium">
               <GitCompare size={11} />
-              Compare mode: {effectiveModels.join(" vs ")}
+              Compare: {effectiveModels.join(" vs ")}
             </div>
           )}
+
+          {/* Attached files preview */}
+          {attachedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {attachedFiles.map((f) => (
+                <div
+                  key={f.storedName}
+                  className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-primary/8 border border-primary/20 text-xs font-medium text-foreground animate-slide-up"
+                >
+                  {getFileIcon(f.type)}
+                  <span className="max-w-[120px] truncate">{f.name}</span>
+                  <span className="text-[10px] text-muted-foreground">{formatFileSize(f.size)}</span>
+                  <button
+                    onClick={() => removeAttachedFile(f.storedName)}
+                    className="p-0.5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors"
+                    aria-label={`Remove ${f.name}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json,.xml,.html,.py,.js,.ts,.tsx,.jsx,.css,.yaml,.yml,.sql"
+            onChange={(e) => handleFileUpload(e.target.files)}
+            className="hidden"
+          />
+
+          {/* Input bar — same design for both empty and chat modes */}
           <div
             className={cn(
-              "flex items-end gap-2 p-2 rounded-2xl",
-              "bg-[var(--muted)] border border-[var(--border)]",
-              "focus-within:ring-2 focus-within:ring-[var(--ring)]/20 focus-within:border-[var(--primary)]/50",
-              "transition-all duration-200"
+              "flex items-end gap-2 p-2.5 rounded-2xl",
+              "bg-surface-elevated/60 border border-border/50 backdrop-blur-sm",
+              "focus-within:ring-2 focus-within:ring-primary/15 focus-within:border-primary/30",
+              "shadow-sm hover:shadow-md",
+              "transition-all duration-300"
             )}
           >
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className={cn(
+                "min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg shrink-0 transition-all duration-200",
+                isUploading
+                  ? "text-primary animate-pulse"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+              aria-label="Attach file"
+            >
+              {isUploading ? <UploadSpinner size={16} className="animate-spin" /> : <Paperclip size={16} />}
+            </button>
             <textarea
               ref={textareaRef}
               value={input}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
-              placeholder={
-                apiKey
-                  ? "Message Agent Web..."
-                  : "Configure API key in settings first"
-              }
+              placeholder={apiKey ? "Message Agent Web..." : "Configure API key in settings first"}
               disabled={!apiKey}
               rows={1}
-              className="flex-1 bg-transparent text-base resize-none px-2 py-1.5 min-h-[40px] max-h-[320px]
-                         placeholder:text-[var(--muted-foreground)] focus:outline-none
+              className="flex-1 bg-transparent text-sm resize-none px-2.5 py-1.5 min-h-[40px] max-h-[320px]
+                         placeholder:text-muted-foreground/50 focus:outline-none
                          disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
-              onClick={handleSend}
-              disabled={isLoading || !input.trim() || !apiKey}
+              onClick={isLoading ? handleCancel : handleSend}
+              disabled={!isLoading && (!input.trim() || !apiKey)}
               className={cn(
-                "min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl shrink-0 transition-all duration-200",
-                "focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2",
-                input.trim() && apiKey && !isLoading
-                  ? "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] active:scale-[0.93] shadow-sm"
-                  : "text-[var(--muted-foreground)] cursor-not-allowed"
+                "min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl shrink-0 transition-all duration-200",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                isLoading
+                  ? "bg-destructive text-white hover:bg-destructive/90 active:scale-95"
+                  : input.trim() && apiKey
+                    ? "bg-gradient-to-br from-primary to-accent text-white shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-95"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
-              aria-label={isLoading ? "Sending..." : "Send message"}
+              aria-label={isLoading ? "Stop generation" : "Send message"}
             >
-              {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {isLoading ? <Square size={14} className="fill-current" /> : <Send size={16} />}
             </button>
           </div>
+
+          {/* Bottom hints — always visible */}
           <div className="flex items-center justify-between mt-1.5 px-1">
-            <p className="text-[11px] text-[var(--muted-foreground)]">
-              {provider} / {compareMode && effectiveModels.length > 1 ? effectiveModels.join(", ") : model}
-            </p>
-            <p className="text-[11px] text-[var(--muted-foreground)] flex items-center gap-1">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
+              <Sparkles className="w-3 h-3 text-primary/60" />
+              <span>{provider}</span>
+              <span className="text-border">/</span>
+              <span className="font-medium text-muted-foreground/80">{model}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
               <CornerDownLeft size={10} />
-              Enter to send
-            </p>
+              <span>Enter to send</span>
+              <span className="text-border">·</span>
+              <kbd className="px-1.5 py-0.5 rounded-md border border-border-muted bg-surface-muted font-mono text-[9px]">Ctrl+N</kbd>
+              <span>New chat</span>
+            </div>
           </div>
         </div>
       </div>
@@ -874,5 +1170,3 @@ export function ChatInterface() {
   );
 }
 
-// Helper for utility usage of updateMessageRemote when patching from outside the bubble
-export { persistMessage, updateMessageRemote };
