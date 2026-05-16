@@ -30,11 +30,11 @@ function CompareCell({ message }: { message: ChatMessage }) {
         <Bot size={12} className="text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        {message.model && (
+        {message.model ? (
           <div className="section-label mb-1">
             {message.model}
           </div>
-        )}
+        ) : null}
         <div className="px-3 py-2.5 rounded-xl text-sm glass-card">
           {isError ? (
             <p className="text-destructive whitespace-pre-wrap">{message.content}</p>

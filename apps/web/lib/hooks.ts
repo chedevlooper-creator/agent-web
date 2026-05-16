@@ -1,8 +1,8 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import type { UploadedFile } from "@/components/chat/file-upload";
 
-export function useScrollAnchor(deps: unknown[]) {
+export function useScrollAnchor(messageCount: number) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
@@ -16,8 +16,7 @@ export function useScrollAnchor(deps: unknown[]) {
     if (shouldAutoScroll.current) {
       scrollToBottom();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [messageCount, scrollToBottom]);
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -28,13 +27,13 @@ export function useScrollAnchor(deps: unknown[]) {
     setShowScrollBtn(!nearBottom);
   }, []);
 
-  return {
+  return useMemo(() => ({
     messagesEndRef,
     scrollContainerRef,
     showScrollBtn,
     scrollToBottom,
     handleScroll,
-  };
+  }), [showScrollBtn, scrollToBottom, handleScroll]);
 }
 
 export function useFileUpload() {

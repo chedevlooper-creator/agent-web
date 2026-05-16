@@ -46,11 +46,11 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
           <span className="font-medium text-foreground">
             {invocation.toolName.replace(/_/g, " ")}
           </span>
-          {argsPreview && (
+          {argsPreview ? (
             <span className="ml-1.5 text-muted-foreground truncate">
               {argsPreview}
             </span>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {isPending ? (

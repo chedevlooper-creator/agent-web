@@ -170,7 +170,7 @@ export function ChatInterface() {
   const [input, setInput] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
-  const { messagesEndRef, scrollContainerRef, showScrollBtn, scrollToBottom, handleScroll } = useScrollAnchor([messages.length]);
+  const { messagesEndRef, scrollContainerRef, showScrollBtn, scrollToBottom, handleScroll } = useScrollAnchor(messages.length);
   const { attachedFiles, isUploading, handleFileUpload, removeAttachedFile, clearAttachedFiles } = useFileUpload();
 
   const effectiveModels = useMemo(() => {
@@ -453,7 +453,7 @@ export function ChatInterface() {
                 />
               )
             )}
-            {isLoading && (
+            {isLoading ? (
               <TypingIndicator
                 label={
                   compareMode && effectiveModels.length > 1
@@ -461,7 +461,7 @@ export function ChatInterface() {
                     : undefined
                 }
               />
-            )}
+            ) : null}
             <div ref={messagesEndRef} />
           </div>
         </div>
