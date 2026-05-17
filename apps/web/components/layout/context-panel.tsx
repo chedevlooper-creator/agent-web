@@ -97,57 +97,89 @@ export function ContextPanel() {
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Tablet/Mobile Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden animate-fade-in cursor-pointer"
+        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm xl:hidden animate-fade-in cursor-pointer"
         onClick={toggleContextPanel}
       />
 
       {/* Panel */}
       <aside
+        id="context-panel"
+        aria-label="Bağlam paneli"
         className={cn(
-          "fixed inset-y-0 right-0 z-50 w-full max-w-[320px] lg:w-[300px]",
-          "lg:static lg:block",
+          "fixed inset-y-0 right-0 z-50 w-full max-w-[360px] xl:w-[292px]",
+          "xl:static xl:block",
           "flex flex-col",
           showVideo
             ? "glass-subtle border-l border-border/15"
             : "sidebar-cockpit border-l border-border/60",
-          "shadow-2xl lg:shadow-none",
+          "shadow-2xl xl:shadow-none",
           "animate-slide-in-right transition-[background-color,border-color,box-shadow] duration-500"
         )}
       >
         {/* Header */}
-        <div className={cn("h-14 flex items-center justify-between px-4 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/15" : "border-border/60")}>
+        <div className={cn("h-[66px] flex items-center justify-between px-5 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/15" : "border-border/60")}>
           <h2 className="text-[13px] font-semibold flex items-center gap-2 text-foreground uppercase tracking-wide">
             Bağlam
             <span className="h-1.5 w-1.5 rounded-full bg-electric shadow-[0_0_14px_rgba(176,226,39,0.8)]" />
           </h2>
           <div className="ml-auto flex items-center gap-2.5 text-fg-muted">
-            <Minus size={12} className="cursor-pointer hover:text-foreground" onClick={toggleContextPanel} />
-            <Square size={10} className="cursor-pointer hover:text-foreground" />
-            <X size={14} className="cursor-pointer hover:text-foreground lg:hidden" onClick={toggleContextPanel} />
+            <button
+              type="button"
+              onClick={toggleContextPanel}
+              className="flex min-h-[32px] min-w-[32px] items-center justify-center border border-transparent text-fg-muted transition-colors duration-200 hover:border-border/70 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Bağlam panelini daralt"
+              aria-controls="context-panel"
+              aria-expanded="true"
+              data-tooltip="Bağlamı daralt"
+              title="Bağlamı daralt"
+            >
+              <Minus size={12} aria-hidden="true" />
+            </button>
+            <span
+              role="status"
+              className="flex min-h-[32px] min-w-[32px] items-center justify-center border border-border/45 bg-black/15 text-fg-muted"
+              aria-label="Bağlam paneli masaüstünde sabitlenir, tablet ve mobilde çekmece olarak açılır"
+              data-tooltip="Sabit / çekmece"
+              title="Masaüstünde sabit, tablet ve mobilde çekmece"
+            >
+              <Square size={10} aria-hidden="true" />
+            </span>
+            <button
+              type="button"
+              onClick={toggleContextPanel}
+              className="flex min-h-[32px] min-w-[32px] items-center justify-center border border-transparent text-fg-muted transition-colors duration-200 hover:border-border/70 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring xl:hidden"
+              aria-label="Bağlam çekmecesini kapat"
+              aria-controls="context-panel"
+              aria-expanded="true"
+              data-tooltip="Çekmeceyi kapat"
+              title="Çekmeceyi kapat"
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-8">
-          <section className="space-y-3">
-            <h3 className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Oturum Özeti</h3>
+        <div className="flex-1 overflow-y-auto p-5 space-y-0">
+          <section className="context-section space-y-4">
+            <h3 className="section-label">Oturum Özeti</h3>
             <div className="space-y-1">
               <StatRow label="Mesajlar" value={stats.messageCount} icon={MessageSquare} />
               <StatRow label="Token (tahmini)" value={stats.estimatedTokens} icon={Cpu} />
               <StatRow label="Araç Çağrıları" value={stats.toolCalls} icon={Wrench} />
               <StatRow label="Modeller" value={stats.modelCount} icon={Box} />
-              <StatRow label="Oturum Yaşı" value="0dk" icon={Clock} />
+              <StatRow label="Oturum Süresi" value="0dk" icon={Clock} />
               <StatRow label="Son Aktivite" value="-" icon={ActivitySquare} />
             </div>
           </section>
 
           {/* ── TOKEN USAGE ── */}
-          <section className="space-y-3">
+          <section className="context-section space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Token Kullanımı</h3>
+              <h3 className="section-label">Token Kullanımı</h3>
               <div className="text-xs font-mono tabular-nums text-foreground">
-                {formatTokenCount(stats.estimatedTokens)} <span className="text-muted-foreground">/ 128 Bin</span>
+                {formatTokenCount(stats.estimatedTokens)} <span className="text-muted-foreground">/ 128K</span>
               </div>
             </div>
             <div className="space-y-2">
@@ -164,15 +196,15 @@ export function ContextPanel() {
               {/* Scale markers */}
               <div className="flex justify-between text-[10px] text-muted-foreground font-mono tabular-nums">
                 <span>0</span>
-                <span>64B</span>
-                <span>128B</span>
+                <span>64K</span>
+                <span>128K</span>
               </div>
             </div>
           </section>
 
           {/* ── ACTIVE TOOLS ── */}
-          <section className="space-y-3">
-            <h3 className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Aktif Araçlar</h3>
+          <section className="context-section space-y-4">
+            <h3 className="section-label">Aktif Araçlar</h3>
             {activeTools.length > 0 ? (
               <div className="space-y-1">
                 {activeTools.map((t) => {
@@ -195,12 +227,12 @@ export function ContextPanel() {
           </section>
 
           {/* ── RECENT ACTIVITY ── */}
-          <section className="space-y-3">
-            <h3 className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Son Aktivite</h3>
+          <section className="context-section space-y-4">
+            <h3 className="section-label">Son Aktivite</h3>
             <div className="flex items-start justify-between text-xs text-muted-foreground gap-4">
               <div className="space-y-1">
                 <p className="font-medium text-foreground">Henüz aktivite yok</p>
-                <p className="leading-relaxed">Aktivitenizi görmek için bir konuşma başlatın.</p>
+                <p className="leading-relaxed">Aktiviteyi görmek için bir konuşma başlatın.</p>
               </div>
               <Activity size={24} className="text-electric/50 shrink-0" />
             </div>
@@ -265,7 +297,7 @@ function ProjectFiles() {
       </h3>
       {files.length === 0 ? (
         <div className="text-xs text-muted-foreground italic glass-card rounded-xl p-3">
-          Henüz dosya yok. AI'dan bu projede dosya oluşturmasını isteyin.
+          Henüz dosya yok. Ajandan bu projede dosya oluşturmasını isteyin.
         </div>
       ) : (
         <div className="glass-card rounded-xl p-2 space-y-0.5 max-h-[240px] overflow-y-auto">
