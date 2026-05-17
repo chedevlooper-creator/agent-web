@@ -115,7 +115,9 @@ via `tools/path-security.ts` (override with `TOOL_ALLOWED_BASE`, not recommended
 - **image_generate** — Placeholder pending provider configuration.
 - **MCP tools** — `tools/mcp/mcp-manager.ts` connects stdio MCP servers from
   `data/mcp-servers.json`, converts JSON Schema → Zod, and exposes tools prefixed
-  `mcp__<server>__<tool>`.
+  `mcp__<server>__<tool>`. The config file is created/managed at runtime via the
+  `/api/mcp/servers` route (and the MCP manager UI) — no manual setup is required;
+  it is created on first server add if absent.
 
 ### Database (`packages/db/src/schema.ts`)
 
@@ -170,7 +172,7 @@ Copy `.env.example` to `.env.local`. Key vars:
 | `OPENAI_API_KEY` | — | At least one provider key required |
 | `OPENROUTER_API_KEY` | — | |
 | `DEEPSEEK_API_KEY` | — | |
-| `ENCRYPTION_KEY` | dev fallback | Encrypts stored API keys at rest; set in production |
+| `ENCRYPTION_KEY` | dev fallback | Encrypts stored API keys at rest (AES-256-GCM). **The unset fallback is insecure — always set a 32-byte hex key in production** (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) |
 | `DATABASE_URL` | `file:./data/local.db` | libsql remote: `libsql://...` |
 | `DATABASE_AUTH_TOKEN` | — | Required for Turso/libsql remote |
 | `TERMINAL_BACKEND` | `local` | `docker` for sandbox isolation |
