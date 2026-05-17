@@ -14,6 +14,19 @@ export function MarkdownRenderer({ content, className, isStreaming }: MarkdownRe
     <div className={cn("chat-prose", isStreaming && "streaming-cursor", className)}>
       <ReactMarkdown
         components={{
+          a({ href, children, ...props }) {
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary"
+                {...props}
+              >
+                {children}
+              </a>
+            );
+          },
           code({ className: codeClass, children, ...props }) {
             const match = /language-(\w+)/.exec(codeClass || "");
             const isInline = !codeClass?.includes("language-");
@@ -28,6 +41,7 @@ export function MarkdownRenderer({ content, className, isStreaming }: MarkdownRe
                   borderRadius: "0.625rem",
                   fontSize: "0.8125rem",
                   border: "1px solid var(--border-muted)",
+                  maxWidth: "100%",
                 }}
               >
                 {String(children).replace(/\n$/, "")}
@@ -43,7 +57,7 @@ export function MarkdownRenderer({ content, className, isStreaming }: MarkdownRe
           },
         }}
       >
-        {content + (isStreaming ? " ▍" : "")}
+        {content}
       </ReactMarkdown>
     </div>
   );

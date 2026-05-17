@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["**/*.test.{ts,tsx}"],
+    env: {
+      NODE_ENV: "test",
+    },
   },
   resolve: {
     alias: {

@@ -14,7 +14,8 @@ const RequestSchema = z.object({
     .max(500),
   provider: z.enum(["openai", "openrouter", "opencode", "deepseek"]),
   model: z.string().min(1).max(200),
-  apiKey: z.string().min(1),
+  apiKey: z.string().optional(),
+  projectRootPath: z.string().optional(),
 });
 
 describe("Chat API request schema", () => {
@@ -50,15 +51,26 @@ describe("Chat API request schema", () => {
     ).toThrow();
   });
 
-  it("rejects empty apiKey", () => {
-    expect(() =>
-      RequestSchema.parse({ ...validBody, apiKey: "" })
-    ).toThrow();
+  it("accepts missing apiKey (optional — server looks up from DB)", () => {
+    const { apiKey: _ignored, ...rest } = validBody;
+    void _ignored;
+    expect(() => RequestSchema.parse(rest)).not.toThrow();
   });
 
   it("rejects missing messages field", () => {
-    const { messages, ...rest } = validBody;
+    const { messages: _messages, ...rest } = validBody;
+    void _messages;
     expect(() => RequestSchema.parse(rest)).toThrow();
+  });
+
+  it("accepts optional projectRootPath", () => {
+    expect(() =>
+      RequestSchema.parse({ ...validBody, projectRootPath: "/home/user/project" })
+    ).not.toThrow();
+  });
+
+  it("accepts missing projectRootPath", () => {
+    expect(() => RequestSchema.parse(validBody)).not.toThrow();
   });
 
   it("rejects messages over 500", () => {

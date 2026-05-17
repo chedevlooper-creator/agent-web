@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="1000" viewBox="0 0 3000 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Medet Onlu Sehadeti Anma Gunu Pankarti</title>
+  <desc id="desc">Koyu yesil ve siyah tonlarda, altin vurgulu, anma etkinligi icin yatay pankart tasarimi.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06110d"/>
+      <stop offset="0.45" stop-color="#0c2018"/>
+      <stop offset="1" stop-color="#030605"/>
+    </linearGradient>
+    <radialGradient id="light" cx="50%" cy="28%" r="58%">
+      <stop offset="0" stop-color="#d8b46a" stop-opacity="0.24"/>
+      <stop offset="0.45" stop-color="#d8b46a" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#d8b46a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9a6a25"/>
+      <stop offset="0.5" stop-color="#f0cf86"/>
+      <stop offset="1" stop-color="#9a6a25"/>
+    </linearGradient>
+    <pattern id="geometry" width="90" height="90" patternUnits="userSpaceOnUse">
+      <path d="M45 0 90 45 45 90 0 45Z" fill="none" stroke="#d8b46a" stroke-opacity="0.08" stroke-width="2"/>
+      <path d="M45 18 72 45 45 72 18 45Z" fill="none" stroke="#d8b46a" stroke-opacity="0.05" stroke-width="2"/>
+    </pattern>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="3000" height="1000" fill="url(#bg)"/>
+  <rect width="3000" height="1000" fill="url(#geometry)" opacity="0.9"/>
+  <rect width="3000" height="1000" fill="url(#light)"/>
+
+  <path d="M0 0H3000V88H0Z" fill="#020403" opacity="0.8"/>
+  <path d="M0 912H3000V1000H0Z" fill="#020403" opacity="0.8"/>
+  <rect x="0" y="88" width="3000" height="7" fill="url(#gold)"/>
+  <rect x="0" y="905" width="3000" height="7" fill="url(#gold)"/>
+
+  <g opacity="0.95" filter="url(#softShadow)">
+    <path d="M1500 172C1596 172 1675 251 1675 347V508H1325V347C1325 251 1404 172 1500 172Z" fill="#08130f" stroke="#d8b46a" stroke-opacity="0.36" stroke-width="7"/>
+    <path d="M1280 508H1720V612H1280Z" fill="#08130f" stroke="#d8b46a" stroke-opacity="0.26" stroke-width="5"/>
+    <path d="M1188 612H1812V682H1188Z" fill="#08130f" stroke="#d8b46a" stroke-opacity="0.2" stroke-width="4"/>
+  </g>
+
+  <g transform="translate(1500 182)" opacity="0.95">
+    <circle cx="0" cy="0" r="58" fill="none" stroke="#d8b46a" stroke-width="8"/>
+    <circle cx="22" cy="-6" r="58" fill="#0b1c15"/>
+    <path d="M69-9 86-3 102-15 101 5 118 17 98 22 92 42 81 25 60 26 73 10Z" fill="#d8b46a"/>
+  </g>
+
+  <g text-anchor="middle" fill="#f5ead0" font-family="Montserrat, Arial, Helvetica, sans-serif">
+    <text x="1500" y="395" font-size="94" font-weight="800" letter-spacing="6">MEDET ÖNLÜ</text>
+    <rect x="840" y="430" width="1320" height="5" rx="2.5" fill="url(#gold)"/>
+    <text x="1500" y="535" font-size="72" font-weight="700" letter-spacing="4">ŞEHADETİ ANMA GÜNÜ</text>
+    <text x="1500" y="624" font-size="43" font-weight="700" fill="#f5ead0" letter-spacing="2">DAVASI DAVAMIZ, HATIRASI YOLUMUZDUR</text>
+    <text x="1500" y="682" font-size="30" font-weight="500" fill="#d8c7a4" letter-spacing="1.2">Rahmet, minnet ve dua ile anıyoruz</text>
+  </g>
+
+  <g transform="translate(315 704)" fill="none" stroke="#d8b46a" stroke-width="5" stroke-linecap="round" opacity="0.7">
+    <path d="M0 0C80 76 182 116 306 120"/>
+    <path d="M46 35C54 11 70-4 94-14"/>
+    <path d="M94 69C107 43 129 28 160 23"/>
+    <path d="M151 95C171 72 199 62 234 64"/>
+    <path d="M218 114C244 95 276 90 313 98"/>
+  </g>
+  <g transform="translate(2685 704) scale(-1 1)" fill="none" stroke="#d8b46a" stroke-width="5" stroke-linecap="round" opacity="0.7">
+    <path d="M0 0C80 76 182 116 306 120"/>
+    <path d="M46 35C54 11 70-4 94-14"/>
+    <path d="M94 69C107 43 129 28 160 23"/>
+    <path d="M151 95C171 72 199 62 234 64"/>
+    <path d="M218 114C244 95 276 90 313 98"/>
+  </g>
+
+  <g text-anchor="middle" font-family="Montserrat, Arial, Helvetica, sans-serif">
+    <rect x="615" y="766" width="1770" height="92" rx="16" fill="#020403" opacity="0.58" stroke="#d8b46a" stroke-opacity="0.38" stroke-width="3"/>
+    <text x="1500" y="826" font-size="36" font-weight="600" fill="#f5ead0" letter-spacing="1">TARİH  •  SAAT  •  YER</text>
+  </g>
+
+  <g opacity="0.58">
+    <path d="M0 1000 520 840H0Z" fill="#000000"/>
+    <path d="M3000 1000 2480 840H3000Z" fill="#000000"/>
+  </g>
+</svg>

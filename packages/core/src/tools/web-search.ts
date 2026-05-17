@@ -52,6 +52,30 @@ function parseDuckDuckGo(html: string, limit: number): DDGResult[] {
   return results;
 }
 
+// ===== LRU Cache for repeated queries =====
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_MAX = 50;
+const searchCache = new Map<string, { result: string; expires: number }>();
+
+function getCached(key: string): string | null {
+  const entry = searchCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    searchCache.delete(key);
+    return null;
+  }
+  return entry.result;
+}
+
+function setCache(key: string, result: string): void {
+  // Evict oldest if at capacity
+  if (searchCache.size >= CACHE_MAX) {
+    const oldest = searchCache.keys().next().value;
+    if (oldest) searchCache.delete(oldest);
+  }
+  searchCache.set(key, { result, expires: Date.now() + CACHE_TTL });
+}
+
 export const webSearchTool = tool({
   description:
     "Search the web via DuckDuckGo. Returns top results with title, URL, and snippet. Use for current events, documentation, or unknown facts.",
@@ -66,8 +90,19 @@ export const webSearchTool = tool({
   }),
   execute: async ({ query, limit }) => {
     const max = Math.min(limit ?? 5, 10);
+    const cacheKey = `${query}::${max}`;
+
+    // Check cache first
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+
     try {
       const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+
+      // 10-second timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+
       const res = await fetch(url, {
         headers: {
           "User-Agent":
@@ -75,7 +110,10 @@ export const webSearchTool = tool({
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9",
           "Accept-Language": "en-US,en;q=0.9",
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       if (!res.ok) {
         return `[error] DuckDuckGo returned HTTP ${res.status}`;
@@ -88,14 +126,22 @@ export const webSearchTool = tool({
         return `No results found for "${query}".`;
       }
 
-      return results
+      const formatted = results
         .map(
           (r, i) =>
             `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}`
         )
         .join("\n\n");
+
+      // Cache the result
+      setCache(cacheKey, formatted);
+
+      return formatted;
     } catch (e: unknown) {
-      const err = e as { message?: string };
+      const err = e as { name?: string; message?: string };
+      if (err.name === "AbortError") {
+        return `[error] Search timed out after 10 seconds for "${query}".`;
+      }
       return `[error] Search failed: ${err.message ?? "unknown"}`;
     }
   },

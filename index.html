@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atelier Modern | Multi-Screen Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Hanken+Grotesk:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: oklch(98% 0.004 250);
+      --surface: oklch(100% 0.002 95);
+      --fg: oklch(15% 0.02 240);
+      --muted: oklch(48% 0.012 240);
+      --border: oklch(15% 0.02 240);
+      --accent: oklch(52% 0.10 28);
+      
+      --font-display: 'Bodoni Moda', serif;
+      --font-body: 'Hanken Grotesk', sans-serif;
+      
+      --margin-desktop: 64px;
+      --margin-mobile: 16px;
+      --section-gap: 120px;
+      --unit: 8px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* TYPOGRAPHY */
+    h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+    .label-caps { font-family: var(--font-body); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); }
+
+    /* LAYOUT */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 var(--margin-desktop);
+    }
+    @media (max-width: 768px) {
+      .container { padding: 0 var(--margin-mobile); }
+    }
+
+    header {
+      padding: 40px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: rgba(249, 249, 255, 0.9);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+    }
+
+    .logo { font-family: var(--font-display); font-size: 24px; text-decoration: none; color: var(--fg); }
+
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a { text-decoration: none; color: var(--fg); font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* LAUNCHER CARDS */
+    .launcher {
+      padding: var(--section-gap) 0;
+    }
+
+    .launcher-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 40px;
+      margin-top: 64px;
+    }
+
+    .screen-card {
+      text-decoration: none;
+      color: var(--fg);
+      border: 1px solid var(--border);
+      padding: 40px;
+      transition: background-color 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .screen-card:hover { background-color: var(--surface); }
+    .screen-card h2 { font-size: 32px; }
+    .screen-card p { color: var(--muted); font-size: 14px; }
+    .screen-card .status { font-size: 10px; font-weight: bold; padding: 4px 8px; border: 1px solid var(--border); width: fit-content; }
+
+    footer {
+      padding: 80px 0;
+      border-top: 1px solid var(--border);
+      margin-top: var(--section-gap);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <a href="index.html" class="logo">ATELIER MODERN</a>
+      <nav class="nav-links">
+        <a href="landing.html">Landing</a>
+        <a href="collection.html">Collection</a>
+        <a href="product-detail.html">Product</a>
+      </nav>
+      <div class="label-caps">Prototype v1.0</div>
+    </header>
+
+    <main class="launcher">
+      <div class="label-caps">Project Overview</div>
+      <h1>Multi-Screen Experience</h1>
+      <p style="max-width: 600px; margin-top: 24px;">
+        A high-fashion digital experience following the Atelier Modern design system. 
+        Focusing on sharp geometry, editorial typography, and intentional whitespace.
+      </p>
+
+      <div class="launcher-grid">
+        <a href="landing.html" class="screen-card">
+          <div class="status">EDITORIAL</div>
+          <h2>Landing Page</h2>
+          <p>Hero experience with narrative-driven asymmetrical layouts and large-scale typography.</p>
+        </a>
+
+        <a href="collection.html" class="screen-card">
+          <div class="status">COMMERCE</div>
+          <h2>Product Collection</h2>
+          <p>Disciplined symmetrical grid for product discovery. Minimalist cards with focus on photography.</p>
+        </a>
+
+        <a href="product-detail.html" class="screen-card">
+          <div class="status">INTERACTIVE</div>
+          <h2>Product Detail</h2>
+          <p>Immersive product view with detailed technical info, size guides, and high-impact CTAs.</p>
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      <div class="label-caps">&copy; 2026 Atelier Modern Prototype</div>
+    </footer>
+  </div>
+
+</body>
+</html>

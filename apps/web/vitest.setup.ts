@@ -24,3 +24,24 @@ if (typeof globalThis.localStorage === "undefined") {
     configurable: true,
   });
 }
+
+const realFetch = globalThis.fetch?.bind(globalThis);
+
+globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  const url =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+  if (url.startsWith("/api/")) {
+    return Promise.reject(new TypeError(`Unit test API request blocked: ${url}`));
+  }
+
+  if (!realFetch) {
+    return Promise.reject(new TypeError("fetch is not available in this test environment"));
+  }
+
+  return realFetch(input, init);
+}) as typeof fetch;

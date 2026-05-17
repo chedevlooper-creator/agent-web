@@ -11,6 +11,9 @@ services:
       # Mount source code for hot reload
       - .:/app
 
+      # Docker socket for sandbox container access (docker exec / cp)
+      - /var/run/docker.sock:/var/run/docker.sock
+
       # Isolate node_modules to prevent host OS binaries from leaking in.
       # Named volumes override the bind-mount for these specific paths.
       - node_modules_root:/app/node_modules
@@ -44,7 +47,8 @@ services:
       - NODE_ENV=development
 
       # Terminal sandbox configuration
-      - TERMINAL_BACKEND=local
+      # TERMINAL_BACKEND=local  # explicit local-only; omit for Docker sandbox (auto)
+      - TERMINAL_SANDBOX_CONTAINER=agent-web-sandbox
 
       # Memory limits
       - MEMORY_CHAR_LIMIT=2200
@@ -54,7 +58,7 @@ services:
     stdin_open: true
     tty: true
 
-  # Sandbox container for isolated terminal execution
+  # Sandbox container for isolated code execution
   sandbox:
     build:
       context: .
@@ -67,6 +71,17 @@ services:
       - SANDBOX_ENABLED=true
       - SANDBOX_MAX_CPU_MS=5000
       - SANDBOX_MAX_MEMORY_MB=256
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "512M"
     restart: unless-stopped
     profiles:
       - sandbox

@@ -23,10 +23,12 @@ export function MessageBubble({
   isStreaming,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  // Use displayContent if available (file attachments UI), else full content
+  const displayText = message.displayContent ?? message.content;
   const isError = !isUser && message.content.startsWith("Error:");
 
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(message.content);
+  const [draft, setDraft] = useState(displayText);
   const [copied, setCopied] = useState(false);
   const editRef = useRef<HTMLTextAreaElement>(null);
 
@@ -68,9 +70,10 @@ export function MessageBubble({
   };
 
   return (
-    <div
-      className={cn(
-        "flex gap-3 animate-message-in group",
+      <div
+        className={cn(
+        "flex gap-3 group",
+        isUser ? "animate-message-in-user" : "animate-message-in-assistant",
         isUser ? "flex-row-reverse" : "flex-row"
       )}
       style={{ animationDelay: `${Math.min(index * 30, 150)}ms` }}
@@ -78,32 +81,37 @@ export function MessageBubble({
       {/* Avatar */}
       <div
         className={cn(
-          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-all duration-300",
+          "w-8 h-8 border flex items-center justify-center shrink-0 mt-0.5 transition-[box-shadow,background-color,border-color] duration-300",
           isUser
-            ? "gradient-bg-primary shadow-md shadow-primary/20"
-            : "bg-gradient-to-br from-primary to-accent shadow-md shadow-accent/15 ai-glow-subtle"
+            ? "border-electric/45 bg-electric-muted text-electric shadow-[0_0_20px_rgba(176,226,39,0.16)]"
+            : "border-cyan/35 bg-cyan-muted text-cyan ai-glow-subtle"
         )}
       >
         {isUser ? (
-          <User size={14} className="text-white" />
+          <User size={14} />
         ) : (
-          <Bot size={14} className="text-white" />
+          <Bot size={14} />
         )}
       </div>
 
       {/* Content */}
-      <div className={cn("flex flex-col gap-1 max-w-[75%]", isUser ? "items-end" : "items-start")}>
+      <div
+        className={cn(
+          "flex min-w-0 flex-col gap-1",
+          isUser ? "max-w-[86%] sm:max-w-[75%] items-end" : "max-w-[90%] sm:max-w-[82%] items-start"
+        )}
+      >
         {message.model && !isUser && (
-          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 px-1 font-medium">
+          <span className="text-[10px] uppercase text-muted-foreground/70 px-1 font-medium">
             {message.model}
           </span>
         )}
         <div
           className={cn(
-            "px-4 py-3 rounded-2xl text-sm w-full transition-all duration-300",
+            "px-4 py-3 text-sm w-full transition-[box-shadow,background-color,border-color] duration-300 overflow-hidden",
             isUser
-              ? "bg-gradient-to-br from-primary to-primary-hover text-white rounded-br-lg shadow-md shadow-primary/20"
-              : "glass-card rounded-bl-lg hover:shadow-md"
+              ? "bg-electric text-black shadow-[0_0_26px_rgba(176,226,39,0.12)]"
+              : "glass-card border-cyan/15 hover:border-cyan/25 hover:shadow-md"
           )}
         >
           {editing ? (
@@ -127,40 +135,40 @@ export function MessageBubble({
                 className={cn(
                   "w-full bg-transparent text-sm resize-none focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50",
                   "min-h-[44px] max-h-[320px]",
-                  isUser ? "text-white placeholder:text-white/60" : "text-foreground"
+                  isUser ? "text-black placeholder:text-black/50" : "text-foreground"
                 )}
               />
               <div className="flex items-center justify-end gap-1.5">
                 <button
                   onClick={handleCancelEdit}
                   className={cn(
-                    "min-w-[32px] h-7 px-2.5 rounded-lg text-xs inline-flex items-center gap-1 font-medium transition-colors",
+                    "min-h-[44px] px-3 rounded-lg text-xs inline-flex items-center gap-1 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isUser
-                      ? "bg-white/10 hover:bg-white/20 text-white"
+                      ? "bg-black/10 hover:bg-black/20 text-black"
                       : "bg-muted hover:bg-border text-foreground"
                   )}
-                  aria-label="Cancel edit"
+                  aria-label="Düzenlemeyi iptal et"
                 >
                   <X size={11} />
-                  Cancel
+                  İptal
                 </button>
                 <button
                   onClick={handleSaveEdit}
                   className={cn(
-                    "min-w-[32px] h-7 px-2.5 rounded-lg text-xs inline-flex items-center gap-1 font-semibold transition-colors",
+                    "min-h-[44px] px-3 rounded-lg text-xs inline-flex items-center gap-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isUser
-                      ? "bg-white text-primary hover:bg-white/90"
+                      ? "bg-black text-electric hover:bg-black/90"
                       : "bg-primary text-white hover:bg-primary-hover"
                   )}
-                  aria-label="Save edit"
+                  aria-label="Düzenlemeyi kaydet"
                 >
                   <Check size={11} />
-                  Save
+                  Kaydet
                 </button>
               </div>
             </div>
           ) : isUser ? (
-            <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            <p className="whitespace-pre-wrap break-words leading-relaxed">{displayText}</p>
           ) : isError ? (
             <div className="space-y-2">
               <p className="whitespace-pre-wrap leading-relaxed text-destructive">
@@ -169,19 +177,19 @@ export function MessageBubble({
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                  className="inline-flex min-h-[44px] items-center gap-1.5 px-3 rounded-lg text-xs font-medium
                              bg-muted text-foreground hover:bg-surface-elevated
-                             border border-border-muted transition-all duration-200 active:scale-[0.97]"
+                             border border-border-muted transition-[background-color,transform] duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <RefreshCw size={12} />
-                  Retry
+                  Tekrar dene
                 </button>
               )}
             </div>
           ) : message.content || isStreaming ? (
             <MarkdownRenderer content={message.content} isStreaming={isStreaming} />
           ) : (
-            <span className="text-muted-foreground text-xs italic">Waiting…</span>
+            <span className="text-muted-foreground text-xs italic">Bekleniyor…</span>
           )}
 
           {/* Tool invocations */}
@@ -199,7 +207,7 @@ export function MessageBubble({
           <div
             className={cn(
               "flex items-center gap-0.5 transition-opacity duration-200",
-              "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+              "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
               isUser ? "flex-row-reverse" : "flex-row"
             )}
           >
@@ -209,9 +217,9 @@ export function MessageBubble({
                   setDraft(message.content);
                   setEditing(true);
                 }}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
-                title="Edit message"
-                aria-label="Edit message"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title="Mesajı düzenle"
+                aria-label="Mesajı düzenle"
               >
                 <Pencil size={11} />
               </button>
@@ -219,9 +227,9 @@ export function MessageBubble({
             {!isError && (
               <button
                 onClick={handleCopy}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
-                title={copied ? "Copied!" : "Copy"}
-                aria-label="Copy message"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title={copied ? "Kopyalandı!" : "Kopyala"}
+                aria-label="Mesajı kopyala"
               >
                 {copied ? <Check size={11} className="text-success" /> : <Copy size={11} />}
               </button>
