@@ -10,7 +10,7 @@ This file provides guidance to Verdent when working with code in this repository
 
 ## Commands
 
-- `pnpm dev` — Start the Next.js dev server (with Turbo)
+- `pnpm dev` — Start the Next.js dev server (with webpack)
 - `pnpm build` — Build all packages and the Next.js app for production
 - `pnpm lint` — Run ESLint across the monorepo
 - `pnpm format` — Run Prettier on `**/*.{ts,tsx,md}`
@@ -20,6 +20,7 @@ This file provides guidance to Verdent when working with code in this repository
 - `pnpm --filter @agent-web/db build` — Build the db package
 - `pnpm --filter @agent-web/db db:push` — Push Drizzle schema to SQLite
 - `pnpm --filter @agent-web/db db:studio` — Open Drizzle Studio
+- `pnpm test` — Run all tests with Vitest
 
 ## Architecture
 
@@ -31,16 +32,18 @@ This file provides guidance to Verdent when working with code in this repository
 ### Key Data Flows
 
 1. **Chat Request/Response**:
-   - `ChatInterface` (client) -> `useChatStore` (Zustand, persisted to `localStorage`) -> POST `/api/chat` -> `streamText` (AI SDK v4) -> Vercel AI SDK data stream -> client manually parses stream chunks (`0:` text, `3:` error, `d:` done) and updates Zustand state.
-   - [inferred] The frontend does **not** use `useChat` from `ai/react`; it uses a custom fetch + `getReader()` loop.
+   - `ChatInterface` (client) -> `useChatStore` (Zustand) -> POST `/api/chat` -> `streamText` (AI SDK v4) -> Vercel AI SDK data stream -> client manually parses stream chunks (`0:` text, `3:` error, `9:` tool call, `a:` tool result, `d:` done) and updates Zustand state.
+   - The frontend does **not** use `useChat` from `ai/react`; it uses a custom fetch + `getReader()` loop.
 
 2. **Tool System**:
-   - Tools are declared in `packages/core/src/tools/*.ts` and registered in `packages/core/src/tools/registry.ts`.
-   - The API route (`app/api/chat/route.ts`) currently injects **stubbed/disabled** tool implementations for security. The real handlers exist in `packages/core` but are not wired into the route.
+   - Tools are defined in `packages/core/src/tools/*.ts` and registered in `packages/core/src/tools/registry.ts`.
+   - All 8 tools (terminal, read_file, write_file, web_search, web_fetch, list_directory, search_files, execute_code) are **fully active and wired** into the chat API route at `apps/web/app/api/chat/route.ts`.
+   - File tools (`read_file`, `write_file`, `list_directory`, `search_files`) are restricted to the project workspace directory via path traversal protection.
 
 3. **Database**:
-   - SQLite via libsql (`local.db` by default). Schema defines `sessions` and `messages` tables.
-   - [inferred] The DB schema and client are set up, but the app currently stores chat history client-side in Zustand/localStorage and does **not** persist to the database.
+   - SQLite via libsql (`data/local.db` by default). Schema defines `projects`, `sessions`, `messages`, and `api_keys` tables.
+   - The DB is **fully wired into the chat flow**: sessions and messages are persisted via REST API calls with optimistic UI updates.
+   - Only UI preferences (sidebar state, provider selection, theme) are persisted to `localStorage` under `"agent-web-ui-prefs"`.
 
 ### External Dependencies
 
@@ -48,8 +51,7 @@ This file provides guidance to Verdent when working with code in this repository
 - AI SDK v4 (`ai`, `@ai-sdk/openai`)
 - Zustand v5 (client state)
 - Drizzle ORM v0.36 + `@libsql/client`
-- Tailwind CSS v4 + `@tailwindcss/postcss`
-- shadcn/ui (base-nova style, `components.json` configured)
+- Tailwind CSS v3 (configured via `tailwind.config.ts`)
 - `react-markdown`, `react-syntax-highlighter` for message rendering
 
 ### Development Entry Points
@@ -68,15 +70,18 @@ graph TD
     A[Browser: ChatInterface] -->|POST /api/chat| B[Next.js API Route]
     B --> C[packages/core LLM Client]
     C --> D[AI SDK v4 streamText]
-    D --> E[OpenAI / OpenRouter / OpenCode]
+    D --> E[OpenAI / OpenRouter / OpenCode / DeepSeek]
     E -->|Data Stream| D --> B --> A
     C --> F[Tool Registry]
     F --> G[Terminal Tool]
-    F --> H[File Tools]
-    F --> I[Web Tools]
-    A --> J[Zustand Store]
-    J --> K[(localStorage)]
-    L[packages/db] --> M[(SQLite / libsql)]
+    F --> H[File Tools &#40;read, write, list, search&#41;]
+    F --> I[Web Tools &#40;search, fetch&#41;]
+    F --> J[Execute Code]
+    A --> K[Zustand Store]
+    K -->|Persist| L[REST API &#40;/api/sessions, /api/messages&#41;]
+    L --> M[packages/db]
+    M --> N[(SQLite / libsql)]
+    K -->|UI prefs only| O[(localStorage)]
 ```
 
 ## Key Rules & Constraints
@@ -87,10 +92,11 @@ graph TD
 - **Packages must be built**: `@agent-web/core` and `@agent-web/db` are transpiled via `tsc` and consumed via `transpilePackages` in `next.config.ts`. Always build packages before the web app builds, or run `tsc --watch` in dev.
 - **Standalone output**: `next.config.ts` sets `output: "standalone"`. The production Docker image copies the standalone server bundle.
 - **Server externals**: `next.config.ts` marks `child_process` and `@libsql/client` as `serverExternalPackages`.
-- **Tailwind v4**: Configured in `postcss.config.mjs` with `@tailwindcss/postcss`. No traditional `tailwind.config.js`.
+- **Tailwind v3**: Configured via `tailwind.config.ts` with PostCSS plugin `tailwindcss`. Use `tailwind.config.ts` for custom theme values, not `@tailwindcss/postcss`.
 - **ESLint**: Uses the new ESLint v9 flat config (`eslint.config.mjs`) with `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`.
-- **Docker targets**: The `Dockerfile` has three targets: `development`, `production`, and `sandbox` (isolated Python environment for code execution).
+- **Docker targets**: The `Dockerfile` has three targets: `development`, `production`, and `sandbox` (isolated Python / Node.js environment for code execution).
 - **Design system**: Follow `apps/web/DESIGN_SYSTEM.md` for colors, spacing, and animation specs. Dark-first design with glassmorphism accents.
+- **Path security**: File tools are restricted to the project workspace. Override with `TOOL_ALLOWED_BASE` env var if needed (not recommended for production).
 
 ## Development Hints
 
@@ -101,15 +107,23 @@ graph TD
   4. Update the API route (`apps/web/app/api/chat/route.ts`) to accept the new provider.
 
 - **Adding a new tool**:
-  1. Define the tool in `packages/core/src/tools/` (e.g., `my-tool.ts`) following the `Tool` interface.
+  1. Define the tool in `packages/core/src/tools/` (e.g., `my-tool.ts`) using `tool()` from the `ai` SDK with a Zod parameter schema.
   2. Register it in `packages/core/src/tools/registry.ts`.
-  3. [inferred] To actually enable it, wire the handler into `apps/web/app/api/chat/route.ts` (currently tools are stubbed there).
+  3. Tools are automatically wired into the chat route via the registry.
 
-- **Enabling database persistence**:
-  - The DB client and schema are ready in `packages/db`. To persist chats, replace or extend the Zustand store in `apps/web/lib/store.ts` to read/write via the DB client, or expose tRPC/API routes for CRUD operations.
+- **Working with the database**:
+  - The DB client and schema are ready in `packages/db`.
+  - Sessions and messages are persisted automatically through the Zustand store's API calls.
+  - To reset the database, delete `data/local.db` and restart.
 
 - **Running in Docker on Windows/macOS**:
   - The dev compose file sets `CHOKIDAR_USEPOLLING=true` and `WATCHPACK_POLLING=true` so file watching works inside bind mounts.
 
+- **Testing**:
+  - Tests use Vitest with happy-dom.
+  - Run `pnpm test` to execute all tests.
+  - Run `pnpm test:watch` for watch mode.
+  - Run `pnpm test:coverage` for coverage report.
+
 - **Working with deleted files**:
-  - [inferred] A large number of source files were deleted from the working tree but remain in Git history. If you need to reference or restore them, use `git show HEAD:<path>`.
+  - A large number of source files were deleted from the working tree but remain in Git history. If you need to reference or restore them, use `git show HEAD:<path>`.

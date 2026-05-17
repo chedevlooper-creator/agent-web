@@ -49,10 +49,12 @@ interface StreamCallbacks {
 }
 
 async function streamChat(
-  payload: { messages: { role: string; content: string }[]; provider: string; model: string; apiKey: string; projectRootPath?: string },
+  payload: { messages: { role: string; content: string }[];  provider: string; model: string; apiKey?: string; projectId?: string; skills?: string[] },
   callbacks: StreamCallbacks,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  retryCount = 0
 ): Promise<{ text: string; error?: string }> {
+  const MAX_RETRIES = 2;
   let res: Response;
   try {
     res = await fetch("/api/chat", {
@@ -63,6 +65,11 @@ async function streamChat(
     });
   } catch (e: unknown) {
     if ((e as Error).name === "AbortError") return { text: "", error: "Cancelled" };
+    // Retry on network errors
+    if (retryCount < MAX_RETRIES) {
+      await new Promise((r) => setTimeout(r, 1000 * (retryCount + 1)));
+      return streamChat(payload, callbacks, signal, retryCount + 1);
+    }
     throw e;
   }
   if (!res.ok || !res.body) {
@@ -71,6 +78,11 @@ async function streamChat(
       const j = await res.json();
       if (j?.error) msg = j.error;
     } catch {}
+    // Retry on 5xx or 429
+    if ((res.status >= 500 || res.status === 429) && retryCount < MAX_RETRIES) {
+      await new Promise((r) => setTimeout(r, 1000 * (retryCount + 1)));
+      return streamChat(payload, callbacks, signal, retryCount + 1);
+    }
     return { text: "", error: msg };
   }
   const reader = res.body.getReader();
@@ -153,14 +165,12 @@ export function ChatInterface() {
   const setLoading = useChatStore((s) => s.setLoading);
   const provider = useChatStore((s) => s.provider);
   const model = useChatStore((s) => s.model);
-  const apiKey = useChatStore((s) => s.apiKey);
+  const savedProviders = useChatStore((s) => s.savedProviders);
   const selectedModels = useChatStore((s) => s.selectedModels);
   const compareMode = useChatStore((s) => s.compareMode);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
-  const projectRootPath = useChatStore((s) => {
-    const p = s.projects.find((p) => p.id === s.activeProjectId);
-    return p?.rootPath;
-  });
+  const activeProjectId = useChatStore((s) => s.activeProjectId);
+  const selectedSkills = useChatStore((s) => s.selectedSkills);
   const addMessage = useChatStore((s) => s.addMessage);
   const updateMessage = useChatStore((s) => s.updateMessage);
   const truncateAfter = useChatStore((s) => s.truncateAfter);
@@ -169,10 +179,41 @@ export function ChatInterface() {
   const createSession = useChatStore((s) => s.createSession);
   const hydrated = useChatStore((s) => s.hydrated);
 
+  const commandPrefill = useChatStore((s) => s.commandPrefill);
+  const setCommandPrefill = useChatStore((s) => s.setCommandPrefill);
+  const directSend = useChatStore((s) => s.directSend);
+  const setDirectSend = useChatStore((s) => s.setDirectSend);
+
   const messages = useActiveMessages();
 
   const [input, setInput] = useState("");
+
+  // Watch for commandPrefill from CommandRail, set input and focus
+  useEffect(() => {
+    if (commandPrefill) {
+      const frame = requestAnimationFrame(() => {
+        setInput(commandPrefill);
+        setCommandPrefill(null);
+        const inputEl = document.querySelector<HTMLTextAreaElement>('[data-chat-input]');
+        inputEl?.focus();
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [commandPrefill, setCommandPrefill]);
+
   const abortRef = useRef<AbortController | null>(null);
+
+  // Ref to hold the latest handleSend (defined below, assigned after creation)
+  const handleSendRef = useRef<((prompt: string) => void) | null>(null);
+
+  // Watch for directSend from CommandRail — immediately send the prompt
+  useEffect(() => {
+    if (directSend && handleSendRef.current) {
+      const prompt = directSend;
+      setDirectSend(null);
+      handleSendRef.current(prompt);
+    }
+  }, [directSend, setDirectSend]);
 
   const { messagesEndRef, scrollContainerRef, showScrollBtn, scrollToBottom, handleScroll } = useScrollAnchor(messages.length);
   const { attachedFiles, isUploading, handleFileUpload, removeAttachedFile, clearAttachedFiles } = useFileUpload();
@@ -208,10 +249,12 @@ export function ChatInterface() {
       sessionId: string,
       msgs: { role: string; content: string }[],
       useModel: string,
-      placeholderId: string
+      placeholderId: string,
     ) => {
+      // apiKey intentionally omitted — server looks it up from encrypted DB store
+      // streamChat handles retries internally (network errors, 5xx, 429)
       const { text, error } = await streamChat(
-        { messages: msgs, provider, model: useModel, apiKey, projectRootPath },
+        { messages: msgs, provider, model: useModel, projectId: activeProjectId ?? undefined, skills: selectedSkills.length > 0 ? selectedSkills : undefined },
         {
           onText: (delta) => {
             patchLocalMessage(placeholderId, getCurrentText(placeholderId) + delta);
@@ -252,15 +295,23 @@ export function ChatInterface() {
         return ses?.messages.find((m) => m.id === id)?.content ?? "";
       }
     },
-    [provider, apiKey, projectRootPath, patchLocalMessage, patchLocalToolInvocations]
+    [provider, activeProjectId, selectedSkills, patchLocalMessage, patchLocalToolInvocations]
   );
+
+  const hasKey = savedProviders.includes(provider);
 
   const submitChat = useCallback(
     async (msgs: { role: string; content: string }[]) => {
-      if (isLoading || !apiKey) return;
+      if (isLoading || !hasKey) return;
       let sessionId = activeSessionId;
       if (!sessionId) {
-        sessionId = await createSession();
+        try {
+          sessionId = await createSession();
+        } catch {
+          toast.error("Failed to create session. Please try again.");
+          setLoading(false);
+          return;
+        }
       }
       setLoading(true);
 
@@ -289,13 +340,13 @@ export function ChatInterface() {
         setLoading(false);
       }
     },
-    [isLoading, apiKey, activeSessionId, createSession, setLoading, effectiveModels, appendLocalMessage, runSingle]
+    [isLoading, hasKey, activeSessionId, createSession, setLoading, effectiveModels, appendLocalMessage, runSingle]
   );
 
   const handleSend = useCallback(async (overrideInput?: string | React.MouseEvent) => {
     const isString = typeof overrideInput === "string";
     const textToUse = (isString ? overrideInput : input).trim();
-    if (!textToUse || isLoading || !apiKey) return;
+    if (!textToUse || isLoading || !hasKey) return;
 
     // Build message content: user text + attached file contents
     let fullContent = textToUse;
@@ -306,12 +357,19 @@ export function ChatInterface() {
       fullContent = textToUse + fileContextParts.join("");
     }
 
-    // Show only the user's typed text in the UI bubble
+    // Store the full content (with file data) for API context persistence
+    // and a display-friendly version for the UI bubble
     const displayContent = attachedFiles.length > 0
       ? `${textToUse}\n\n📎 ${attachedFiles.map((f) => f.name).join(", ")}`
       : textToUse;
 
-    const userMsg: ChatMessage = { id: genId(), role: "user", content: displayContent, timestamp: Date.now() };
+    const userMsg: ChatMessage = {
+      id: genId(),
+      role: "user",
+      content: fullContent,
+      displayContent: displayContent !== fullContent ? displayContent : undefined,
+      timestamp: Date.now(),
+    };
     
     if (!isString) {
       setInput("");
@@ -330,7 +388,12 @@ export function ChatInterface() {
       return { role: m.role, content: m.content };
     });
     await submitChat(msgs);
-  }, [input, isLoading, apiKey, addMessage, submitChat, attachedFiles]);
+  }, [input, isLoading, hasKey, addMessage, submitChat, attachedFiles, clearAttachedFiles]);
+
+  // Keep the ref in sync so directSend effect can call the latest handleSend.
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  }, [handleSend]);
 
   const handleRetry = useCallback(
     async (errorMessageId: string) => {
@@ -422,14 +485,17 @@ export function ChatInterface() {
     <div className="flex flex-col h-full relative">
       {/* Messages Area */}
       {messages.length === 0 ? (
-        <WelcomeHero />
+        <WelcomeHero
+          hasApiKey={hasKey}
+          onPrompt={(prompt) => handleSend(prompt)}
+        />
       ) : (
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto"
         >
-          <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+          <div className="max-w-5xl mx-auto px-4 py-7 space-y-6">
             {renderItems.map((item) =>
               item.kind === "single" ? (
                 <MessageBubble
@@ -476,10 +542,10 @@ export function ChatInterface() {
         <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={scrollToBottom}
-            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full
                        gradient-bg-primary text-white
                        shadow-lg shadow-primary/25
-                       hover:shadow-xl hover:shadow-primary/35 active:scale-95 transition-all duration-200 animate-bounce-subtle"
+                       hover:shadow-xl hover:shadow-primary/35 active:scale-95 transition-[box-shadow,transform] duration-200 animate-bounce-subtle"
             aria-label="Scroll to bottom"
           >
             <ArrowDown size={16} aria-hidden="true" />
@@ -494,7 +560,7 @@ export function ChatInterface() {
         onSend={() => handleSend()}
         onCancel={handleCancel}
         isLoading={isLoading}
-        hasApiKey={!!apiKey}
+        hasApiKey={hasKey}
         provider={provider}
         model={model}
         compareMode={compareMode}
@@ -507,7 +573,12 @@ export function ChatInterface() {
 
       {/* Live region for screen readers */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {messages.findLast?.((m) => m.role === "assistant")?.content ?? ""}
+        {(() => {
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === "assistant") return messages[i].content;
+          }
+          return "";
+        })()}
       </div>
     </div>
   );

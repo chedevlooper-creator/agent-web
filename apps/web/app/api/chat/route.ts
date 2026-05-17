@@ -1,14 +1,18 @@
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { tools } from "@agent-web/core/tools";
+import { tools, toolDescriptions } from "@agent-web/core/tools";
 import { z } from "zod";
 import { estimateTokens } from "@/lib/utils";
+import { getApiKey, getProjectById } from "@/lib/db";
+import { promises as fs } from "node:fs";
+import { join } from "node:path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Request validation schema
+// apiKey is optional — if omitted, the server looks it up from the encrypted DB store
 const RequestSchema = z.object({
   messages: z
     .array(
@@ -21,8 +25,9 @@ const RequestSchema = z.object({
     .max(500),
   provider: z.enum(["openai", "openrouter", "opencode", "deepseek"]),
   model: z.string().min(1).max(200),
-  apiKey: z.string().min(1),
-  projectRootPath: z.string().optional(),
+  apiKey: z.string().optional(),
+  projectId: z.string().optional(),
+  skills: z.array(z.string()).optional(),
 });
 
 // Trim messages to fit within a token budget, keeping system + recent messages
@@ -63,7 +68,53 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
-    const { messages, provider, model, apiKey, projectRootPath } = parsed.data;
+    const { messages, provider, model, projectId, skills } = parsed.data;
+
+    // Resolve project root path from DB — never trust client-provided paths
+    let projectRootPath: string | undefined;
+    if (projectId) {
+      try {
+        const project = await getProjectById(projectId);
+        if (project) {
+          projectRootPath = project.rootPath;
+        }
+      } catch (e) {
+        console.error("Failed to resolve project path:", e);
+      }
+    }
+    let { apiKey } = parsed.data;
+
+    // Load selected skills content from filesystem
+    let skillsContent = "";
+    if (skills && skills.length > 0) {
+      const projectRoot = process.cwd();
+      const parts: string[] = [];
+      for (const skillPath of skills) {
+        try {
+          const fullPath = join(projectRoot, skillPath, "SKILL.md");
+          const content = await fs.readFile(fullPath, "utf-8");
+          parts.push(`=== ${skillPath} ===\n${content}`);
+        } catch {
+          // Skip skills that can't be loaded
+        }
+      }
+      if (parts.length > 0) {
+        skillsContent = `\n\nYou have the following skills/abilities loaded. Follow their instructions carefully:\n\n${parts.join("\n\n")}`;
+      }
+    }
+
+    // If no apiKey in the request, look it up from the encrypted DB store
+    if (!apiKey) {
+      apiKey = (await getApiKey(provider)) ?? undefined;
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({
+            error: `No API key configured for provider "${provider}". Please add one in Settings.`,
+          }),
+          { status: 401, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     let client;
     if (provider === "openai") {
@@ -110,10 +161,11 @@ export async function POST(req: NextRequest) {
       maxSteps: 8,
       abortSignal: controller.signal,
       system:
-        "You are a helpful AI assistant. You have access to tools: 'terminal' to execute shell commands, 'read_file' to read local files, and 'web_search' to search the web. Use them whenever they help answer the user's request more accurately. Be concise." +
+        `You are a helpful AI assistant. You have access to tools: ${Object.entries(toolDescriptions).map(([key, t]) => `'${key}' (${t.description})`).join(", ")}. Use them whenever they help answer the user's request more accurately. Be concise.` +
         (projectRootPath
           ? `\n\nYou are working inside a project directory at: ${projectRootPath}. Use this as the working directory for terminal commands and file operations. Files created during this conversation should be saved here.`
-          : ""),
+          : "") +
+        skillsContent,
     });
 
     // Clean up timeout when stream finishes

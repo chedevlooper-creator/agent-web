@@ -1,9 +1,26 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { promises as fs } from "node:fs";
-import { resolve } from "node:path";
+import { resolveSafePath } from "./path-security.js";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_RETURN_CHARS = 32_000; // ~8k tokens — keep LLM-friendly
+
+function truncateContent(content: string): string {
+  if (content.length <= MAX_RETURN_CHARS) return content;
+  const lines = content.split("\n");
+  const half = Math.floor(MAX_RETURN_CHARS / 2) - 50;
+  const head = content.slice(0, half);
+  const tail = content.slice(content.length - half);
+  const headLines = head.split("\n").length;
+  const tailStartLine = lines.length - tail.split("\n").length + 1;
+  const skippedLines = tailStartLine - headLines;
+  return (
+    head +
+    `\n\n[... truncated ${skippedLines} lines (use offset/limit to read specific sections) ...]\n\n` +
+    tail
+  );
+}
 
 export const readFileTool = tool({
   description:
@@ -25,7 +42,7 @@ export const readFileTool = tool({
   }),
   execute: async ({ path, encoding, offset, limit }) => {
     try {
-      const abs = resolve(path);
+      const abs = resolveSafePath(path);
       const stat = await fs.stat(abs);
       if (!stat.isFile()) {
         return `[error] Not a file: ${abs}`;
@@ -47,7 +64,8 @@ export const readFileTool = tool({
           .join("\n");
       }
 
-      return data;
+      // Smart truncation for large file reads
+      return truncateContent(data);
     } catch (e: unknown) {
       const err = e as { message?: string; code?: string };
       return `[error] ${err.code || ""} ${err.message || "Failed to read file"}`.trim();

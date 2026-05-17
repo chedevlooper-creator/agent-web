@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import {
   listSessions,
   createSession,
@@ -7,6 +8,21 @@ import {
 } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+const CreateSessionSchema = z.object({
+  id: z.string().min(1).max(100),
+  projectId: z.string().nullable().optional(),
+  title: z.string().max(200).optional(),
+});
+
+const UpdateSessionSchema = z.object({
+  id: z.string().min(1).max(100),
+  title: z.string().max(200).optional(),
+});
+
+const DeleteSessionSchema = z.object({
+  id: z.string().min(1).max(100),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,8 +39,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, projectId, title } = body as { id?: string; projectId?: string | null; title?: string };
-    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+    const parsed = CreateSessionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { id, projectId, title } = parsed.data;
     const session = await createSession({ id, projectId, title });
     return NextResponse.json({ session });
   } catch (e: unknown) {
@@ -36,8 +55,11 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, title } = body as { id?: string; title?: string };
-    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+    const parsed = UpdateSessionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { id, title } = parsed.data;
     await updateSession(id, { title });
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
@@ -50,8 +72,11 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-    await deleteSession(id);
+    const parsed = DeleteSessionSchema.safeParse({ id });
+    if (!parsed.success) {
+      return NextResponse.json({ error: "id required" }, { status: 400 });
+    }
+    await deleteSession(id!);
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const err = e as Error;

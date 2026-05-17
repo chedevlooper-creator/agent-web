@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, estimateTokens } from "../utils";
+import { cn, estimateTokens, getErrorMessage } from "../utils";
 
 describe("cn", () => {
   it("merges tailwind classes", () => {
@@ -38,5 +38,25 @@ describe("estimateTokens", () => {
       { content: "abcd" },
     ];
     expect(estimateTokens(messages)).toBe(3);
+  });
+});
+
+describe("getErrorMessage", () => {
+  it("returns Error.message for Error instances", () => {
+    expect(getErrorMessage(new Error("test error"))).toBe("test error");
+  });
+
+  it("returns string values directly", () => {
+    expect(getErrorMessage("something went wrong")).toBe("something went wrong");
+  });
+
+  it("extracts message from objects", () => {
+    expect(getErrorMessage({ message: "object error" })).toBe("object error");
+  });
+
+  it("converts unknown values to string", () => {
+    expect(getErrorMessage(42)).toBe("42");
+    expect(getErrorMessage(null)).toBe("null");
+    expect(getErrorMessage(undefined)).toBe("undefined");
   });
 });

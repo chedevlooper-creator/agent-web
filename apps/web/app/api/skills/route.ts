@@ -31,45 +31,56 @@ function parseSkillMd(filePath: string): { name: string; description: string } |
 }
 
 export async function GET() {
-  const skills: SkillInfo[] = [];
+  try {
+    const skills: SkillInfo[] = [];
 
-  // Scan .verdent/skills in project root
-  const projectRoot = process.cwd();
-  const skillsDirs = [
-    path.join(projectRoot, ".verdent", "skills"),
-  ];
+    // Scan .verdent/skills in project root
+    const projectRoot = process.cwd();
+    const skillsDirs = [
+      path.join(projectRoot, ".verdent", "skills"),
+    ];
 
-  // Also check user home
-  const homeDir = process.env.HOME || process.env.USERPROFILE || "";
-  if (homeDir) {
-    skillsDirs.push(path.join(homeDir, ".verdent", "skills"));
-    skillsDirs.push(path.join(homeDir, ".agents", "skills"));
-  }
-
-  for (const skillsDir of skillsDirs) {
-    if (!fs.existsSync(skillsDir)) continue;
-
-    try {
-      const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-
-        const skillMdPath = path.join(skillsDir, entry.name, "SKILL.md");
-        if (!fs.existsSync(skillMdPath)) continue;
-
-        const parsed = parseSkillMd(skillMdPath);
-        if (parsed && !skills.some((s) => s.name === parsed.name)) {
-          skills.push({
-            name: parsed.name,
-            description: parsed.description,
-            path: path.relative(projectRoot, path.join(skillsDir, entry.name)),
-          });
-        }
-      }
-    } catch {
-      // Skip dirs we can't read
+    // Also check user home
+    const homeDir = process.env.HOME || process.env.USERPROFILE || "";
+    if (homeDir) {
+      skillsDirs.push(path.join(homeDir, ".verdent", "skills"));
+      skillsDirs.push(path.join(homeDir, ".agents", "skills"));
     }
-  }
 
-  return NextResponse.json(skills);
+    for (const skillsDir of skillsDirs) {
+      let exists = false;
+      try {
+        exists = fs.existsSync(skillsDir);
+      } catch {
+        continue;
+      }
+      if (!exists) continue;
+
+      try {
+        const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue;
+
+          const skillMdPath = path.join(skillsDir, entry.name, "SKILL.md");
+          if (!fs.existsSync(skillMdPath)) continue;
+
+          const parsed = parseSkillMd(skillMdPath);
+          if (parsed && !skills.some((s) => s.name === parsed.name)) {
+            skills.push({
+              name: parsed.name,
+              description: parsed.description,
+              path: path.relative(projectRoot, path.join(skillsDir, entry.name)),
+            });
+          }
+        }
+      } catch {
+        // Skip dirs we can't read
+      }
+    }
+
+    return NextResponse.json(skills);
+  } catch (e: unknown) {
+    const err = e as Error;
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

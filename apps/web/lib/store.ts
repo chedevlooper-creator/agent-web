@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type { ChatMessageData, SessionData } from "@agent-web/core";
 
 // ===== Types =====
@@ -12,6 +11,7 @@ export interface ToolInvocation {
 }
 
 export interface ChatMessage extends ChatMessageData {
+  displayContent?: string;
   toolInvocations?: ToolInvocation[];
 }
 
@@ -45,10 +45,17 @@ interface ChatStore {
   isLoading: boolean;
   syncing: boolean;
 
+  // Skills
+  selectedSkills: string[];
+  toggleSkill: (name: string) => void;
+
   // Settings
   provider: string;
   model: string;
+  /** Truthy if an API key is available (from server DB or transient input). Not persisted to localStorage. */
   apiKey: string;
+  /** Providers that have keys stored on the server (loaded during hydrate). */
+  savedProviders: string[];
   selectedModels: string[]; // for A/B comparison, max 2
   compareMode: boolean;
 
@@ -79,6 +86,10 @@ interface ChatStore {
   patchLocalMessage: (id: string, content: string) => void;
 
   // UI
+  commandPrefill: string | null;
+  setCommandPrefill: (val: string | null) => void;
+  directSend: string | null;
+  setDirectSend: (val: string | null) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
   setContextPanelOpen: (open: boolean) => void;
@@ -88,6 +99,12 @@ interface ChatStore {
 
   // Settings
   setConfig: (c: Partial<Pick<ChatStore, "provider" | "model" | "apiKey">>) => void;
+  /** Save an API key to the server. Returns the key preview on success. */
+  saveKey: (provider: string, key: string) => Promise<string | null>;
+  /** Delete an API key from the server. */
+  deleteKey: (provider: string) => Promise<void>;
+  /** Load saved providers from the server. Called during hydrate. */
+  loadApiKeysFromServer: () => Promise<void>;
   setSelectedModels: (models: string[]) => void;
   toggleSelectedModel: (model: string) => void;
   setCompareMode: (v: boolean) => void;
@@ -119,66 +136,88 @@ async function apiFetch(input: string, init?: RequestInit) {
   return res.json();
 }
 
-export const useChatStore = create<ChatStore>()(
-  persist(
-    (set, get) => ({
-      projects: [],
-      activeProjectId: null,
-      sessions: [],
-      activeSessionId: null,
-      hydrated: false,
+/** Snapshot sessions for rollback on DB failure. Exported for testing. */
+export function snapshotSessions() {
+  return useChatStore.getState().sessions.map((s) => ({
+    ...s,
+    messages: [...s.messages],
+  }));
+}
 
-      sidebarOpen: true,
-      contextPanelOpen: false,
-      isLoading: false,
-      syncing: false,
+/** Rollback sessions to a prior snapshot. Exported for testing. */
+export function rollbackSessions(snapshot: ReturnType<typeof snapshotSessions>) {
+  useChatStore.setState(() => ({
+    sessions: snapshot,
+  }));
+}
 
-      provider: "openrouter",
-      model: "openai/gpt-4o-mini",
-      apiKey: "",
-      selectedModels: [],
-      compareMode: false,
+export const useChatStore = create<ChatStore>()((set, get) => {
+  const store: ChatStore = {
+    projects: [],
+    activeProjectId: null,
+    sessions: [],
+    activeSessionId: null,
+    hydrated: false,
 
-      hydrate: async () => {
-        try {
-          // Load projects first
-          const { projects } = (await apiFetch("/api/projects")) as {
-            projects: { id: string; name: string; rootPath: string; createdAt: number; updatedAt: number }[];
-          };
+    selectedSkills: [],
 
-          const projectId = get().activeProjectId;
-          const { sessions } = (await apiFetch(`/api/sessions${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`)) as {
-            sessions: { id: string; projectId?: string | null; title: string; createdAt: number; updatedAt: number }[];
-          };
-          const enriched: Session[] = [];
-          for (const s of sessions) {
-            enriched.push({
-              id: s.id,
-              projectId: s.projectId,
-              title: s.title,
-              createdAt: s.createdAt,
-              updatedAt: s.updatedAt,
-              messages: [],
-            });
-          }
-          const activeId = get().activeSessionId || enriched[0]?.id || null;
-          set({
-            projects,
-            sessions: enriched,
-            activeSessionId: activeId,
-            hydrated: true,
+    sidebarOpen: true,
+    commandPrefill: null,
+    directSend: null,
+    contextPanelOpen: false,
+    isLoading: false,
+    syncing: false,
+
+    provider: "openrouter",
+    model: "openai/gpt-4o-mini",
+    apiKey: "",
+    savedProviders: [],
+    selectedModels: [],
+    compareMode: false,
+
+    hydrate: async () => {
+      try {
+        // Load projects first
+        const { projects } = (await apiFetch("/api/projects")) as {
+          projects: { id: string; name: string; rootPath: string; createdAt: number; updatedAt: number }[];
+        };
+
+        const projectId = get().activeProjectId;
+        const { sessions } = (await apiFetch(`/api/sessions${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`)) as {
+          sessions: { id: string; projectId?: string | null; title: string; createdAt: number; updatedAt: number }[];
+        };
+        const enriched: Session[] = [];
+        for (const s of sessions) {
+          enriched.push({
+            id: s.id,
+            projectId: s.projectId,
+            title: s.title,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
+            messages: [],
           });
-          if (activeId) {
-            await loadSessionMessages(activeId);
-          }
-        } catch (e) {
-          console.error("Failed to hydrate:", e);
-          set({ hydrated: true });
         }
-      },
+        const activeId = get().activeSessionId || enriched[0]?.id || null;
+        set({
+          projects,
+          sessions: enriched,
+          activeSessionId: activeId,
+          hydrated: true,
+        });
+        if (activeId) {
+          await loadSessionMessages(activeId);
+        }
 
-      // ===== Project actions =====
-      createProject: async (name: string) => {
+        // Load saved API keys from server (not localStorage)
+        store.loadApiKeysFromServer().catch(() => {});
+      } catch (e) {
+        console.error("Failed to hydrate:", e);
+        set({ hydrated: true });
+      }
+    },
+
+    // ===== Project actions =====
+    createProject: async (name: string) => {
         set({ syncing: true });
         try {
           const { project } = (await apiFetch("/api/projects", {
@@ -199,11 +238,28 @@ export const useChatStore = create<ChatStore>()(
       },
 
       deleteProject: async (id: string) => {
+        const deletedProject = get().projects.find((p) => p.id === id);
+        const prevActiveProjectId = get().activeProjectId;
+        const prevSessions = get().sessions;
+        const prevActiveSessionId = get().activeSessionId;
         set({ syncing: true });
         try {
           await apiFetch(`/api/projects?id=${encodeURIComponent(id)}`, { method: "DELETE" });
         } catch (e) {
-          console.error("Failed to delete project:", e);
+          console.error("Failed to delete project, rolling back:", e);
+          if (deletedProject) {
+            set((s) => {
+              if (s.projects.some((x) => x.id === id)) return {};
+              return {
+                projects: [deletedProject, ...s.projects],
+                activeProjectId: prevActiveProjectId,
+                sessions: prevSessions,
+                activeSessionId: prevActiveSessionId,
+              };
+            });
+          }
+          set({ syncing: false });
+          return;
         } finally {
           set({ syncing: false });
         }
@@ -229,6 +285,12 @@ export const useChatStore = create<ChatStore>()(
       },
 
       renameProject: async (id: string, name: string) => {
+        const prevName = get().projects.find((p) => p.id === id)?.name ?? name;
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id ? { ...p, name, updatedAt: Date.now() } : p
+          ),
+        }));
         set({ syncing: true });
         try {
           await apiFetch("/api/projects", {
@@ -236,15 +298,15 @@ export const useChatStore = create<ChatStore>()(
             body: JSON.stringify({ id, name }),
           });
         } catch (e) {
-          console.error("Failed to rename project:", e);
+          console.error("Failed to rename project, rolling back:", e);
+          set((s) => ({
+            projects: s.projects.map((p) =>
+              p.id === id ? { ...p, name: prevName } : p
+            ),
+          }));
         } finally {
           set({ syncing: false });
         }
-        set((s) => ({
-          projects: s.projects.map((p) =>
-            p.id === id ? { ...p, name, updatedAt: Date.now() } : p
-          ),
-        }));
       },
 
       // ===== Session actions =====
@@ -258,33 +320,48 @@ export const useChatStore = create<ChatStore>()(
             method: "POST",
             body: JSON.stringify({ id, projectId, title: "New Chat" }),
           });
+          const session: Session = {
+            id,
+            title: "New Chat",
+            messages: [],
+            createdAt: now,
+            updatedAt: now,
+          };
+          set((s) => ({
+            sessions: [session, ...s.sessions],
+            activeSessionId: id,
+          }));
+          return id;
         } catch (e) {
           console.error("Failed to create session:", e);
+          throw new Error("Failed to create session. Please try again.");
         } finally {
           set({ syncing: false });
         }
-        const session: Session = {
-          id,
-          title: "New Chat",
-          messages: [],
-          createdAt: now,
-          updatedAt: now,
-        };
-        set((s) => ({
-          sessions: [session, ...s.sessions],
-          activeSessionId: id,
-        }));
-        return id;
       },
 
       deleteSession: async (id) => {
+        const deletedSession = get().sessions.find((s) => s.id === id);
+        const prevActiveId = get().activeSessionId;
         set({ syncing: true });
         try {
           await apiFetch(`/api/sessions?id=${encodeURIComponent(id)}`, {
             method: "DELETE",
           });
         } catch (e) {
-          console.error("Failed to delete session:", e);
+          console.error("Failed to delete session, rolling back:", e);
+          // Restore the deleted session
+          if (deletedSession) {
+            set((s) => {
+              if (s.sessions.some((x) => x.id === id)) return {};
+              return {
+                sessions: [deletedSession, ...s.sessions],
+                activeSessionId: prevActiveId,
+              };
+            });
+          }
+          set({ syncing: false });
+          return;
         } finally {
           set({ syncing: false });
         }
@@ -308,6 +385,12 @@ export const useChatStore = create<ChatStore>()(
       },
 
       renameSession: async (id, title) => {
+        const prevTitle = get().sessions.find((s) => s.id === id)?.title ?? title;
+        set((s) => ({
+          sessions: s.sessions.map((ses) =>
+            ses.id === id ? { ...ses, title, updatedAt: Date.now() } : ses
+          ),
+        }));
         set({ syncing: true });
         try {
           await apiFetch("/api/sessions", {
@@ -315,15 +398,16 @@ export const useChatStore = create<ChatStore>()(
             body: JSON.stringify({ id, title }),
           });
         } catch (e) {
-          console.error("Failed to rename session:", e);
+          console.error("Failed to rename session, rolling back:", e);
+          // Rollback: restore previous title
+          set((s) => ({
+            sessions: s.sessions.map((ses) =>
+              ses.id === id ? { ...ses, title: prevTitle } : ses
+            ),
+          }));
         } finally {
           set({ syncing: false });
         }
-        set((s) => ({
-          sessions: s.sessions.map((ses) =>
-            ses.id === id ? { ...ses, title, updatedAt: Date.now() } : ses
-          ),
-        }));
       },
 
       addMessage: async (msg) => {
@@ -331,6 +415,7 @@ export const useChatStore = create<ChatStore>()(
         if (!sessionId) {
           sessionId = await get().createSession();
         }
+        const snap = snapshotSessions();
         // Optimistic local insert
         set((s) => ({
           sessions: s.sessions.map((ses) => {
@@ -368,7 +453,8 @@ export const useChatStore = create<ChatStore>()(
             }).catch(() => {});
           }
         } catch (e) {
-          console.error("Failed to persist message:", e);
+          console.error("Failed to persist message, rolling back:", e);
+          rollbackSessions(snap);
         } finally {
           set({ syncing: false });
         }
@@ -377,6 +463,7 @@ export const useChatStore = create<ChatStore>()(
       updateMessage: async (id, content) => {
         const sessionId = get().activeSessionId;
         if (!sessionId) return;
+        const snap = snapshotSessions();
         set((s) => ({
           sessions: s.sessions.map((ses) => {
             if (ses.id !== sessionId) return ses;
@@ -399,7 +486,8 @@ export const useChatStore = create<ChatStore>()(
             }
           );
         } catch (e) {
-          console.error("Failed to update message:", e);
+          console.error("Failed to update message, rolling back:", e);
+          rollbackSessions(snap);
         } finally {
           set({ syncing: false });
         }
@@ -408,6 +496,7 @@ export const useChatStore = create<ChatStore>()(
       deleteMessage: async (id) => {
         const sessionId = get().activeSessionId;
         if (!sessionId) return;
+        const snap = snapshotSessions();
         set((s) => ({
           sessions: s.sessions.map((ses) => {
             if (ses.id !== sessionId) return ses;
@@ -425,7 +514,8 @@ export const useChatStore = create<ChatStore>()(
             { method: "DELETE" }
           );
         } catch (e) {
-          console.error("Failed to delete message:", e);
+          console.error("Failed to delete message, rolling back:", e);
+          rollbackSessions(snap);
         } finally {
           set({ syncing: false });
         }
@@ -434,6 +524,7 @@ export const useChatStore = create<ChatStore>()(
       truncateAfter: async (timestamp, inclusive = false) => {
         const sessionId = get().activeSessionId;
         if (!sessionId) return;
+        const snap = snapshotSessions();
         set((s) => ({
           sessions: s.sessions.map((ses) => {
             if (ses.id !== sessionId) return ses;
@@ -453,7 +544,8 @@ export const useChatStore = create<ChatStore>()(
             { method: "DELETE" }
           );
         } catch (e) {
-          console.error("Failed to truncate messages:", e);
+          console.error("Failed to truncate messages, rolling back:", e);
+          rollbackSessions(snap);
         } finally {
           set({ syncing: false });
         }
@@ -462,6 +554,7 @@ export const useChatStore = create<ChatStore>()(
       clearMessages: async () => {
         const sessionId = get().activeSessionId;
         if (!sessionId) return;
+        const snap = snapshotSessions();
         set((s) => ({
           sessions: s.sessions.map((ses) => {
             if (ses.id !== sessionId) return ses;
@@ -479,7 +572,8 @@ export const useChatStore = create<ChatStore>()(
             body: JSON.stringify({ id: sessionId, title: "New Chat" }),
           });
         } catch (e) {
-          console.error("Failed to clear messages:", e);
+          console.error("Failed to clear messages, rolling back:", e);
+          rollbackSessions(snap);
         } finally {
           set({ syncing: false });
         }
@@ -526,6 +620,9 @@ export const useChatStore = create<ChatStore>()(
         }
       },
 
+      setCommandPrefill: (val) => set({ commandPrefill: val }),
+      setDirectSend: (val) => set({ directSend: val }),
+
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setContextPanelOpen: (open) => set({ contextPanelOpen: open }),
@@ -533,7 +630,75 @@ export const useChatStore = create<ChatStore>()(
       setLoading: (v) => set({ isLoading: v }),
       setSyncing: (v) => set({ syncing: v }),
 
+      toggleSkill: (name) =>
+        set((s) => {
+          const exists = s.selectedSkills.includes(name);
+          return {
+            selectedSkills: exists
+              ? s.selectedSkills.filter((n) => n !== name)
+              : [...s.selectedSkills, name],
+          };
+        }),
+
       setConfig: (c) => set((s) => ({ ...s, ...c })),
+
+      loadApiKeysFromServer: async () => {
+        try {
+          const { keys } = (await apiFetch("/api/keys")) as {
+            keys: { provider: string; keyPreview: string }[];
+          };
+          const providers = keys.map((k) => k.provider);
+          const currentProvider = get().provider;
+          const hasCurrent = providers.includes(currentProvider);
+          set({
+            savedProviders: providers,
+            apiKey: hasCurrent ? "stored" : "",
+          });
+        } catch (e) {
+          console.error("Failed to load API keys from server:", e);
+        }
+      },
+
+      saveKey: async (provider: string, key: string) => {
+        try {
+          const res = (await apiFetch("/api/keys", {
+            method: "POST",
+            body: JSON.stringify({ provider, key }),
+          })) as { success: boolean; keyPreview: string };
+          const state = get();
+          const curProvider = get().provider;
+          set({
+            savedProviders: state.savedProviders.includes(provider.toLowerCase())
+              ? state.savedProviders
+              : [...state.savedProviders, provider.toLowerCase()],
+            apiKey: curProvider === provider.toLowerCase() || curProvider === provider ? "stored" : state.apiKey,
+          });
+          return res.keyPreview;
+        } catch (e) {
+          console.error("Failed to save API key:", e);
+          return null;
+        }
+      },
+
+      deleteKey: async (provider: string) => {
+        try {
+          await apiFetch("/api/keys", {
+            method: "DELETE",
+            body: JSON.stringify({ provider }),
+          });
+          const state = get();
+          const normalized = provider.toLowerCase();
+          set({
+            savedProviders: state.savedProviders.filter((p) => p !== normalized),
+            apiKey:
+              (state.provider === normalized || state.provider === provider)
+                ? ""
+                : state.apiKey,
+          });
+        } catch (e) {
+          console.error("Failed to delete API key:", e);
+        }
+      },
 
       setSelectedModels: (models) =>
         set({ selectedModels: models.slice(0, 2), compareMode: models.length > 1 }),
@@ -568,22 +733,52 @@ export const useChatStore = create<ChatStore>()(
         await get().hydrate();
         return result;
       },
-    }),
-    {
-      name: "agent-web-store",
-      partialize: (state) => ({
-        sidebarOpen: state.sidebarOpen,
-        provider: state.provider,
-        model: state.model,
-        apiKey: state.apiKey,
-        selectedModels: state.selectedModels,
-        compareMode: state.compareMode,
-        activeProjectId: state.activeProjectId,
-        activeSessionId: state.activeSessionId,
-      }),
+    };
+    return store;
+  });
+
+// Persist only UI preferences to localStorage — all data lives in DB
+if (typeof window !== "undefined") {
+  const saved = localStorage.getItem("agent-web-ui-prefs");
+  if (saved) {
+    try {
+      const prefs = JSON.parse(saved);
+      if (prefs.sidebarOpen !== undefined) useChatStore.setState({ sidebarOpen: prefs.sidebarOpen });
+      if (prefs.provider) useChatStore.setState({ provider: prefs.provider });
+      if (prefs.model) useChatStore.setState({ model: prefs.model });
+      if (prefs.selectedModels) useChatStore.setState({ selectedModels: prefs.selectedModels });
+      if (prefs.compareMode !== undefined) useChatStore.setState({ compareMode: prefs.compareMode });
+      if (prefs.activeProjectId !== undefined) useChatStore.setState({ activeProjectId: prefs.activeProjectId });
+      if (prefs.activeSessionId !== undefined) useChatStore.setState({ activeSessionId: prefs.activeSessionId });
+      if (prefs.selectedSkills) useChatStore.setState({ selectedSkills: prefs.selectedSkills });
+    } catch {
+      // ignore corrupt prefs
     }
-  )
-);
+  }
+
+  // Subscribe to state changes and persist only UI prefs
+  let prevPrefs = "";
+  const unsub = useChatStore.subscribe((state) => {
+    const prefs = {
+      sidebarOpen: state.sidebarOpen,
+      provider: state.provider,
+      model: state.model,
+      selectedModels: state.selectedModels,
+      compareMode: state.compareMode,
+      activeProjectId: state.activeProjectId,
+      activeSessionId: state.activeSessionId,
+      selectedSkills: state.selectedSkills,
+    };
+    const json = JSON.stringify(prefs);
+    if (json !== prevPrefs) {
+      prevPrefs = json;
+      localStorage.setItem("agent-web-ui-prefs", json);
+    }
+  });
+
+  // Cleanup on page unload
+  window.addEventListener("beforeunload", () => unsub());
+}
 
 async function loadSessionMessages(sessionId: string) {
   try {
@@ -631,7 +826,7 @@ export const useActiveMessages = () =>
       s.sessions.find((ses) => ses.id === s.activeSessionId)?.messages ?? EMPTY_MESSAGES
   );
 
-export const useShowVideo = () =>
+export const useIsEmptySession = () =>
   useChatStore((s) => {
     const ses = s.sessions.find((ses) => ses.id === s.activeSessionId);
     return ses ? ses.messages.length === 0 : true;

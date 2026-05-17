@@ -1,7 +1,8 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { promises as fs } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { dirname } from "node:path";
+import { resolveSafePath } from "./path-security.js";
 
 const MAX_SIZE = 1 * 1024 * 1024; // 1MB max write
 
@@ -18,12 +19,7 @@ export const writeFileTool = tool({
         return `[error] Content too large (${content.length} chars > ${MAX_SIZE} max). Split into smaller writes.`;
       }
 
-      const abs = resolve(path);
-
-      // Prevent writing outside project dirs or common sensitive paths
-      if (abs.startsWith("/etc") || abs.startsWith("/proc") || abs.startsWith("/sys") || abs.startsWith("C:\\Windows") || abs.startsWith("C:\\windows")) {
-        return `[error] Cannot write to system directory: ${abs}`;
-      }
+      const abs = resolveSafePath(path);
 
       await fs.mkdir(dirname(abs), { recursive: true });
 

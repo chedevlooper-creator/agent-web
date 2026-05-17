@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import {
   listMessages,
   addMessage,
@@ -9,6 +10,20 @@ import {
 } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+const CreateMessageSchema = z.object({
+  id: z.string().min(1).max(100),
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().min(1).max(200_000),
+  model: z.string().max(200).optional(),
+  timestamp: z.number().optional(),
+});
+
+const UpdateMessageSchema = z.object({
+  id: z.string().min(1).max(100),
+  content: z.string().min(1).max(200_000).optional(),
+  model: z.string().max(200).optional(),
+});
 
 export async function GET(
   _req: NextRequest,
@@ -31,19 +46,14 @@ export async function POST(
   try {
     const { id: sessionId } = await params;
     const body = await req.json();
-    const { id, role, content, model, timestamp } = body as {
-      id: string;
-      role: "user" | "assistant" | "system";
-      content: string;
-      model?: string;
-      timestamp?: number;
-    };
-    if (!id || !role || typeof content !== "string") {
+    const parsed = CreateMessageSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "id, role, content required" },
+        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
+    const { id, role, content, model, timestamp } = parsed.data;
     const message = await addMessage({
       id,
       sessionId,
@@ -66,12 +76,14 @@ export async function PATCH(
   try {
     await params;
     const body = await req.json();
-    const { id, content, model } = body as {
-      id: string;
-      content?: string;
-      model?: string;
-    };
-    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+    const parsed = UpdateMessageSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+    const { id, content, model } = parsed.data;
     await updateMessage(id, { content, model });
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {

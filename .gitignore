@@ -11,3 +11,17 @@ dist/
 *.sqlite
 data/
 .vercel
+
+# AI Tools & Plugins
+.kilocodemodes
+.kilocode/
+.kombai/
+.claude/
+.claude-plugin/
+events.jsonl
+views.json
+config.json
+labels/
+statuses/
+sources/
+.turbo/

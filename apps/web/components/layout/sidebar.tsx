@@ -1,6 +1,6 @@
 "use client";
 
-import { useChatStore, useShowVideo } from "@/lib/store";
+import { useChatStore, useIsEmptySession } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
@@ -9,17 +9,28 @@ import {
   Trash2,
   PanelLeftClose,
   PanelLeft,
-  Sparkles,
   Wrench,
   Puzzle,
   CheckCircle2,
-  ChevronRight,
   RefreshCw,
   Search,
-  Download,
-  Upload,
   X,
   Pencil,
+  Paintbrush,
+  FlaskConical,
+  Database,
+  Gamepad2,
+  Code,
+  FileText,
+  Globe,
+  Brain,
+  Palette,
+  FolderOpen,
+  ChevronRight,
+  Box,
+  BarChart3,
+  BookOpen,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { toolDescriptions } from "@agent-web/core";
@@ -34,7 +45,7 @@ interface SkillInfo {
 }
 
 // ===== Date grouping =====
-type Group = "Today" | "Yesterday" | "Previous 7 Days" | "Previous 30 Days" | "Older";
+type Group = "Bugün" | "Dün" | "Son 7 Gün" | "Son 30 Gün" | "Daha Eski";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -45,20 +56,36 @@ function groupOf(timestamp: number): Group {
   const today = startOfDay(now);
   const ts = startOfDay(new Date(timestamp));
   const diffDays = Math.floor((today - ts) / (24 * 60 * 60 * 1000));
-  if (diffDays <= 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays <= 7) return "Previous 7 Days";
-  if (diffDays <= 30) return "Previous 30 Days";
-  return "Older";
+  if (diffDays <= 0) return "Bugün";
+  if (diffDays === 1) return "Dün";
+  if (diffDays <= 7) return "Son 7 Gün";
+  if (diffDays <= 30) return "Son 30 Gün";
+  return "Daha Eski";
 }
 
 const GROUP_ORDER: Group[] = [
-  "Today",
-  "Yesterday",
-  "Previous 7 Days",
-  "Previous 30 Days",
-  "Older",
+  "Bugün",
+  "Dün",
+  "Son 7 Gün",
+  "Son 30 Gün",
+  "Daha Eski",
 ];
+
+function AgentMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+      <path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25L16 2.5Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M16 8.4 22.4 12.1v7.8L16 23.6 9.6 19.9v-7.8L16 8.4Z" fill="none" stroke="currentColor" strokeWidth="1.4" opacity=".8" />
+      <path d="M16 8.4v15.2M9.6 12.1 22.4 19.9M22.4 12.1 9.6 19.9" fill="none" stroke="currentColor" strokeWidth="1" opacity=".55" />
+    </svg>
+  );
+}
+
+function formatSessionMeta(timestamp?: number) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
 
 // ===== Project Bar =====
 function ProjectBar() {
@@ -66,7 +93,6 @@ function ProjectBar() {
   const activeProjectId = useChatStore((s) => s.activeProjectId);
   const setActiveProject = useChatStore((s) => s.setActiveProject);
   const createProject = useChatStore((s) => s.createProject);
-  const deleteProject = useChatStore((s) => s.deleteProject);
   const [creating, setCreating] = useState(false);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
@@ -74,62 +100,66 @@ function ProjectBar() {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      await createProject(`Project ${projects.length + 1}`);
+      await createProject(`Proje ${projects.length + 1}`);
     } catch {
-      toast.error("Failed to create project");
+      toast.error("Proje oluşturulamadı");
     } finally {
       setCreating(false);
     }
   };
 
   return (
-    <div className="px-3 py-2 border-b border-border/30 space-y-1.5 shrink-0">
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <select
-            value={activeProjectId ?? "__default__"}
-            onChange={(e) => {
-              const v = e.target.value;
-              setActiveProject(v === "__default__" ? null : v);
-            }}
-            className="w-full bg-surface-elevated border border-border/40 rounded-lg px-2 py-1.5 text-xs text-foreground truncate focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-            aria-label="Select project"
-          >
-            <option value="__default__">Default</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={handleCreate}
-            disabled={creating}
-            className="min-w-[28px] h-7 flex items-center justify-center rounded-lg bg-gradient-to-r from-primary to-primary-hover text-white text-xs transition-all duration-200 hover:shadow-md hover:shadow-primary/20 active:scale-95 disabled:opacity-50"
-            aria-label="Create new project"
-          >
-            <Plus size={13} />
-          </button>
-          {activeProject && (
+    <div className="shrink-0 border-t border-border/60 px-4 pb-3 pt-3">
+      <button
+        type="button"
+        onClick={() => {
+          if (projects.length > 0) {
+            const next = activeProject ? null : projects[0].id;
+            setActiveProject(next);
+          } else {
+            handleCreate();
+          }
+        }}
+        disabled={creating}
+        className="flex min-h-[72px] w-full items-center gap-3 rounded-lg border border-border-strong bg-chrome-muted/70 px-4 text-left transition-[border-color,box-shadow,transform] duration-200 hover:border-electric/35 hover:shadow-[0_0_24px_rgba(176,226,39,0.10)] active:scale-[0.99] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Proje"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-electric/25 bg-electric-muted/40 text-electric">
+          <FolderOpen size={18} aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="section-label block">Proje</span>
+          <span className="block truncate text-sm font-semibold text-fg-primary">
+            {activeProject?.name || "agent-web"}
+          </span>
+        </span>
+        <ChevronRight size={16} className="text-fg-muted" aria-hidden="true" />
+      </button>
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {[
+          { icon: Box, label: "Sistem", active: true },
+          { icon: BarChart3, label: "Metrikler" },
+          { icon: BookOpen, label: "Dokümanlar" },
+          { icon: Settings, label: "Ayarlar" },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
             <button
-              onClick={() => {
-                if (confirm(`Delete project "${activeProject.name}"? All sessions will be deleted.`)) {
-                  deleteProject(activeProject.id);
-                }
-              }}
-              className="min-w-[28px] h-7 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-200"
-              aria-label="Delete project"
+              key={item.label}
+              type="button"
+              className={cn(
+                "flex min-h-[48px] items-center justify-center rounded-lg border transition-[background-color,border-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                item.active
+                  ? "border-electric/35 bg-electric-muted/35 text-electric"
+                  : "border-border/70 bg-black/15 text-fg-secondary hover:border-cyan/30 hover:text-cyan"
+              )}
+              aria-label={item.label}
             >
-              <Trash2 size={12} />
+              <Icon size={18} aria-hidden="true" />
             </button>
-          )}
-        </div>
+          );
+        })}
       </div>
-      {activeProject && (
-        <p className="text-[10px] text-muted-foreground/60 truncate px-1">
-          {activeProject.rootPath}
-        </p>
-      )}
     </div>
   );
 }
@@ -142,7 +172,7 @@ function SessionItem({
   onDelete,
   onRename,
 }: {
-  session: { id: string; title: string };
+  session: { id: string; title: string; updatedAt?: number };
   isActive: boolean;
   onSelect: () => void;
   onDelete: () => void;
@@ -170,22 +200,19 @@ function SessionItem({
   };
 
   return (
-    <div className="group relative">
-      <button
-        onClick={onSelect}
-        className={cn(
-          "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-sm",
-          "transition-all duration-200",
-          isActive
-            ? "bg-primary/10 text-foreground font-medium"
-            : "text-muted-foreground hover:bg-surface-elevated/80 hover:text-foreground"
-        )}
-      >
-        <MessageSquare
-          size={15}
-          className={cn("shrink-0 transition-colors duration-200", isActive ? "text-primary" : "")}
-        />
-        {isEditing ? (
+    <div className="group relative animate-sidebar-item">
+      {isEditing ? (
+        <div
+          className={cn(
+            "min-h-[48px] w-full flex items-center gap-2.5 border px-3 text-left text-sm",
+            isActive ? "bg-primary/10 text-foreground font-medium" : "text-muted-foreground"
+          )}
+        >
+          <MessageSquare
+            size={15}
+            className={cn("shrink-0 transition-colors duration-200", isActive ? "text-primary" : "")}
+            aria-hidden="true"
+          />
           <input
             ref={inputRef}
             value={title}
@@ -199,25 +226,45 @@ function SessionItem({
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-transparent text-sm border-none outline-none focus:ring-1 focus:ring-primary/50 rounded-sm px-1 py-0.5 -mx-1"
+            className="min-h-[44px] flex-1 bg-transparent text-sm border-none outline-none focus:ring-2 focus:ring-primary/30 rounded-lg px-2 -mx-2"
           />
-        ) : (
-          <span className="truncate animate-fade-in pr-12">{session.title}</span>
-        )}
-        {/* Active indicator bar — gradient left edge */}
-        {isActive && !isEditing && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b from-primary to-accent animate-scale-in" />
-        )}
-      </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onSelect}
+          className={cn(
+            "min-h-[42px] w-full flex items-center gap-2.5 px-3 pr-20 text-left text-[13px] cursor-pointer rounded-[6px]",
+            "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative group/btn",
+            isActive
+              ? "bg-white/[0.075] text-foreground font-medium shadow-[inset_0_0_0_1px_rgba(176,226,39,0.04)]"
+              : "bg-transparent text-muted-foreground hover:bg-white/[0.045] hover:text-foreground"
+          )}
+          aria-current={isActive ? "page" : undefined}
+        >
+          {isActive && (
+            <span className="absolute left-0 top-1/2 h-7 w-[2px] -translate-y-1/2 bg-electric shadow-[0_0_14px_rgba(176,226,39,0.9)]" />
+          )}
+          <MessageSquare
+            size={14}
+            className={cn("shrink-0 transition-colors duration-200", isActive ? "text-electric" : "opacity-80 group-hover/btn:opacity-100")}
+            aria-hidden="true"
+          />
+          <span className="truncate flex-1">{session.title}</span>
+          <span className="absolute right-3 top-1/2 max-w-[64px] -translate-y-1/2 truncate text-[10px] font-medium text-muted-foreground/70 transition-opacity duration-200 group-hover/btn:opacity-0">
+            {formatSessionMeta(session.updatedAt)}
+          </span>
+        </button>
+      )}
       {!isEditing && (
-        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-200">
           <button
             onClick={(e) => {
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Rename session"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center border border-transparent hover:border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Oturumu yeniden adlandır"
           >
             <Pencil size={11} />
           </button>
@@ -226,8 +273,8 @@ function SessionItem({
               e.stopPropagation();
               onDelete();
             }}
-            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-            aria-label="Delete session"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center border border-transparent hover:border-destructive/25 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Oturumu sil"
           >
             <Trash2 size={11} />
           </button>
@@ -238,33 +285,74 @@ function SessionItem({
 }
 
 // ===== Chats Tab =====
-function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
+function ChatsTab({
+  sidebarOpen,
+  tabs,
+  activeTab,
+  setActiveTab,
+}: {
+  sidebarOpen: boolean;
+  tabs?: { id: SidebarTab; icon: typeof MessageSquare; label: string }[];
+  activeTab?: SidebarTab;
+  setActiveTab?: (tab: SidebarTab) => void;
+}) {
   const sessions = useChatStore((s) => s.sessions);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
   const createSession = useChatStore((s) => s.createSession);
   const deleteSession = useChatStore((s) => s.deleteSession);
   const renameSession = useChatStore((s) => s.renameSession);
   const setActiveSession = useChatStore((s) => s.setActiveSession);
-  const importFromJson = useChatStore((s) => s.importFromJson);
+  const setSidebarOpen = useChatStore((s) => s.setSidebarOpen);
 
   const [search, setSearch] = useState("");
-  const [importing, setImporting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchUnlocked, setSearchUnlocked] = useState(false);
 
   const handleDelete = (id: string) => {
-    if (typeof window !== "undefined" && window.confirm("Delete this conversation?")) {
+    if (typeof window !== "undefined" && window.confirm("Bu konuşma silinsin mi?")) {
       deleteSession(id);
     }
   };
 
+  const closeMobileSidebar = useCallback(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, [setSidebarOpen]);
+
+  const handleNewChat = useCallback(async () => {
+    // Reuse an existing empty "New Chat" session instead of creating duplicates
+    const emptySession = sessions.find(
+      (s) => s.title === "Yeni Sohbet" && (!s.messages || s.messages.length === 0)
+    );
+    if (emptySession) {
+      setActiveSession(emptySession.id);
+    } else {
+      await createSession();
+    }
+    closeMobileSidebar();
+  }, [sessions, createSession, setActiveSession, closeMobileSidebar]);
+
+  const handleSelectSession = useCallback((id: string) => {
+    setActiveSession(id);
+    closeMobileSidebar();
+  }, [setActiveSession, closeMobileSidebar]);
+
+  // NOTE: Search is limited to session titles only.
+  // Message content search would require loading messages for all sessions from the server.
   const filtered = useMemo(() => {
+    let list = sessions;
+
+    // Deduplicate empty "New Chat" sessions (keep only the active one or the most recent one)
+    const emptyNewChats = list.filter(s => s.title === "Yeni Sohbet" && (!s.messages || s.messages.length === 0));
+    if (emptyNewChats.length > 1) {
+      const keepId = emptyNewChats.find(s => s.id === activeSessionId)?.id || emptyNewChats[0].id;
+      list = list.filter(s => !(s.title === "Yeni Sohbet" && (!s.messages || s.messages.length === 0) && s.id !== keepId));
+    }
+
     const q = search.trim().toLowerCase();
-    if (!q) return sessions;
-    return sessions.filter((s) => {
-      if (s.title.toLowerCase().includes(q)) return true;
-      return s.messages.some((m) => m.content.toLowerCase().includes(q));
-    });
-  }, [sessions, search]);
+    if (!q) return list;
+    return list.filter((s) => s.title.toLowerCase().includes(q));
+  }, [sessions, search, activeSessionId]);
 
   const grouped = useMemo(() => {
     const map = new Map<Group, typeof filtered>();
@@ -279,58 +367,17 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
     }));
   }, [filtered]);
 
-  const handleExport = async () => {
-    try {
-      const res = await fetch("/api/sessions/export");
-      if (!res.ok) {
-        toast.error("Export failed: Unable to fetch sessions");
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `agent-web-export-${Date.now()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("Sessions exported successfully");
-    } catch {
-      toast.error("Export failed due to a network error");
-    }
-  };
-
-  const handleImportClick = () => fileInputRef.current?.click();
-
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const stats = await importFromJson(text);
-      toast.success(`Imported ${stats.sessions} sessions, ${stats.messages} messages.`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Import failed";
-      toast.error(`Import error: ${msg}`);
-    } finally {
-      setImporting(false);
-    }
-  };
-
   if (!sidebarOpen) {
     return (
       <>
         <div className="p-3 shrink-0">
           <button
-            onClick={() => createSession()}
-            className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto
+            onClick={handleNewChat}
+            className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto
                        border border-dashed border-border/60
                        hover:bg-primary/10 hover:border-primary/40 hover:text-primary
-                       active:scale-95 transition-all duration-200"
-            aria-label="New chat"
+                       active:scale-95 transition-[background-color,border-color,color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Yeni sohbet"
           >
             <Plus size={16} />
           </button>
@@ -341,14 +388,15 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
             return (
               <button
                 key={session.id}
-                onClick={() => setActiveSession(session.id)}
+                onClick={() => handleSelectSession(session.id)}
                 className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center mx-auto transition-all duration-200",
+                  "w-11 h-11 rounded-xl flex items-center justify-center mx-auto transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                 )}
                 title={session.title}
+                aria-label={`${session.title} oturumunu aç`}
               >
                 <MessageSquare size={16} />
               </button>
@@ -361,118 +409,130 @@ function ChatsTab({ sidebarOpen }: { sidebarOpen: boolean }) {
 
   return (
     <>
-      <div className="p-3 shrink-0 space-y-2.5">
+      <div className="p-3 shrink-0 space-y-4">
         {/* New chat */}
         <button
-          onClick={() => createSession()}
+          type="button"
+          onClick={handleNewChat}
           className={cn(
-            "w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium",
-            "border border-dashed border-border/50",
-            "hover:bg-primary/8 hover:border-primary/30 hover:text-primary",
+            "min-h-[46px] w-full flex items-center justify-between px-3 text-sm font-semibold rounded-[6px]",
+            "bg-electric text-black border border-electric/40 shadow-[0_0_15px_rgba(176,226,39,0.15)]",
+            "hover:shadow-[0_0_25px_rgba(176,226,39,0.25)]",
             "active:scale-[0.98] transition-all duration-200"
           )}
+          aria-label="Yeni sohbet"
         >
-          <Plus size={16} />
-          <span className="animate-fade-in">New Chat</span>
+          <div className="flex items-center gap-2">
+            <Plus size={16} aria-hidden="true" />
+            <span>Yeni Sohbet</span>
+          </div>
+          <div className="flex items-center gap-1 opacity-90">
+            <span className="text-[10px] font-mono border border-black/20 bg-black/5 px-1.5 rounded-[3px]">Ctrl</span>
+            <span className="text-[10px] font-mono border border-black/20 bg-black/5 px-1.5 rounded-[3px]">N</span>
+          </div>
         </button>
 
         {/* Search */}
         <div className="relative">
           <Search
             size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
           />
           <input
             type="text"
+            name="chat-search"
+            autoComplete="new-password"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            spellCheck={false}
+            readOnly={!searchUnlocked}
+            onFocus={() => setSearchUnlocked(true)}
+            onPointerDown={() => setSearchUnlocked(true)}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search chats…"
+            placeholder="Sohbetlerde ara..."
             className={cn(
-              "w-full pl-8 pr-8 py-2 rounded-xl text-sm",
-              "bg-surface-muted/70 border border-border-muted",
-              "placeholder:text-muted-foreground/50",
-              "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30",
+              "w-full pl-9 pr-14 py-2 min-h-[38px] text-[13px] rounded-[6px]",
+              "bg-black/30 border border-border/40",
+              "placeholder:text-muted-foreground/60",
+              "focus:outline-none focus:border-electric/40 focus:ring-1 focus:ring-electric/20",
               "transition-all duration-200"
             )}
           />
-          {search && (
+          {search ? (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded bg-black/40 text-muted-foreground hover:text-foreground hover:bg-muted/50 flex items-center justify-center transition-colors"
+              aria-label="Aramayı temizle"
             >
               <X size={12} />
             </button>
+          ) : (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-80 pointer-events-none">
+              <span className="text-[9px] font-mono border border-border/40 bg-black/40 px-1 rounded-[3px] text-muted-foreground">Ctrl</span>
+              <span className="text-[9px] font-mono border border-border/40 bg-black/40 px-1 rounded-[3px] text-muted-foreground">K</span>
+            </div>
           )}
         </div>
 
-        {/* Import / Export */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={handleImportClick}
-            disabled={importing}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium",
-              "bg-surface-muted/50 text-muted-foreground hover:bg-surface-elevated hover:text-foreground",
-              "border border-border-muted hover:border-border",
-              "transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-            title="Import sessions from JSON"
-          >
-            <Upload size={11} />
-            Import
-          </button>
-          <button
-            onClick={handleExport}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium
-                       bg-surface-muted/50 text-muted-foreground hover:bg-surface-elevated hover:text-foreground
-                       border border-border-muted hover:border-border
-                       transition-all duration-200"
-            title="Export all sessions as JSON"
-          >
-            <Download size={11} />
-            Export
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleFileSelected}
-            className="hidden"
-          />
-        </div>
+        {/* Tabs */}
+        {tabs && activeTab && setActiveTab && (
+          <div className="flex items-center gap-2 border-b border-border/20 pb-4">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 h-[34px] rounded-[6px] text-[12px] font-medium transition-all duration-200",
+                  activeTab === tab.id
+                    ? "bg-white/5 text-foreground border border-border/40 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+              >
+                <tab.icon size={14} aria-hidden="true" className={activeTab === tab.id ? "text-electric" : "opacity-70"} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Session list */}
-      <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-3">
-        {sessions.length === 0 ? (
+      <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-4">
+        {grouped.length > 0 ? (
+          <>
+            {GROUP_ORDER.map(groupName => {
+              const actualGroup = grouped.find(g => g.group === groupName);
+              if (!actualGroup) return null;
+              
+              return (
+                <div key={groupName} className="space-y-0.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-1">
+                    {groupName}
+                  </p>
+                  
+                  {actualGroup?.sessions.map((session) => (
+                    <SessionItem
+                      key={session.id}
+                      session={session}
+                      isActive={session.id === activeSessionId}
+                      onSelect={() => handleSelectSession(session.id)}
+                      onDelete={() => handleDelete(session.id)}
+                      onRename={(id, title) => renameSession(id, title)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+          </>
+        ) : search && filtered.length === 0 ? (
           <div className="text-center text-muted-foreground text-xs py-8 px-4 animate-fade-in">
-            No conversations yet.
-            <br />
-            Start a new chat to begin.
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center text-muted-foreground text-xs py-8 px-4 animate-fade-in">
-            No chats match &quot;{search}&quot;.
+            &quot;{search}&quot; ile eşleşen sohbet yok.
           </div>
         ) : (
-          grouped.map(({ group, sessions: groupSessions }) => (
-            <div key={group} className="space-y-0.5">
-              <p className="section-label px-3 pt-2 pb-1">
-                {group}
-              </p>
-              {groupSessions.map((session) => (
-                <SessionItem
-                  key={session.id}
-                  session={session}
-                  isActive={session.id === activeSessionId}
-                  onSelect={() => setActiveSession(session.id)}
-                  onDelete={() => handleDelete(session.id)}
-                  onRename={(id, title) => renameSession(id, title)}
-                />
-              ))}
-            </div>
-          ))
+          <div className="px-3 py-8 text-xs text-muted-foreground/70">
+            Henüz sohbet yok.
+          </div>
         )}
       </div>
     </>
@@ -491,8 +551,8 @@ function ToolsTab({ expanded }: { expanded: boolean }) {
           return (
             <div
               key={key}
-              className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto
-                         text-muted-foreground hover:bg-surface-elevated hover:text-foreground transition-all duration-200"
+              className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto
+                         text-muted-foreground hover:bg-surface-elevated hover:text-foreground transition-colors duration-200"
               title={tool.name}
             >
               <Icon size={18} />
@@ -506,14 +566,14 @@ function ToolsTab({ expanded }: { expanded: boolean }) {
   return (
     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 animate-fade-in">
       <p className="section-label px-1 mb-2">
-        Agent Tools
+        Ajan Araçları
       </p>
       {tools.map(([key, tool]) => {
         const Icon = getToolIcon(key);
         return (
           <div
             key={key}
-            className="flex items-center gap-3 px-3 py-3 rounded-xl glass-card transition-all duration-200 hover:border-primary/20 hover-lift"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl glass-card transition-[border-color,box-shadow,transform] duration-200 hover:border-primary/20 hover-lift"
           >
             <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               <Icon size={15} className="text-success" />
@@ -532,17 +592,58 @@ function ToolsTab({ expanded }: { expanded: boolean }) {
       })}
 
       <p className="text-[11px] text-muted-foreground/60 px-1 pt-2 leading-relaxed">
-        Tools execute on the local machine with full permissions. Only use in
-        trusted development environments.
+        Araçlar yerel makinede tam yetkiyle çalışır. Yalnızca güvenilir
+        geliştirme ortamlarında kullanın.
       </p>
     </div>
   );
+}
+
+function getSkillIcon(name: string) {
+  const n = name.toLowerCase();
+  if (n.includes("design") || n.includes("ui") || n.includes("styling") || n.includes("banner")) return Paintbrush;
+  if (n.includes("test") || n.includes("debug") || n.includes("audit")) return FlaskConical;
+  if (n.includes("insforge") || n.includes("db") || n.includes("data")) return Database;
+  if (n.includes("unity") || n.includes("game")) return Gamepad2;
+  if (n.includes("react") || n.includes("vercel") || n.includes("next") || n.includes("frontend")) return Code;
+  if (n.includes("ppt") || n.includes("slides") || n.includes("docx") || n.includes("pdf") || n.includes("xlsx")) return FileText;
+  if (n.includes("browser") || n.includes("web") || n.includes("desktop")) return Globe;
+  if (n.includes("graph") || n.includes("memory") || n.includes("workspace")) return Brain;
+  if (n.includes("brand") || n.includes("ckm")) return Palette;
+  return Puzzle;
+}
+
+function getSkillColor(name: string) {
+  const n = name.toLowerCase();
+  if (n.includes("design") || n.includes("ui") || n.includes("banner")) return "text-pink-400 bg-pink-400/10";
+  if (n.includes("test") || n.includes("debug") || n.includes("audit")) return "text-amber-400 bg-amber-400/10";
+  if (n.includes("insforge") || n.includes("db") || n.includes("data")) return "text-emerald-400 bg-emerald-400/10";
+  if (n.includes("unity") || n.includes("game")) return "text-violet-400 bg-violet-400/10";
+  if (n.includes("react") || n.includes("vercel") || n.includes("frontend")) return "text-sky-400 bg-sky-400/10";
+  if (n.includes("ppt") || n.includes("docx") || n.includes("pdf") || n.includes("xlsx")) return "text-orange-400 bg-orange-400/10";
+  if (n.includes("browser") || n.includes("web") || n.includes("desktop")) return "text-cyan-400 bg-cyan-400/10";
+  if (n.includes("graph") || n.includes("memory") || n.includes("workspace") || n.includes("brain")) return "text-purple-400 bg-purple-400/10";
+  return "text-accent bg-accent-muted";
+}
+
+function getSkillCategory(name: string) {
+  const n = name.toLowerCase();
+  if (n.includes("design") || n.includes("ui") || n.includes("styling") || n.includes("banner")) return "Tasarım";
+  if (n.includes("test") || n.includes("debug") || n.includes("audit")) return "Kalite";
+  if (n.includes("react") || n.includes("next") || n.includes("frontend") || n.includes("vercel")) return "Önyüz";
+  if (n.includes("slides") || n.includes("docx") || n.includes("pdf") || n.includes("xlsx")) return "Doküman";
+  if (n.includes("insforge") || n.includes("db") || n.includes("data")) return "Veri";
+  if (n.includes("browser") || n.includes("web") || n.includes("desktop")) return "Çalışma Zamanı";
+  return "Ajan";
 }
 
 // ===== Skills Tab =====
 function SkillsTab({ expanded }: { expanded: boolean }) {
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const selectedSkills = useChatStore((s) => s.selectedSkills);
+  const toggleSkill = useChatStore((s) => s.toggleSkill);
 
   const fetchSkills = useCallback(() => {
     setLoading(true);
@@ -558,19 +659,40 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
     fetchSkills();
   }, [fetchSkills]);
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return skills;
+    return skills.filter((s) =>
+      s.name.toLowerCase().includes(q) ||
+      s.description.toLowerCase().includes(q)
+    );
+  }, [skills, search]);
+
   if (!expanded) {
     return (
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
-        {skills.map((s) => (
-          <div
-            key={s.name}
-            className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto
-                       text-muted-foreground hover:bg-surface-elevated hover:text-foreground transition-all duration-200"
-            title={s.name}
-          >
-            <Puzzle size={18} />
-          </div>
-        ))}
+        {skills.slice(0, 12).map((s) => {
+          const Icon = getSkillIcon(s.name);
+          const isSelected = selectedSkills.includes(s.path);
+          return (
+            <button
+              key={s.name}
+              onClick={() => toggleSkill(s.path)}
+              className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center mx-auto",
+                "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isSelected
+                  ? "text-electric bg-electric-muted/20"
+                  : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+              )}
+              title={s.name}
+              aria-label={`${s.name} yeteneğini ${isSelected ? "kaldır" : "ekle"}`}
+              aria-pressed={isSelected}
+            >
+              <Icon size={18} />
+            </button>
+          );
+        })}
         {skills.length === 0 && !loading && (
           <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto text-muted-foreground">
             <Puzzle size={18} className="opacity-30" />
@@ -581,61 +703,122 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 animate-fade-in">
-      <div className="flex items-center justify-between px-1 mb-2">
-        <p className="section-label">
-          Installed Skills
-        </p>
+    <div className="flex-1 flex flex-col overflow-hidden animate-fade-in">
+      {/* Header with count */}
+      <div className="flex items-center justify-between px-3 py-2.5 shrink-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-semibold text-foreground">Yetenekler</span>
+          {!loading && (
+            <span className="text-[10px] font-medium text-muted-foreground bg-surface-muted/60 px-1.5 py-0.5 rounded-md tabular-nums">
+              {skills.length}
+            </span>
+          )}
+        </div>
         <button
           onClick={fetchSkills}
-          className="p-1.5 rounded-lg hover:bg-surface-elevated transition-colors text-muted-foreground hover:text-foreground"
-          aria-label="Refresh skills"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-surface-elevated transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Yetenekleri yenile"
         >
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
-      {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-xl animate-shimmer" />
-          ))}
+      {/* Search */}
+      <div className="px-3 pb-2 shrink-0">
+        <div className="relative">
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
+          <input
+            type="text"
+            name="skill-filter"
+            autoComplete="new-password"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            spellCheck={false}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Yetenekleri filtrele…"
+            className="min-h-[44px] w-full pl-8 pr-8 rounded-xl text-xs
+                       bg-surface-muted/50 border border-border-muted
+                       placeholder:text-muted-foreground/40
+                       focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/30
+                       transition-[border-color,box-shadow,background-color] duration-200"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[40px] min-h-[40px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 flex items-center justify-center"
+              aria-label="Aramayı temizle"
+            >
+              <X size={10} />
+            </button>
+          )}
         </div>
-      ) : skills.length === 0 ? (
-        <div className="text-center py-8 px-4 space-y-2 animate-fade-in">
-          <Puzzle size={28} className="mx-auto text-muted-foreground opacity-30" />
-          <p className="text-xs text-muted-foreground">
-            No skills installed yet.
-          </p>
-          <p className="text-[11px] text-muted-foreground/70">
-            Add skills to <code className="px-1.5 py-0.5 rounded-md bg-surface-muted text-[10px] border border-border-muted">.verdent/skills/</code>
-          </p>
-        </div>
-      ) : (
-        skills.map((skill, i) => (
-          <div
-            key={skill.name}
-            className="group px-3 py-3 rounded-xl glass-card
-                       hover:border-accent/20 transition-all duration-200 animate-slide-up hover-lift"
-            style={{ animationDelay: `${i * 40}ms` }}
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-muted to-primary-muted flex items-center justify-center shrink-0 mt-0.5">
-                <Puzzle size={14} className="text-accent" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium truncate">{skill.name}</span>
-                  <ChevronRight size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
-                  {skill.description}
-                </p>
-              </div>
-            </div>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+        {loading ? (
+          <div className="space-y-1.5 pt-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-12 rounded-lg animate-shimmer" style={{ animationDelay: `${i * 60}ms` }} />
+            ))}
           </div>
-        ))
-      )}
+        ) : skills.length === 0 ? (
+          <div className="text-center py-10 px-4 space-y-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto">
+              <Puzzle size={18} className="text-muted-foreground/30" />
+            </div>
+            <p className="text-xs text-muted-foreground">Henüz yetenek yüklenmemiş.</p>
+            <p className="text-[10px] text-muted-foreground/50 leading-relaxed max-w-[200px] mx-auto">
+              <code className="px-1 py-0.5 rounded bg-surface-muted text-[10px] border border-border-muted font-mono">skills/</code> dizinine yetenek ekleyin
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-10 px-4">
+            <p className="text-xs text-muted-foreground">&quot;{search}&quot; ile eşleşen yetenek yok</p>
+          </div>
+        ) : (
+          filtered.map((skill, i) => {
+            const Icon = getSkillIcon(skill.name);
+            const colorClass = getSkillColor(skill.name);
+            const isSelected = selectedSkills.includes(skill.path);
+            return (
+              <button
+                key={skill.path}
+                onClick={() => toggleSkill(skill.path)}
+                className={cn(
+                  "group flex w-full items-center gap-2.5 px-2.5 py-2 rounded-lg text-left",
+                  "transition-all duration-150",
+                  "hover:bg-surface-elevated/70",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "animate-slide-up",
+                  isSelected && "bg-electric-muted/20 ring-1 ring-electric/30"
+                )}
+                style={{ animationDelay: `${Math.min(i * 25, 200)}ms` }}
+                aria-pressed={isSelected}
+                aria-label={`${skill.name} yeteneğini ${isSelected ? "kaldır" : "ekle"}`}
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                  <Icon size={13} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 leading-tight">
+                    <span className="min-w-0 truncate text-[12px] font-medium text-foreground">
+                      {skill.name}
+                    </span>
+                    <span className="shrink-0 rounded-md border border-border-muted bg-surface-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      {getSkillCategory(skill.name)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/70 truncate leading-relaxed mt-0.5">
+                    {skill.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
@@ -645,16 +828,7 @@ export function Sidebar() {
   const sidebarOpen = useChatStore((s) => s.sidebarOpen);
   const toggleSidebar = useChatStore((s) => s.toggleSidebar);
   const setSidebarOpen = useChatStore((s) => s.setSidebarOpen);
-  const hydrate = useChatStore((s) => s.hydrate);
-  const hydrated = useChatStore((s) => s.hydrated);
   const [activeTab, setActiveTab] = useState<SidebarTab>("chats");
-
-  // Hydrate from DB on first mount
-  useEffect(() => {
-    if (!hydrated) {
-      hydrate();
-    }
-  }, [hydrated, hydrate]);
 
   // Close sidebar on Escape (mobile)
   useEffect(() => {
@@ -669,12 +843,12 @@ export function Sidebar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [sidebarOpen, setSidebarOpen]);
 
-  const showVideo = useShowVideo();
+  const showVideo = useIsEmptySession();
 
   const tabs: { id: SidebarTab; icon: typeof MessageSquare; label: string }[] = [
-    { id: "chats", icon: MessageSquare, label: "Chats" },
-    { id: "tools", icon: Wrench, label: "Tools" },
-    { id: "skills", icon: Puzzle, label: "Skills" },
+    { id: "chats", icon: MessageSquare, label: "Sohbetler" },
+    { id: "tools", icon: Wrench, label: "Araçlar" },
+    { id: "skills", icon: Puzzle, label: "Yetenekler" },
   ];
 
   return (
@@ -688,32 +862,32 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed md:relative z-50 h-dvh flex flex-col",
+          "fixed md:relative z-50 h-dvh flex flex-col overflow-hidden",
           showVideo
             ? "glass-subtle border-r border-border/20"
-            : "bg-surface border-r border-border/40",
-          "transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            : "sidebar-cockpit border-r border-border/60",
+          "transition-[width,transform,background-color,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
           sidebarOpen
-            ? "w-[280px] translate-x-0"
-            : "w-0 md:w-[64px] -translate-x-full md:translate-x-0"
+            ? "w-[320px] 2xl:w-[360px] translate-x-0"
+            : "w-0 md:w-[64px] -translate-x-[320px] 2xl:-translate-x-[360px] md:translate-x-0"
         )}
       >
         {/* Header */}
-        <div className={cn("flex items-center h-14 px-3 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/40")}>
+        <div className={cn("flex items-center h-[82px] px-5 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/60")}>
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-xl gradient-bg-primary flex items-center justify-center shrink-0 shadow-md shadow-primary/25 animate-glow-ring">
-                  <Sparkles size={15} className="text-white" />
+                <div className="w-11 h-11 flex items-center justify-center shrink-0 text-electric shadow-[0_0_22px_rgba(176,226,39,0.14)] animate-pulse-ring">
+                  <AgentMark className="h-11 w-11" />
                 </div>
-                <span className="font-semibold text-sm tracking-tight truncate animate-fade-in">
-                  Agent Web
+                <span className="font-black text-lg uppercase truncate animate-fade-in">
+                  Agent <span className="text-electric">Web</span>
                 </span>
               </div>
               <button
                 onClick={toggleSidebar}
-                className="min-w-[34px] min-h-[34px] flex items-center justify-center rounded-xl hover:bg-muted transition-all duration-200 active:scale-95"
-                aria-label="Collapse sidebar"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center border border-transparent hover:border-border/70 hover:bg-muted transition-colors duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Kenar çubuğunu daralt"
               >
                 <PanelLeftClose size={16} className="text-muted-foreground" />
               </button>
@@ -721,39 +895,40 @@ export function Sidebar() {
           ) : (
             <button
               onClick={toggleSidebar}
-              className="min-w-[34px] min-h-[34px] flex items-center justify-center rounded-xl hover:bg-muted transition-all duration-200 mx-auto active:scale-95"
-              aria-label="Expand sidebar"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center border border-transparent hover:border-border/70 hover:bg-muted transition-colors duration-200 mx-auto active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Kenar çubuğunu genişlet"
             >
               <PanelLeft size={16} className="text-muted-foreground" />
             </button>
           )}
         </div>
 
-        {/* Project selector */}
-        {sidebarOpen && <ProjectBar />}
-
         {/* Tab bar — segmented control style */}
         {sidebarOpen ? (
-          <div className={cn("px-3 py-2 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/40")}>
-            <div className="relative flex items-center gap-0.5 p-0.5 rounded-xl bg-surface-muted/40 border border-border-muted">
+          activeTab !== "chats" && (
+          <div className={cn("px-3 py-2 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/60")}>
+            <div className="relative flex items-center gap-1 border border-border/70 bg-black/20 p-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "relative z-10 flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium",
-                    "transition-all duration-250 active:scale-[0.97]",
+                    "relative z-10 min-h-[44px] flex-1 flex items-center justify-center gap-1.5 px-2 text-[11px] font-semibold",
+                    "transition-[background-color,color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     activeTab === tab.id
-                      ? "bg-gradient-to-r from-primary to-primary-hover text-primary-foreground shadow-sm shadow-primary/25"
+                      ? "bg-electric text-black shadow-[0_0_18px_rgba(176,226,39,0.16)]"
                       : "text-muted-foreground hover:text-foreground"
                   )}
+                  aria-label={tab.label}
+                  title={tab.label}
                 >
-                  <tab.icon size={13} />
-                  <span>{tab.label}</span>
+                  <tab.icon size={15} aria-hidden="true" />
+                  <span className="sr-only">{tab.label}</span>
                 </button>
               ))}
             </div>
           </div>
+          )
         ) : (
           <div className={cn("flex flex-col items-center gap-1 py-2 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/40")}>
             {tabs.map((tab) => (
@@ -761,13 +936,14 @@ export function Sidebar() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center",
-                  "transition-all duration-200",
+                  "w-11 h-11 rounded-xl flex items-center justify-center",
+                  "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeTab === tab.id
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                 )}
                 title={tab.label}
+                aria-label={tab.label}
               >
                 <tab.icon size={18} />
               </button>
@@ -775,9 +951,17 @@ export function Sidebar() {
           </div>
         )}
 
-        {activeTab === "chats" && <ChatsTab sidebarOpen={sidebarOpen} />}
+        {activeTab === "chats" && (
+          <ChatsTab
+            sidebarOpen={sidebarOpen}
+            tabs={tabs}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        )}
         {activeTab === "tools" && <ToolsTab expanded={sidebarOpen} />}
         {activeTab === "skills" && <SkillsTab expanded={sidebarOpen} />}
+        {sidebarOpen && <ProjectBar />}
       </aside>
     </>
   );
