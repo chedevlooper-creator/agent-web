@@ -37,6 +37,8 @@ export function TtsButton({ text, onError }: { text: string; onError?: (msg: str
   useEffect(() => {
     if (state !== "idle") {
       cleanup();
+      // Intentional: reset playback state when the source text prop changes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState("idle");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

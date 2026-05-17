@@ -166,11 +166,15 @@ export function KnowledgePanel({
   }, []);
 
   useEffect(() => {
+    // Standard load-on-mount; loader sets loading state synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBases();
   }, [loadBases]);
 
   useEffect(() => {
     if (selectedBaseId) {
+      // Standard load-on-change; loader sets loading state synchronously.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadDocuments(selectedBaseId);
     } else {
       setDocuments([]);
@@ -180,8 +184,11 @@ export function KnowledgePanel({
   // Search effect with debounce
   useEffect(() => {
     if (!searchQuery.trim()) {
+      // Intentional: clear results when the query is emptied.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setSearchResults([]);
       setSearching(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
 

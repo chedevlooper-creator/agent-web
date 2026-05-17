@@ -79,10 +79,13 @@ export function SearchDialog({
 
   useEffect(() => {
     if (open) {
+      // Intentional: reset dialog state each time it opens.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setRecentSearches(loadRecentSearches());
       setQuery("");
       setResults(null);
       setSearched(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
       setTimeout(() => inputRef.current?.focus(), 80);
     }
   }, [open]);

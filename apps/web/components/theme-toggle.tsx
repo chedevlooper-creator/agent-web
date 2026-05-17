@@ -31,6 +31,8 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   useEffect(() => {
     const initial = getInitialTheme();
+    // Client-only init from localStorage/matchMedia; must run post-mount to avoid hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(initial);
     applyTheme(initial);
     setMounted(true);
