@@ -58,6 +58,8 @@ export function FileManager({ expanded }: FileManagerProps) {
   }, []);
 
   useEffect(() => {
+    // Standard load-on-mount; fetcher sets loading state synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFiles();
   }, [fetchFiles]);
 

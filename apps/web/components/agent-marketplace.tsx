@@ -207,11 +207,14 @@ export function AgentMarketplace({
   }, []);
 
   useEffect(() => {
+    // Standard load-on-change; loaders set loading state synchronously.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (tab === "marketplace") {
       loadMarketplace();
     } else {
       loadInstalled();
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [tab, loadMarketplace, loadInstalled]);
 
   const handleInstall = async (preset: AgentPreset) => {

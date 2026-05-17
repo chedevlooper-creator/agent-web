@@ -140,6 +140,8 @@ export function McpManager({ expanded = true }: { expanded?: boolean }) {
   }, []);
 
   useEffect(() => {
+    // Standard load-on-mount; loader sets loading state synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadServers();
   }, [loadServers]);
 
