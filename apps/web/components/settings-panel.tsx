@@ -47,7 +47,7 @@ export function SettingsPanel() {
 
   const [open, setOpen] = useState(false);
   const currentProvider = PROVIDERS.find((p) => p.value === provider);
-  const hasKeyForProvider = savedProviders.includes(provider);
+  const hasKeyForProvider = !!serverProviders && serverProviders[provider];
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
