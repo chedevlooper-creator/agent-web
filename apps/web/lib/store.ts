@@ -64,7 +64,6 @@ interface ChatStore {
 
   // Skills
   selectedSkills: string[];
-  toggleSkill: (name: string) => void;
 
   // Settings
   provider: string;
@@ -718,6 +717,28 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
               : [...s.enabledSkills, name],
           };
         }),
+
+      saveKey: async (provider, key) => {
+        try {
+          await apiFetch("/api/keys", {
+            method: "POST",
+            body: JSON.stringify({ provider, key }),
+          });
+        } catch (e) {
+          console.error("Failed to save API key:", e);
+        }
+      },
+
+      deleteKey: async (provider) => {
+        try {
+          await apiFetch("/api/keys", {
+            method: "DELETE",
+            body: JSON.stringify({ provider }),
+          });
+        } catch (e) {
+          console.error("Failed to delete API key:", e);
+        }
+      },
 
       importFromJson: async (json) => {
         const payload = JSON.parse(json);
