@@ -29,16 +29,6 @@ export const toolDescriptions = {
     description: "Search files by glob name pattern or regex text content",
     status: "active" as const,
   },
-  web_fetch: {
-    name: "Web Fetch",
-    description: "Fetch a URL and extract readable text content from pages",
-    status: "active" as const,
-  },
-  execute_code: {
-    name: "Execute Code",
-    description: "Execute JavaScript or TypeScript in a sandboxed Node.js process",
-    status: "active" as const,
-  },
 };
 
 export type ToolName = keyof typeof toolDescriptions;
