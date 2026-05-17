@@ -16,7 +16,7 @@ beforeEach(() => {
     provider: "openrouter",
     model: "openai/gpt-4o-mini",
     apiKey: "sk-test",
-    savedProviders: [],
+    serverProviders: {},
     selectedModels: [],
     compareMode: false,
   });

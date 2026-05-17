@@ -28,7 +28,7 @@ export function initObservability(): NodeSDK | null {
     publicKey,
     secretKey,
     baseUrl: host,
-    exportMode: "batch",
+    exportMode: "batched",
   });
 
   sdk = new NodeSDK({

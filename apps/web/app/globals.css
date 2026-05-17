@@ -58,6 +58,47 @@
   --transition: 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #111111;
+  --surface: #f5f5f7;
+  --surface-elevated: #ffffff;
+  --surface-muted: #e8e8ec;
+  --overlay: #e8e8ec;
+  --dim-foreground: #8e8e9a;
+
+  --primary: #00c982;
+  --primary-dim: #00a86b;
+  --primary-hover: #00a86b;
+  --primary-muted: #d4f5e6;
+  --primary-foreground: #ffffff;
+
+  --accent: #e85d2a;
+  --accent-dim: #cc4d20;
+  --accent-muted: #fde8d4;
+  --accent-foreground: #ffffff;
+
+  --secondary: #6b6b7b;
+  --secondary-foreground: #ffffff;
+  --muted: #e8e8ec;
+  --muted-foreground: #6b6b7b;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #00c982;
+  --warning: #d97706;
+  --info: #2563eb;
+
+  --border: #d4d4d8;
+  --border-strong: #a1a1aa;
+  --input: #e8e8ec;
+  --ring: #00c982;
+
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

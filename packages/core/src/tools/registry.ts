@@ -10,9 +10,11 @@ import { gitTool } from "./git-tool.js";
 import { dbQueryTool } from "./db-query.js";
 import { apiTestTool } from "./api-test.js";
 import { knowledgeSearchTool } from "./knowledge-search.js";
+import { imageGenerateTool } from "./image-generate.js";
 import { mcpManager } from "./mcp/index.js";
 
 export const tools = {
+  image_generate: imageGenerateTool,
   terminal: terminalTool,
   read_file: readFileTool,
   write_file: writeFileTool,

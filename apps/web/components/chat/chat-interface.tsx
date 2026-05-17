@@ -41,6 +41,7 @@ import {
   Copy,
   GitCompare,
   GitBranch,
+  Sparkles,
   Terminal,
   FileText,
   Globe,
@@ -56,6 +57,9 @@ import { toast } from "sonner";
 import { TtsButton } from "@/components/tts-button";
 import { SttButton } from "@/components/stt-button";
 import { BranchIndicator } from "@/components/chat/branch-indicator";
+import { MessageActions } from "@/components/message-actions";
+import { ThreadIndicator } from "@/components/thread-indicator";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -497,12 +501,14 @@ function MessageBubble({
   onRetry,
   onEdit,
   onBranch,
+  onMessageAction,
 }: {
   message: ChatMessage;
   index: number;
   onRetry?: () => void;
   onEdit?: (newContent: string) => void;
   onBranch?: (messageId: string) => void;
+  onMessageAction?: (type: string, content: string) => void;
 }) {
   const isUser = message.role === "user";
   const isError = !isUser && message.content.startsWith("Error:");
@@ -550,6 +556,8 @@ function MessageBubble({
     } catch {}
   };
 
+  // handleMessageAction will be forwarded from ChatInterface
+
   return (
     <div
       className={cn(
@@ -579,6 +587,7 @@ function MessageBubble({
           isUser ? "items-end" : "items-start",
         )}
       >
+        {message.parentId && <ThreadIndicator parentMessage={{ id: message.parentId, content: message.content, role: message.role }} />}
         {!isUser && message.model && (
           <Badge variant="outline" className="agent-model-badge">
             {message.model}
@@ -731,6 +740,12 @@ function MessageBubble({
             )}
             {!isUser && !isError && message.content && (
               <TtsButton text={message.content} />
+            )}
+            {!isUser && !isError && message.content && onMessageAction && (
+              <MessageActions
+                content={message.content}
+                onAction={onMessageAction}
+              />
             )}
             {!isError && onBranch && (
               <TooltipIconButton
@@ -1391,6 +1406,40 @@ export function ChatInterface() {
     [branchFrom, activeSessionId],
   );
 
+  const handleMessageAction = useCallback(
+    async (type: string, content: string) => {
+      const SYSTEM_PREFIXES: Record<string, string> = {
+        summarize: "Please summarize the following message concisely:\n\n",
+        "translate-en": "Translate the following message to English:\n\n",
+        "translate-tr": "Translate the following message to Turkish:\n\n",
+        improve: "Rewrite the following to improve its clarity and style:\n\n",
+        explain: "Explain the following in simple terms:\n\n",
+      };
+      const prefix = SYSTEM_PREFIXES[type] ?? "";
+      const newMsg: ChatMessage = {
+        id: genId(),
+        role: "user",
+        content: prefix + content,
+        timestamp: Date.now(),
+      };
+      console.log("MessageAction:", type, newMsg.content.slice(0, 80));
+      await addMessage(newMsg);
+
+      // Build prompt history and submit
+      const currentMessages = [
+        ...(useChatStore
+          .getState()
+          .sessions.find((s: { id: string }) => s.id === useChatStore.getState().activeSessionId)
+          ?.messages ?? []),
+      ];
+      const msgs = currentMessages
+        .filter((m: ChatMessage) => m.content)
+        .map((m: ChatMessage) => ({ role: m.role, content: m.content }));
+      await submitChat(msgs);
+    },
+    [addMessage, submitChat],
+  );
+
   // Group messages for compare-mode rendering. Consecutive assistant messages
   // sharing the same user-prompt timestamp (i.e., dispatched in parallel) are
   // rendered side-by-side as a CompareRow.
@@ -1443,6 +1492,7 @@ export function ChatInterface() {
 
   return (
     <div className="agent-chat-stage relative flex h-full min-w-0 flex-col overflow-hidden">
+      <KeyboardShortcuts />
       {/* Messages Area */}
       {messages.length === 0 ? (
         <EmptyState onPrompt={handleStarterPrompt} />
@@ -1471,6 +1521,11 @@ export function ChatInterface() {
                   }
                   onBranch={
                     activeSessionId ? () => handleBranch(item.msg.id) : undefined
+                  }
+                  onMessageAction={
+                    item.msg.role === "assistant" && item.msg.content && !item.msg.content.startsWith("Error:")
+                      ? (type, content) => handleMessageAction(type, content)
+                      : undefined
                   }
                 />
               ) : (

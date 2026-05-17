@@ -19,6 +19,10 @@ const ConnectSchema = z.object({
   id: z.string().min(1),
 });
 
+const DisconnectSchema = z.object({
+  id: z.string().min(1),
+});
+
 /**
  * GET /api/mcp/servers
  * Lists all configured MCP servers.
@@ -54,6 +58,26 @@ export async function POST(req: NextRequest) {
     }
 
     const raw = await req.json();
+
+    // Check if this is a disconnect action
+    if (raw.action === "disconnect") {
+      const parsed = DisconnectSchema.safeParse(raw);
+      if (!parsed.success) {
+        return Response.json(
+          {
+            error: "Invalid request",
+            details: parsed.error.flatten().fieldErrors,
+          },
+          { status: 400 }
+        );
+      }
+
+      await mcpManager.disconnect(parsed.data.id);
+      return Response.json({
+        success: true,
+        server: { id: parsed.data.id },
+      });
+    }
 
     // Check if this is a connect action
     if (raw.action === "connect") {

@@ -17,6 +17,36 @@ async function ensureDir() {
   }
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+
+    const { readdir, stat } = await import("node:fs/promises");
+
+    let files: { name: string; path: string; size: number; mtime: number }[] = [];
+    try {
+      const entries = await readdir(UPLOAD_DIR, { withFileTypes: true });
+      const stats = await Promise.all(
+        entries.map(async (entry) => {
+          if (!entry.isFile()) return null;
+          const fullPath = join(UPLOAD_DIR, entry.name);
+          const s = await stat(fullPath);
+          return { name: entry.name, path: fullPath, size: s.size, mtime: s.mtimeMs };
+        })
+      );
+      files = stats.filter(Boolean) as typeof files;
+      files.sort((a, b) => b.mtime - a.mtime);
+    } catch {
+      // Directory doesn't exist yet
+    }
+
+    return NextResponse.json({ files });
+  } catch (e: unknown) {
+    return handleApiError(e, req);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(req);
@@ -51,6 +81,30 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ files });
+  } catch (e: unknown) {
+    return handleApiError(e, req);
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const name = searchParams.get("name");
+    if (!name) return NextResponse.json({ error: "File name required" }, { status: 400 });
+
+    const { unlink } = await import("node:fs/promises");
+    const filePath = join(UPLOAD_DIR, name);
+
+    // Prevent directory traversal
+    if (!filePath.startsWith(UPLOAD_DIR)) {
+      return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
+    }
+
+    await unlink(filePath);
+    return NextResponse.json({ success: true });
   } catch (e: unknown) {
     return handleApiError(e, req);
   }

@@ -800,7 +800,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   })
 );
 
-function snapshotSessions() {
+export function snapshotSessions() {
   return useChatStore.getState().sessions;
 }
 

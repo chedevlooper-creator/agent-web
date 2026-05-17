@@ -3,6 +3,7 @@
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Settings, X, GitCompare, CheckCircle2, CircleDot } from "lucide-react";
+import { SyncSettings } from "@/components/settings/sync-settings";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const PROVIDERS = [
@@ -46,6 +47,9 @@ export function SettingsPanel() {
   const deleteKey = useChatStore((s) => s.deleteKey);
 
   const [open, setOpen] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const currentProvider = PROVIDERS.find((p) => p.value === provider);
   const hasKeyForProvider = !!serverProviders && serverProviders[provider];
 
@@ -106,15 +110,11 @@ export function SettingsPanel() {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const preview = await saveKey(provider, key);
-      if (preview) {
-        setSaveMsg(`Kaydedildi (${preview})`);
-        setKeyInput("");
-      } else {
-        setSaveMsg("Anahtar kaydedilemedi. Sunucu günlüklerini kontrol edin.");
-      }
+      await saveKey(provider, key);
+      setSaveMsg("API key saved");
+      setKeyInput("");
     } catch {
-      setSaveMsg("Anahtar kaydedilemedi. Sunucu çalışıyor mu?");
+      setSaveMsg("Failed to save API key. Check server logs.");
     } finally {
       setSaving(false);
     }

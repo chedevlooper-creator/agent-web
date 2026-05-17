@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,6 +16,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Agent Web",
   description: "Yapay zeka destekli web arayüzü",
+  icons: {
+    apple: "/icon-192.svg",
+  },
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -28,6 +33,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/icon-192.svg" />
+      </head>
       <body
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen safe-top safe-bottom`}
@@ -40,6 +49,14 @@ export default function RootLayout({
           Ana içeriğe geç
         </a>
         {children}
+        <Toaster
+          position="bottom-right"
+          richColors
+          closeButton
+          toastOptions={{
+            duration: 4000,
+          }}
+        />
       </body>
     </html>
   );

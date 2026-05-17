@@ -4,6 +4,21 @@ const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: ["@agent-web/core", "@agent-web/db"],
   serverExternalPackages: ["@libsql/client", "pdf-parse", "mammoth", "xlsx", "@lobehub/tts"],
+
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
+  },
   // Force webpack (not Turbopack) to avoid incorrect client-side module tracing
   // that pulls in server-only Node.js deps via @agent-web/core
   webpack: (config, { isServer, webpack }) => {

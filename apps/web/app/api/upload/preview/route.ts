@@ -117,6 +117,45 @@ async function previewText(filePath: string): Promise<PreviewResult> {
   };
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const filePath = searchParams.get("path");
+    if (!filePath) return NextResponse.json({ error: "Missing path" }, { status: 400 });
+    if (!isSafePath(filePath)) {
+      return NextResponse.json({ error: "Invalid file path" }, { status: 400 });
+    }
+
+    const fullPath = join(UPLOAD_DIR, filePath);
+    const buf = await readFile(fullPath);
+
+    const ext = filePath.split(".").pop()?.toLowerCase();
+    const mimeMap: Record<string, string> = {
+      txt: "text/plain", md: "text/markdown", html: "text/html",
+      css: "text/css", js: "text/javascript", ts: "text/typescript",
+      json: "application/json", csv: "text/csv", xml: "text/xml",
+      yaml: "text/yaml", yml: "text/yaml",
+      png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+      gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
+      pdf: "application/pdf", py: "text/x-python", sh: "text/x-shellscript",
+      zip: "application/zip",
+    };
+    const contentType = mimeMap[ext || ""] || "application/octet-stream";
+
+    return new NextResponse(buf, {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Disposition": `inline; filename="${filePath.split("/").pop() || "file"}"`,
+      },
+    });
+  } catch (e: unknown) {
+    return handleApiError(e, req);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(req);

@@ -39,12 +39,19 @@ import {
   Settings,
   LogOut,
   Library,
+  Server,
 } from "lucide-react";
 import { toast } from "sonner";
 import { KnowledgePanel } from "@/components/knowledge-panel";
 import { AgentMarketplace } from "@/components/agent-marketplace";
+import { McpManager } from "@/components/mcp-manager";
+import { DataManager } from "@/components/data-manager";
+import { SearchDialog } from "@/components/search-dialog";
+import { FileManager } from "@/components/file-manager";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 
-type SidebarTab = "chats" | "tools" | "activity" | "context" | "knowledge" | "agents";
+type SidebarTab = "chats" | "tools" | "activity" | "context" | "knowledge" | "files" | "agents" | "mcp";
 type Group =
   | "Today"
   | "Yesterday"
@@ -676,6 +683,39 @@ function ContextTab() {
   );
 }
 
+function DataSection() {
+  const [showDataManager, setShowDataManager] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setShowDataManager(!showDataManager)}
+        className={cn(
+          "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-mono font-bold uppercase tracking-[0.06em] transition-all",
+          showDataManager
+            ? "bg-[var(--primary-muted)] text-[var(--primary)]"
+            : "text-[var(--muted-foreground)] hover:bg-[var(--overlay)] hover:text-[var(--foreground)]"
+        )}
+      >
+        <Database size={12} />
+        Data
+        <ChevronRight
+          size={10}
+          className={cn(
+            "ml-auto transition-transform",
+            showDataManager && "rotate-90"
+          )}
+        />
+      </button>
+      {showDataManager && (
+        <div className="border-l-2 border-[var(--primary)]/30 bg-[var(--surface)]">
+          <DataManager expanded={true} />
+        </div>
+      )}
+    </>
+  );
+}
+
 export function Sidebar() {
   const sidebarOpen = useChatStore((s) => s.sidebarOpen);
   const toggleSidebar = useChatStore((s) => s.toggleSidebar);
@@ -683,8 +723,10 @@ export function Sidebar() {
   const hydrate = useChatStore((s) => s.hydrate);
   const hydrated = useChatStore((s) => s.hydrated);
   const sessions = useChatStore((s) => s.sessions);
+  const createSession = useChatStore((s) => s.createSession);
   const [activeTab, setActiveTab] = useState<SidebarTab>("chats");
   const [search, setSearch] = useState("");
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const appliedMobileDefault = useRef(false);
 
@@ -704,9 +746,21 @@ export function Sidebar() {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setSidebarOpen(true);
-        setActiveTab("chats");
-        window.setTimeout(() => searchRef.current?.focus(), 120);
+        setSearchDialogOpen(true);
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        createSession();
+      }
+      if (event.key === "?" && !event.ctrlKey && !event.metaKey) {
+        const target = event.target as HTMLElement;
+        if (
+          target.tagName !== "INPUT" &&
+          target.tagName !== "TEXTAREA" &&
+          !target.isContentEditable
+        ) {
+          event.preventDefault();
+        }
       }
       if (event.key === "Escape" && sidebarOpen && window.innerWidth < 768) {
         setSidebarOpen(false);
@@ -714,7 +768,7 @@ export function Sidebar() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [sidebarOpen, setSidebarOpen]);
+  }, [sidebarOpen, setSidebarOpen, setSearchDialogOpen, createSession]);
 
   const tabs: {
     id: SidebarTab;
@@ -732,7 +786,9 @@ export function Sidebar() {
     { id: "activity", icon: Activity, label: "Act" },
     { id: "context", icon: Puzzle, label: "Ctx" },
     { id: "knowledge", icon: Library, label: "KB" },
+    { id: "files", icon: FolderOpen, label: "Files" },
     { id: "agents", icon: Bot, label: "Agents" },
+    { id: "mcp", icon: Server, label: "MCP" },
   ];
 
   return (
@@ -895,7 +951,9 @@ export function Sidebar() {
         {sidebarOpen && activeTab === "activity" && <ActivityTab />}
         {sidebarOpen && activeTab === "context" && <ContextTab />}
         {sidebarOpen && activeTab === "knowledge" && <KnowledgePanel expanded={sidebarOpen} />}
+        {activeTab === "files" && <FileManager expanded={sidebarOpen} />}
         {sidebarOpen && activeTab === "agents" && <AgentMarketplace expanded={sidebarOpen} />}
+        {sidebarOpen && activeTab === "mcp" && <McpManager expanded={sidebarOpen} />}
 
         <div
           className={cn(
@@ -905,6 +963,23 @@ export function Sidebar() {
               : "flex flex-col items-center gap-2 px-0 py-2",
           )}
         >
+          {/* Data Manager Toggle */}
+          {sidebarOpen ? (
+            <DataSection />
+          ) : (
+            <button
+              onClick={() => {
+                setSidebarOpen(true);
+                setActiveTab("chats");
+              }}
+              className="flex h-8 w-8 items-center justify-center text-[var(--muted-foreground)] transition-colors hover:bg-[var(--overlay)] hover:text-[var(--foreground)]"
+              aria-label="Data Management"
+              title="Data Management"
+            >
+              <Database size={14} />
+            </button>
+          )}
+
           <div className="flex items-center gap-2">
             <span className="signal-led" />
             {sidebarOpen && (
@@ -912,6 +987,7 @@ export function Sidebar() {
                 System ready
               </span>
             )}
+            <ThemeToggle className={cn(sidebarOpen && "ml-auto")} />
           </div>
           {sidebarOpen && (
             <>
@@ -941,7 +1017,29 @@ export function Sidebar() {
             </>
           )}
         </div>
+
+        {/* Theme Toggle + Keyboard Shortcuts Trigger */}
+        <div className="flex items-center gap-1 border-t border-[var(--border)] px-2 py-1.5">
+          <ThemeToggle />
+          <KeyboardShortcuts>
+            <button
+              className="flex h-7 w-7 items-center justify-center text-[var(--muted-foreground)] transition-colors hover:bg-[var(--overlay)] hover:text-[var(--foreground)]"
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h8" />
+              </svg>
+            </button>
+          </KeyboardShortcuts>
+        </div>
       </aside>
+
+      <SearchDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+      />
     </>
   );
 }
