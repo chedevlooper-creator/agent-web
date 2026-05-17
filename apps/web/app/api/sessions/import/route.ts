@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { importSessions, type DbSessionWithMessages } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,6 @@ export async function POST(req: NextRequest) {
     const stats = await importSessions(payload.sessions);
     return NextResponse.json({ ok: true, ...stats });
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e, req);
   }
 }

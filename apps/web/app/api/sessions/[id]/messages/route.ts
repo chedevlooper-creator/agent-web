@@ -9,6 +9,7 @@ import {
   clearMessages,
 } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,7 @@ export async function GET(
     const messages = await listMessages(sessionId);
     return NextResponse.json({ messages });
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e);
   }
 }
 
@@ -68,8 +68,7 @@ export async function POST(
     });
     return NextResponse.json({ message });
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e, req);
   }
 }
 
@@ -93,8 +92,7 @@ export async function PATCH(
     await updateMessage(id, { content, model });
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e, req);
   }
 }
 
@@ -126,7 +124,6 @@ export async function DELETE(
     }
     return NextResponse.json({ error: "messageId, afterTimestamp, or clear=true required" }, { status: 400 });
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e, req);
   }
 }
