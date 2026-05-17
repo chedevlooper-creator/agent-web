@@ -2,9 +2,8 @@
 
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Settings, X, Eye, EyeOff, GitCompare, Check, Trash2, Loader2 } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
-import { SyncSettings } from "./settings/sync-settings";
+import { Settings, X, GitCompare, CheckCircle2, CircleDot } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 
 const PROVIDERS = [
   {
@@ -27,22 +26,19 @@ const PROVIDERS = [
   {
     value: "deepseek",
     label: "DeepSeek",
-    models: ["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner"],
-  },
-  {
-    value: "opencode",
-    label: "OpenCode",
-    models: ["opencode-go", "opencode-zen"],
+    models: ["deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-reasoner"],
   },
 ];
 
 export function SettingsPanel() {
   const provider = useChatStore((s) => s.provider);
   const model = useChatStore((s) => s.model);
-  const savedProviders = useChatStore((s) => s.savedProviders);
+  const hasApiKey = useChatStore((s) => s.hasApiKey);
+  const serverProviders = useChatStore((s) => s.serverProviders);
   const selectedModels = useChatStore((s) => s.selectedModels);
   const compareMode = useChatStore((s) => s.compareMode);
   const setConfig = useChatStore((s) => s.setConfig);
+  const checkApiKeyStatus = useChatStore((s) => s.checkApiKeyStatus);
   const toggleSelectedModel = useChatStore((s) => s.toggleSelectedModel);
   const setCompareMode = useChatStore((s) => s.setCompareMode);
   const setSelectedModels = useChatStore((s) => s.setSelectedModels);
@@ -50,35 +46,36 @@ export function SettingsPanel() {
   const deleteKey = useChatStore((s) => s.deleteKey);
 
   const [open, setOpen] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [keyInput, setKeyInput] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const currentProvider = PROVIDERS.find((p) => p.value === provider);
   const hasKeyForProvider = savedProviders.includes(provider);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const wasOpenRef = useRef(false);
+  const hadOpenedRef = useRef(false);
+
+  useEffect(() => {
+    checkApiKeyStatus();
+  }, [checkApiKeyStatus]);
 
   useEffect(() => {
     if (!open) return;
+    checkApiKeyStatus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, checkApiKeyStatus]);
 
   useEffect(() => {
     if (!open) {
-      if (wasOpenRef.current) {
+      if (hadOpenedRef.current) {
         triggerRef.current?.focus();
+        hadOpenedRef.current = false;
       }
-      wasOpenRef.current = false;
       return;
     }
-    wasOpenRef.current = true;
+    hadOpenedRef.current = true;
     const panel = panelRef.current;
     if (!panel) return;
     const focusables = panel.querySelectorAll<HTMLElement>(
@@ -146,11 +143,8 @@ export function SettingsPanel() {
         ref={triggerRef}
         onClick={() => setOpen(true)}
         className={cn(
-          "min-w-[44px] min-h-[44px] flex items-center justify-center border transition-colors duration-200",
-          "hover:bg-muted hover:border-border/70 active:scale-95",
-          open
-            ? "border-electric/45 bg-electric-muted/35 text-electric"
-            : "border-transparent text-muted-foreground hover:text-foreground"
+          "signal-button h-6 w-7 px-0",
+          "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         )}
         aria-label={open ? "Ayarlar paneli açık" : "Ayarları aç"}
         aria-expanded={open}
@@ -159,12 +153,12 @@ export function SettingsPanel() {
         data-tooltip={open ? "Ayarlar açık" : "Ayarları aç"}
         title={open ? "Ayarlar açık" : "Ayarları aç"}
       >
-        <Settings size={18} aria-hidden="true" />
+        <Settings size={16} />
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-40 bg-black/70 animate-fade-in"
           onClick={() => setOpen(false)}
         />
       )}
@@ -177,38 +171,38 @@ export function SettingsPanel() {
         aria-modal="true"
         aria-label="Ayarlar"
         className={cn(
-          "fixed top-0 right-0 z-50 h-dvh w-full sm:w-[380px] sm:max-w-[90vw]",
-          "sidebar-cockpit border-l border-border/60",
-          "flex flex-col shadow-2xl",
-          "transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] translate-x-0"
+          "fixed top-0 right-0 z-50 h-dvh w-[360px] max-w-[95vw]",
+          "bg-[var(--surface)] border-l border-[var(--border-strong)] shadow-[0_0_40px_rgba(0,0,0,0.55)]",
+          "flex flex-col",
+          "transition-transform duration-200",
+          open ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between h-14 px-5 border-b border-border/60 shrink-0">
-          <h2 className="text-sm font-semibold"><span className="text-electric">Ayarlar</span></h2>
+        {/* Header */}
+        <div className="flex items-center justify-between h-11 px-3 border-b border-[var(--border)] shrink-0">
+          <h2 className="text-[10px] font-bold tracking-[0.15em] uppercase font-mono text-[var(--muted-foreground)]">Settings</h2>
           <button
             onClick={() => setOpen(false)}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center border border-transparent hover:border-border/70 hover:bg-muted transition-colors duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Ayarları kapat"
-            data-tooltip="Ayarları kapat"
-            title="Ayarları kapat"
+            className="min-w-[28px] min-h-[28px] flex items-center justify-center border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--muted-foreground)] hover:bg-[var(--overlay)] hover:text-[var(--foreground)] transition-colors"
+            aria-label="Close settings"
           >
-            <X size={16} aria-hidden="true" />
+            <X size={14} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 space-y-5">
           {/* Provider */}
-          <section className="space-y-2.5">
+          <section className="space-y-2">
             <label
               id="provider-label"
-              className="section-label"
+              className="text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--muted-foreground)] font-mono"
             >
               Sağlayıcı
             </label>
             <div
               role="radiogroup"
               aria-labelledby="provider-label"
-              className="p-1 bg-black/20 border border-border/70 grid grid-cols-2 gap-1"
+              className="grid grid-cols-3 gap-1"
             >
               {PROVIDERS.map((p) => (
                 <button
@@ -217,11 +211,12 @@ export function SettingsPanel() {
                   aria-checked={provider === p.value}
                   onClick={() => handleProviderChange(p.value)}
                   className={cn(
-                    "min-h-[44px] px-3 text-xs font-medium transition-[background-color,color,box-shadow,transform] duration-200",
-                    "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "px-2.5 py-1.5 text-[11px] font-medium transition-all duration-100 font-mono",
+                    "active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-[var(--ring)] focus-visible:outline-none",
+                    "border",
                     provider === p.value
-                      ? "bg-electric text-black shadow-[0_0_18px_rgba(176,226,39,0.15)]"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)]"
+                      : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--surface-elevated)] hover:text-[var(--foreground)] border-[var(--border)]"
                   )}
                 >
                   {p.label}
@@ -231,10 +226,10 @@ export function SettingsPanel() {
           </section>
 
           {/* Compare mode toggle */}
-          <section className="glass-card p-4 space-y-2.5">
+          <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="section-label">
-                Karşılaştırma Modu (A/B)
+              <label className="text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--muted-foreground)] font-mono">
+                Compare (A/B)
               </label>
               <button
                 onClick={() => {
@@ -245,38 +240,43 @@ export function SettingsPanel() {
                 aria-label={compareMode ? "Karşılaştırma modunu kapat" : "Karşılaştırma modunu aç"}
                 aria-pressed={compareMode}
                 className={cn(
-                  "relative inline-flex min-h-[44px] w-14 items-center justify-center rounded-full transition-[background-color,box-shadow] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  compareMode ? "bg-electric shadow-[0_0_18px_rgba(176,226,39,0.16)]" : "bg-muted"
+                  "relative inline-flex h-4 w-8 items-center transition-colors",
+                  "border",
+                  compareMode
+                    ? "bg-[var(--primary-muted)] border-[var(--primary)]"
+                    : "bg-[var(--muted)] border-[var(--border)]"
                 )}
               >
                 <span
                   className={cn(
-                    "inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-sm",
-                    compareMode ? "translate-x-3" : "-translate-x-3"
+                    "inline-block h-3 w-3 transform transition-transform",
+                    compareMode
+                      ? "translate-x-[17px] bg-[var(--primary)]"
+                      : "translate-x-[2px] bg-[var(--muted-foreground)]"
                   )}
                 />
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-              <GitCompare size={10} className="inline mr-1" />
+            <p className="text-[10px] text-[var(--muted-foreground)] leading-relaxed font-mono">
+              <GitCompare size={9} className="inline mr-1" />
               {compareMode
-                ? `En fazla 2 model seçin. ${selectedModels.length}/2 seçildi.`
-                : "İki modele yan yana bir mesaj gönderin."}
+                ? `Select up to 2 models. ${selectedModels.length}/2 selected.`
+                : "Send to two models side-by-side."}
             </p>
           </section>
 
           {/* Model */}
-          <section className="space-y-2.5">
+          <section className="space-y-2">
             <label
               id="model-label"
-              className="section-label"
+              className="text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--muted-foreground)] font-mono"
             >
               Model{compareMode ? "ler" : ""}
             </label>
             <div
               role={compareMode ? "group" : "radiogroup"}
               aria-labelledby="model-label"
-              className="space-y-1.5"
+              className="space-y-1"
             >
               {availableModels.map((m) => {
                 const isPrimary = !compareMode && model === m;
@@ -292,25 +292,27 @@ export function SettingsPanel() {
                       else setConfig({ model: m });
                     }}
                     className={cn(
-                      "min-h-[44px] w-full text-left px-3 rounded-xl text-sm transition-[background-color,border-color,color,box-shadow,transform] duration-200",
-                      "active:scale-[0.98] flex items-center justify-between gap-2 hover-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "w-full text-left px-2.5 py-1.5 text-xs transition-colors duration-100",
+                      "active:scale-[0.98] flex items-center justify-between gap-2",
+                      "focus-visible:ring-1 focus-visible:ring-[var(--ring)] focus-visible:outline-none",
+                      "border",
                       compareMode
                         ? isSelected
-                          ? "bg-accent/8 text-foreground font-medium border border-accent/20"
-                          : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground border border-transparent"
+                          ? "bg-[var(--accent-muted)] text-[var(--foreground)] font-medium border-[var(--accent)]/40"
+                          : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] border-transparent"
                         : isPrimary
-                        ? "bg-primary/8 text-foreground font-medium border border-primary/20"
-                        : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground border border-transparent"
+                        ? "bg-[var(--primary-muted)] text-[var(--foreground)] font-medium border-[var(--primary)]/30"
+                        : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] border-transparent"
                     )}
                   >
-                    <span className="truncate">{m}</span>
+                    <span className="truncate font-mono text-[11px]">{m}</span>
                     {compareMode && isSelected && (
                       <span
                         className={cn(
-                          "shrink-0 text-[10px] px-1.5 py-0.5 rounded-md font-bold",
+                          "shrink-0 text-[9px] px-1.5 py-0.5 font-bold uppercase tracking-wider",
                           slotIndex === 0
-                            ? "bg-primary text-white"
-                            : "bg-accent text-white"
+                            ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                            : "bg-[var(--accent)] text-[var(--accent-foreground)]"
                         )}
                       >
                         {slotIndex === 0 ? "A" : "B"}
@@ -322,103 +324,49 @@ export function SettingsPanel() {
             </div>
           </section>
 
-          {/* API Key */}
-          <section className="space-y-2.5">
-            <label
-              htmlFor="api-key-input"
-              className="section-label"
-            >
-              API Anahtarı
+          {/* API Key Status */}
+          <section className="space-y-2">
+            <label className="text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--muted-foreground)] font-mono">
+              Server API Keys
             </label>
-            <div className="relative">
-              <input
-                id="api-key-input"
-                type={showKey ? "text" : "password"}
-                value={keyInput}
-                onChange={(e) => {
-                  setKeyInput(e.target.value);
-                  setSaveMsg(null);
-                }}
-                onPaste={(e) => {
-                  // Trigger save on paste for convenience
-                  const pasted = e.clipboardData.getData("text");
-                  setTimeout(() => {
-                    if (pasted.length > 10) {
-                      handleSaveKey(pasted);
-                    }
-                  }, 0);
-                }}
-                placeholder={hasKeyForProvider ? "••••••••" : "sk-…"}
-                className={cn(
-                  "min-h-[44px] w-full px-3 pr-24 rounded-xl text-sm",
-                  "bg-surface-muted border border-border-muted",
-                  "placeholder:text-muted-foreground/40",
-                  "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30",
-                  "transition-[border-color,box-shadow,background-color] duration-200"
-                )}
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowKey((v) => !v)}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg
-                             text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={showKey ? "API anahtarını gizle" : "API anahtarını göster"}
-                  aria-pressed={showKey}
-                  data-tooltip={showKey ? "Anahtarı gizle" : "Anahtarı göster"}
-                  title={showKey ? "Anahtarı gizle" : "Anahtarı göster"}
-                >
-                  {showKey ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
-                </button>
-                {hasKeyForProvider && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteKey}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg
-                               text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label="Kayıtlı API anahtarını kaldır"
-                    data-tooltip="Kayıtlı anahtarı kaldır"
-                    title="Kayıtlı anahtarı kaldır"
+            <div className="space-y-1">
+              {Object.entries(serverProviders).length === 0 ? (
+                <p className="text-[11px] text-[var(--muted-foreground)] py-2 font-mono">
+                  Checking...
+                </p>
+              ) : (
+                Object.entries(serverProviders).map(([name, configured]) => (
+                  <div
+                    key={name}
+                    className={cn(
+                      "flex items-center gap-2 px-2.5 py-1.5 text-xs border transition-colors",
+                      configured
+                        ? "bg-[var(--success)]/5 border-[var(--success)]/30"
+                        : "bg-[var(--muted)] border-[var(--border)]"
+                    )}
                   >
-                    <Trash2 size={15} aria-hidden="true" />
-                  </button>
-                )}
-              </div>
+                    {configured ? (
+                      <CheckCircle2 size={13} className="text-[var(--success)] shrink-0" />
+                    ) : (
+                      <CircleDot size={13} className="text-[var(--muted-foreground)] shrink-0" />
+                    )}
+                    <span className="flex-1 truncate capitalize text-[11px]">{name}</span>
+                    <span
+                      className={cn(
+                        "text-[9px] px-1.5 py-0.5 font-bold uppercase tracking-wider",
+                        configured
+                          ? "bg-[var(--success)]/15 text-[var(--success)]"
+                          : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+                      )}
+                    >
+                      {configured ? "OK" : "N/A"}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
-            {keyInput && (
-              <button
-                onClick={() => handleSaveKey(keyInput)}
-                disabled={saving || keyInput.length < 4}
-                className={cn(
-                  "min-h-[44px] w-full flex items-center justify-center gap-2 px-3 rounded-xl text-sm font-medium transition-[opacity,transform,background-color] duration-200",
-                  "bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]",
-                  "disabled:opacity-40 disabled:cursor-not-allowed"
-                )}
-              >
-                {saving ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Check size={14} />
-                )}
-                {saving ? "Kaydediliyor…" : "Anahtarı Kaydet"}
-              </button>
-            )}
-            {saveMsg && (
-              <p
-                className={cn(
-                  "text-[11px] leading-relaxed",
-                  saveMsg.startsWith("Kaydedildi")
-                    ? "text-success"
-                    : "text-destructive"
-                )}
-              >
-                {saveMsg}
-              </p>
-            )}
-            <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-              {hasKeyForProvider
-                ? "API anahtarı sunucuda şifrelenerek kaydedildi."
-                : "API anahtarınız şifrelenerek sunucuda saklanacak."}
+            <p className="text-[10px] text-[var(--muted-foreground)] font-mono">
+              Set <code className="px-1 py-0.5 bg-[var(--muted)] text-[10px]">{provider === "openai" ? "OPENAI_API_KEY" : provider === "deepseek" ? "DEEPSEEK_API_KEY" : "OPENROUTER_API_KEY"}</code> in server env.
             </p>
           </section>
 
@@ -427,20 +375,21 @@ export function SettingsPanel() {
           <SyncSettings />
         </div>
 
-        <div className="px-5 py-3 border-t border-border/40 shrink-0">
+        {/* Footer */}
+        <div className="px-4 py-2.5 border-t border-[var(--border)] shrink-0">
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                "w-2 h-2 rounded-full transition-colors",
-                hasKeyForProvider ? "bg-success shadow-sm shadow-success/40" : "bg-muted-foreground"
+                "w-1.5 h-1.5",
+                hasApiKey ? "bg-[var(--success)]" : "bg-[var(--muted-foreground)]"
               )}
             />
-            <span className="text-xs text-muted-foreground truncate">
-              {hasKeyForProvider
+            <span className="text-[10px] text-[var(--muted-foreground)] truncate font-mono">
+              {hasApiKey
                 ? compareMode && selectedModels.length > 1
                   ? `${provider} / ${selectedModels.join(" vs ")}`
                   : `${provider} / ${model}`
-                : "API anahtarı yapılandırılmamış"}
+                : "NO API KEY"}
             </span>
           </div>
         </div>

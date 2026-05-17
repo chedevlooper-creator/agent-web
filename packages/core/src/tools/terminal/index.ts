@@ -3,17 +3,22 @@ import { z } from "zod";
 import { executeLocal } from "./local.js";
 import { executeDocker } from "./docker.js";
 
-function getBackend(): "docker" | "local" {
+type TerminalBackend = "local" | "docker";
+
+function getBackend(): TerminalBackend {
   const env = process.env.TERMINAL_BACKEND;
-  // explicit opt-out: TERMINAL_BACKEND=local forces local-only
-  if (env === "local") return "local";
-  // explicit opt-in or "auto": try Docker
-  return "docker";
+  if (env === "docker") return "docker";
+  return "local";
 }
+
+const BACKEND = getBackend();
 
 export const terminalTool = tool({
   description:
-    "Execute a shell command. Runs inside an isolated Docker sandbox container when available, with automatic fallback to local execution.",
+    "Execute a shell command. " +
+    (BACKEND === "docker"
+      ? "Runs inside an isolated Docker sandbox container."
+      : "Runs on the local machine with safety restrictions."),
   parameters: z.object({
     command: z.string().describe("The shell command to execute"),
     timeout: z
@@ -26,7 +31,7 @@ export const terminalTool = tool({
       .describe("Working directory (default: current working directory)"),
   }),
   execute: async ({ command, timeout, cwd }) => {
-    if (getBackend() === "docker") {
+    if (BACKEND === "docker") {
       try {
         return await executeDocker({ command, timeout, cwd });
       } catch {

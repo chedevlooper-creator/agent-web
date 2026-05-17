@@ -1,13 +1,20 @@
 import { create } from "zustand";
-import type { ChatMessageData, SessionData } from "@agent-web/core";
 
 // ===== Types =====
-export interface ToolInvocation {
-  toolCallId: string;
-  toolName: string;
-  args: Record<string, unknown>;
+export interface ToolCallInfo {
+  id: string;
+  name: string;
+  args: string;
   result?: string;
-  state: "pending" | "result";
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  model?: string;
+  timestamp: number;
+  toolCalls?: ToolCallInfo[];
 }
 
 export interface ChatMessage extends ChatMessageData {
@@ -55,10 +62,14 @@ interface ChatStore {
   model: string;
   /** Truthy if an API key is available (from server DB or transient input). Not persisted to localStorage. */
   apiKey: string;
-  /** Providers that have keys stored on the server (loaded during hydrate). */
-  savedProviders: string[];
+  hasApiKey: boolean;
+  serverProviders: Record<string, boolean>;
   selectedModels: string[]; // for A/B comparison, max 2
   compareMode: boolean;
+
+  // Skills
+  skills: { name: string; description: string; path: string }[];
+  enabledSkills: string[];
 
   // Hydration
   hydrate: () => Promise<void>;
@@ -101,15 +112,14 @@ interface ChatStore {
 
   // Settings
   setConfig: (c: Partial<Pick<ChatStore, "provider" | "model" | "apiKey">>) => void;
-  /** Save an API key to the server. Returns the key preview on success. */
-  saveKey: (provider: string, key: string) => Promise<string | null>;
-  /** Delete an API key from the server. */
-  deleteKey: (provider: string) => Promise<void>;
-  /** Load saved providers from the server. Called during hydrate. */
-  loadApiKeysFromServer: () => Promise<void>;
+  checkApiKeyStatus: () => Promise<void>;
   setSelectedModels: (models: string[]) => void;
   toggleSelectedModel: (model: string) => void;
   setCompareMode: (v: boolean) => void;
+
+  // Skills
+  fetchSkills: () => Promise<void>;
+  toggleSkill: (name: string) => void;
 
   // Import/Export
   importFromJson: (json: string) => Promise<{ sessions: number; messages: number }>;
@@ -145,13 +155,10 @@ async function apiFetch(input: string, init?: RequestInit) {
   return res.json();
 }
 
-/** Snapshot sessions for rollback on DB failure. Exported for testing. */
-export function snapshotSessions() {
-  return useChatStore.getState().sessions.map((s) => ({
-    ...s,
-    messages: [...s.messages],
-  }));
-}
+export const useChatStore = create<ChatStore>()((set, get) => ({
+      sessions: [],
+      activeSessionId: null,
+      hydrated: false,
 
 /** Rollback sessions to a prior snapshot. Exported for testing. */
 export function rollbackSessions(snapshot: ReturnType<typeof snapshotSessions>) {
@@ -160,61 +167,38 @@ export function rollbackSessions(snapshot: ReturnType<typeof snapshotSessions>) 
   }));
 }
 
-export const useChatStore = create<ChatStore>()((set, get) => {
-  const store: ChatStore = {
-    projects: [],
-    activeProjectId: null,
-    sessions: [],
-    activeSessionId: null,
-    hydrated: false,
+      provider: "openrouter",
+      model: "openai/gpt-4o-mini",
+      apiKey: "",
+      hasApiKey: false,
+      serverProviders: {},
+      selectedModels: [],
+      compareMode: false,
 
-    selectedSkills: [],
+      skills: [],
+      enabledSkills: [],
 
-    sidebarOpen: true,
-    commandPrefill: null,
-    directSend: null,
-    contextPanelOpen: false,
-    isLoading: false,
-    syncing: false,
-    currentUser: null,
-
-    provider: "openrouter",
-    model: "openai/gpt-4o-mini",
-    apiKey: "",
-    savedProviders: [],
-    selectedModels: [],
-    compareMode: false,
-
-    // Obsidian Sync
-    obsidianVaultPath: null,
-    obsidianAutoSync: true,
-
-    hydrate: async () => {
-      try {
-        // Load current user
-        const { user } = (await apiFetch("/api/auth/me")) as {
-          user: { id: string; username: string } | null;
-        };
-        set({ currentUser: user });
-
-        // Load projects first
-        const { projects } = (await apiFetch("/api/projects")) as {
-          projects: { id: string; name: string; rootPath: string; createdAt: number; updatedAt: number }[];
-        };
-
-        const projectId = get().activeProjectId;
-        const { sessions } = (await apiFetch(`/api/sessions${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`)) as {
-          sessions: { id: string; projectId?: string | null; title: string; createdAt: number; updatedAt: number }[];
-        };
-        const enriched: Session[] = [];
-        for (const s of sessions) {
-          enriched.push({
-            id: s.id,
-            projectId: s.projectId,
-            title: s.title,
-            createdAt: s.createdAt,
-            updatedAt: s.updatedAt,
-            messages: [],
+      hydrate: async () => {
+        try {
+          const { sessions } = (await apiFetch("/api/sessions")) as {
+            sessions: { id: string; title: string; createdAt: number; updatedAt: number }[];
+          };
+          // Eagerly load messages for active or first session; others load on click.
+          const enriched: Session[] = [];
+          for (const s of sessions) {
+            enriched.push({
+              id: s.id,
+              title: s.title,
+              createdAt: s.createdAt,
+              updatedAt: s.updatedAt,
+              messages: [],
+            });
+          }
+          const activeId = get().activeSessionId || enriched[0]?.id || null;
+          set({
+            sessions: enriched,
+            activeSessionId: activeId,
+            hydrated: true,
           });
         }
         const activeId = get().activeSessionId || enriched[0]?.id || null;
@@ -674,61 +658,15 @@ export const useChatStore = create<ChatStore>()((set, get) => {
 
       setConfig: (c) => set((s) => ({ ...s, ...c })),
 
-      loadApiKeysFromServer: async () => {
+      checkApiKeyStatus: async () => {
         try {
-          const { keys } = (await apiFetch("/api/keys")) as {
-            keys: { provider: string; keyPreview: string }[];
+          const data = (await apiFetch("/api/config/status")) as {
+            providers: Record<string, boolean>;
           };
-          const providers = keys.map((k) => k.provider);
-          const currentProvider = get().provider;
-          const hasCurrent = providers.includes(currentProvider);
-          set({
-            savedProviders: providers,
-            apiKey: hasCurrent ? "stored" : "",
-          });
-        } catch (e) {
-          console.error("Failed to load API keys from server:", e);
-        }
-      },
-
-      saveKey: async (provider: string, key: string) => {
-        try {
-          const res = (await apiFetch("/api/keys", {
-            method: "POST",
-            body: JSON.stringify({ provider, key }),
-          })) as { success: boolean; keyPreview: string };
-          const state = get();
-          const curProvider = get().provider;
-          set({
-            savedProviders: state.savedProviders.includes(provider.toLowerCase())
-              ? state.savedProviders
-              : [...state.savedProviders, provider.toLowerCase()],
-            apiKey: curProvider === provider.toLowerCase() || curProvider === provider ? "stored" : state.apiKey,
-          });
-          return res.keyPreview;
-        } catch (e) {
-          console.error("Failed to save API key:", e);
-          return null;
-        }
-      },
-
-      deleteKey: async (provider: string) => {
-        try {
-          await apiFetch("/api/keys", {
-            method: "DELETE",
-            body: JSON.stringify({ provider }),
-          });
-          const state = get();
-          const normalized = provider.toLowerCase();
-          set({
-            savedProviders: state.savedProviders.filter((p) => p !== normalized),
-            apiKey:
-              (state.provider === normalized || state.provider === provider)
-                ? ""
-                : state.apiKey,
-          });
-        } catch (e) {
-          console.error("Failed to delete API key:", e);
+          const hasAny = Object.values(data.providers).some(Boolean);
+          set({ serverProviders: data.providers, hasApiKey: hasAny });
+        } catch {
+          set({ serverProviders: {}, hasApiKey: false });
         }
       },
 
@@ -756,6 +694,30 @@ export const useChatStore = create<ChatStore>()((set, get) => {
           compareMode: v && s.selectedModels.length > 1,
         })),
 
+      fetchSkills: async () => {
+        try {
+          const res = await fetch("/api/skills");
+          const data = (await res.json()) as {
+            name: string;
+            description: string;
+            path: string;
+          }[];
+          set({ skills: Array.isArray(data) ? data : [] });
+        } catch {
+          set({ skills: [] });
+        }
+      },
+
+      toggleSkill: (name) =>
+        set((s) => {
+          const exists = s.enabledSkills.includes(name);
+          return {
+            enabledSkills: exists
+              ? s.enabledSkills.filter((n) => n !== name)
+              : [...s.enabledSkills, name],
+          };
+        }),
+
       importFromJson: async (json) => {
         const payload = JSON.parse(json);
         const result = (await apiFetch("/api/sessions/import", {
@@ -765,72 +727,8 @@ export const useChatStore = create<ChatStore>()((set, get) => {
         await get().hydrate();
         return result;
       },
-
-      setObsidianVaultPath: (path) => set({ obsidianVaultPath: path }),
-
-      setObsidianAutoSync: (enabled) => set({ obsidianAutoSync: enabled }),
-
-      syncSessionToObsidian: async (sessionId) => {
-        const { obsidianVaultPath, obsidianAutoSync } = get();
-        if (!obsidianAutoSync || !obsidianVaultPath) return;
-        try {
-          await apiFetch("/api/obsidian/sync", {
-            method: "POST",
-            body: JSON.stringify({ sessionId }),
-          });
-        } catch (e) {
-          // Silently fail — sync is best-effort
-          console.debug("Obsidian sync skipped:", (e as Error).message);
-        }
-      },
-    };
-    return store;
-  });
-
-// Persist only UI preferences to localStorage — all data lives in DB
-if (typeof window !== "undefined") {
-  const saved = localStorage.getItem("agent-web-ui-prefs");
-  if (saved) {
-    try {
-      const prefs = JSON.parse(saved);
-      if (prefs.sidebarOpen !== undefined) useChatStore.setState({ sidebarOpen: prefs.sidebarOpen });
-      if (prefs.provider) useChatStore.setState({ provider: prefs.provider });
-      if (prefs.model) useChatStore.setState({ model: prefs.model });
-      if (prefs.selectedModels) useChatStore.setState({ selectedModels: prefs.selectedModels });
-      if (prefs.compareMode !== undefined) useChatStore.setState({ compareMode: prefs.compareMode });
-      if (prefs.activeProjectId !== undefined) useChatStore.setState({ activeProjectId: prefs.activeProjectId });
-      if (prefs.activeSessionId !== undefined) useChatStore.setState({ activeSessionId: prefs.activeSessionId });
-      if (prefs.selectedSkills) useChatStore.setState({ selectedSkills: prefs.selectedSkills });
-      if (prefs.obsidianAutoSync !== undefined) useChatStore.setState({ obsidianAutoSync: prefs.obsidianAutoSync });
-    } catch {
-      // ignore corrupt prefs
-    }
-  }
-
-  // Subscribe to state changes and persist only UI prefs
-  let prevPrefs = "";
-  const unsub = useChatStore.subscribe((state) => {
-    const prefs = {
-      sidebarOpen: state.sidebarOpen,
-      provider: state.provider,
-      model: state.model,
-      selectedModels: state.selectedModels,
-      compareMode: state.compareMode,
-      activeProjectId: state.activeProjectId,
-      activeSessionId: state.activeSessionId,
-      selectedSkills: state.selectedSkills,
-      obsidianAutoSync: state.obsidianAutoSync,
-    };
-    const json = JSON.stringify(prefs);
-    if (json !== prevPrefs) {
-      prevPrefs = json;
-      localStorage.setItem("agent-web-ui-prefs", json);
-    }
-  });
-
-  // Cleanup on page unload
-  window.addEventListener("beforeunload", () => unsub());
-}
+  })
+);
 
 async function loadSessionMessages(sessionId: string) {
   try {

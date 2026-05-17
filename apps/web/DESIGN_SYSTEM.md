@@ -19,9 +19,9 @@ Agent Web is an AI agent chat interface with productivity tool features. The des
 --surface: #FFFFFF;
 --surface-elevated: #FFFFFF;
 --surface-muted: #F3F4F6;
---primary: #0066FF;
---primary-hover: #0052CC;
---primary-muted: #E6F0FF;
+--primary: #3B82F6;
+--primary-hover: #2563EB;
+--primary-muted: #DBEAFE;
 --secondary: #6B7280;
 --accent: #8B5CF6;
 --accent-muted: #F3E8FF;
@@ -53,7 +53,7 @@ Agent Web is an AI agent chat interface with productivity tool features. The des
 ```
 
 ### Semantic Colors
-- **Primary Action**: Blue gradient (#0066FF → #0052CC)
+- **Primary Action**: Blue (#3B82F6)
 - **AI/Assistant accent**: Purple (#8B5CF6)
 - **Success states**: Emerald (#10B981)
 - **Warning states**: Amber (#F59E0B)
@@ -129,7 +129,7 @@ Agent Web is an AI agent chat interface with productivity tool features. The des
 --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
---shadow-glow: 0 0 20px rgb(0 102 255 / 0.15);
+--shadow-glow: 0 0 20px rgb(59 130 246 / 0.15);
 --shadow-glow-accent: 0 0 20px rgb(139 92 246 / 0.15);
 ```
 

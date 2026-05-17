@@ -5,6 +5,7 @@ const execAsync = promisify(exec);
 
 const SANDBOX_CONTAINER =
   process.env.TERMINAL_SANDBOX_CONTAINER || "agent-web-sandbox";
+
 const MAX_OUTPUT = 1_000_000;
 const CMD_TIMEOUT = 5_000; // timeout for docker exec itself
 
@@ -16,7 +17,7 @@ export interface TerminalArgs {
 
 /**
  * Execute a command inside the Docker sandbox container.
- * Throws if the container is not running.
+ * Falls back to local execution if the container is not running.
  */
 export async function executeDocker({
   command,
@@ -24,6 +25,11 @@ export async function executeDocker({
   cwd,
 }: TerminalArgs): Promise<string> {
   const timeoutMs = Math.min(Math.max(timeout ?? 30_000, 1000), 120_000);
+
+  // Escape single quotes in command for shell
+  const shellCmd = command.replace(/'/g, "'\\''");
+
+  const workdir = cwd || "/workspace";
 
   // Check if sandbox container is running
   try {
@@ -33,15 +39,13 @@ export async function executeDocker({
     );
   } catch {
     throw new Error(
-      `Sandbox container '${SANDBOX_CONTAINER}' is not running. Start it with: docker compose --profile sandbox up -d`
+      `Sandbox container '${SANDBOX_CONTAINER}' is not running.`
     );
   }
 
-  const workdir = cwd || "/workspace";
-
   try {
     const { stdout, stderr } = await execAsync(
-      `docker exec --workdir "${workdir}" ${SANDBOX_CONTAINER} sh -c '${command.replace(/'/g, "'\\''")}'`,
+      `docker exec --workdir "${workdir}" ${SANDBOX_CONTAINER} sh -c '${shellCmd}'`,
       {
         timeout: timeoutMs + CMD_TIMEOUT,
         maxBuffer: MAX_OUTPUT,
@@ -63,11 +67,9 @@ export async function executeDocker({
       code?: number;
       killed?: boolean;
     };
-
     if (err.killed) {
       return `[timeout] Command exceeded ${timeoutMs}ms and was terminated.`;
     }
-
     const parts: string[] = [];
     if (err.stdout) parts.push(`[stdout]\n${err.stdout}`);
     if (err.stderr) parts.push(`[stderr]\n${err.stderr}`);

@@ -1,8 +1,6 @@
 import "server-only";
-import { getDb, projects, sessions, messages, apiKeys, ensureMigrated, users, obsidianConfig } from "@agent-web/db";
-import { eq, desc, asc, isNull, and, inArray, gt, gte } from "drizzle-orm";
-import type { Role } from "@agent-web/core";
-import { encrypt, decrypt } from "./crypto";
+import { getDb, sessions, messages, memories, ensureMigrated } from "@agent-web/db";
+import { eq, desc, asc, and, gt, gte } from "drizzle-orm";
 
 export type { Role };
 
@@ -322,15 +320,14 @@ export async function deleteMessagesAfter(
 ): Promise<void> {
   await ready();
   const db = getDb();
-  const op = inclusive ? gte : gt;
-  await db
-    .delete(messages)
-    .where(
-      and(
-        eq(messages.sessionId, sessionId),
-        op(messages.timestamp, afterTimestamp)
-      )
-    );
+  await db.delete(messages).where(
+    and(
+      eq(messages.sessionId, sessionId),
+      inclusive
+        ? gte(messages.timestamp, afterTimestamp)
+        : gt(messages.timestamp, afterTimestamp)
+    )
+  );
 }
 
 export async function clearMessages(sessionId: string): Promise<void> {
@@ -409,118 +406,74 @@ export async function importSessions(
   return { sessions: sCount, messages: mCount };
 }
 
-// ===== API Keys =====
+// ===== Memory CRUD =====
 
-export interface ApiKeyEntry {
-  provider: string;
-  keyPreview: string;
+export interface DbMemory {
+  id: string;
+  key: string;
+  value: string;
   createdAt: number;
   updatedAt: number;
 }
 
-export async function listApiKeys(userId: string): Promise<ApiKeyEntry[]> {
+export async function listMemories(): Promise<DbMemory[]> {
   await ready();
   const db = getDb();
   const rows = await db
     .select()
-    .from(apiKeys)
-    .where(eq(apiKeys.userId, userId))
-    .orderBy(asc(apiKeys.provider));
+    .from(memories)
+    .orderBy(asc(memories.key));
   return rows.map((r) => ({
-    provider: r.provider,
-    keyPreview: r.key.slice(0, 8) + "...",
+    id: r.id,
+    key: r.key,
+    value: r.value,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   }));
 }
 
-export async function saveApiKey(provider: string, key: string, userId: string): Promise<void> {
+export async function upsertMemory(input: {
+  key: string;
+  value: string;
+}): Promise<DbMemory> {
   await ready();
   const db = getDb();
-  const encrypted = encrypt(key);
   const now = Date.now();
-  await db
-    .insert(apiKeys)
-    .values({
-      provider: provider.toLowerCase(),
-      userId,
-      key: encrypted,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [apiKeys.provider, apiKeys.userId],
-      set: { key: encrypted, updatedAt: now },
-    });
-}
 
-export async function deleteApiKey(provider: string, userId: string): Promise<void> {
-  await ready();
-  const db = getDb();
-  await db
-    .delete(apiKeys)
-    .where(and(eq(apiKeys.provider, provider.toLowerCase()), eq(apiKeys.userId, userId)));
-}
-
-export async function getApiKey(provider: string, userId: string): Promise<string | null> {
-  await ready();
-  const db = getDb();
-  const rows = await db
+  // Check if key already exists
+  const existing = await db
     .select()
-    .from(apiKeys)
-    .where(and(eq(apiKeys.provider, provider.toLowerCase()), eq(apiKeys.userId, userId)));
-  const row = rows[0];
-  if (!row) return null;
-  try {
-    return decrypt(row.key);
-  } catch (e) {
-    console.error(`Failed to decrypt API key for provider "${provider}":`, e);
-    return null;
+    .from(memories)
+    .where(eq(memories.key, input.key));
+
+  if (existing.length > 0) {
+    await db
+      .update(memories)
+      .set({ value: input.value, updatedAt: now })
+      .where(eq(memories.key, input.key));
+    return {
+      id: existing[0].id,
+      key: input.key,
+      value: input.value,
+      createdAt: existing[0].createdAt,
+      updatedAt: now,
+    };
   }
-}
 
-// ===== Obsidian Config =====
-
-export interface ObsidianConfigEntry {
-  vaultPath: string;
-  updatedAt: number;
-}
-
-export async function getObsidianConfig(userId: string): Promise<ObsidianConfigEntry | null> {
-  await ready();
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(obsidianConfig)
-    .where(eq(obsidianConfig.userId, userId))
-    .limit(1);
-  const row = rows[0];
-  if (!row) return null;
-  return {
-    vaultPath: row.vaultPath,
-    updatedAt: row.updatedAt,
+  const id = Math.random().toString(36).slice(2, 11) + Date.now().toString(36).slice(-4);
+  const row = {
+    id,
+    key: input.key,
+    value: input.value,
+    createdAt: now,
+    updatedAt: now,
   };
+  await db.insert(memories).values(row);
+  return row;
 }
 
-export async function setObsidianConfig(userId: string, vaultPath: string): Promise<void> {
+export async function deleteMemory(key: string): Promise<void> {
   await ready();
   const db = getDb();
-  const now = Date.now();
-  await db
-    .insert(obsidianConfig)
-    .values({
-      userId,
-      vaultPath,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: obsidianConfig.userId,
-      set: { vaultPath, updatedAt: now },
-    });
-}
-
-export async function deleteObsidianConfig(userId: string): Promise<void> {
-  await ready();
-  const db = getDb();
-  await db.delete(obsidianConfig).where(eq(obsidianConfig.userId, userId));
+  await db.delete(memories).where(eq(memories.key, key));
 }

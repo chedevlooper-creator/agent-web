@@ -3,64 +3,67 @@ import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
 
-const MAX_OUTPUT = 1_000_000; // 1MB raw buffer
-const MAX_RETURN_CHARS = 32_000; // ~8k tokens — keep tool results LLM-friendly
+const MAX_OUTPUT = 1_000_000; // 1MB
 
 // ---- Safety: blocklist for destructive commands ----
-const BLOCKED_PATTERNS = [
+const BLOCKLIST = [
   // Fork bombs
-  /:\(\)\s*\{/,
+  /\b:\(\)\s*\{/,
   // Recursive delete of system dirs
-  /^rm\s+(-\w+\s+)*\//,
-  /rm\s+.*-rf\s+\/etc\b/,
-  /rm\s+.*-rf\s+\/boot\b/,
-  /rm\s+.*-rf\s+\/sys\b/,
-  /rm\s+.*-rf\s+\/proc\b/,
-  /rm\s+.*-rf\s+\/dev\b/,
+  /\brm\s.*-rf\s+\//,
+  /\brm\s.*-rf\s+\/etc\b/,
+  /\brm\s.*-rf\s+\/boot\b/,
+  /\brm\s.*-rf\s+\/sys\b/,
+  /\brm\s.*-rf\s+\/proc\b/,
+  /\brm\s.*-rf\s+\/dev\b/,
   // Format/mount attacks
-  /mkfs\.\w+\s+\/dev\//,
-  /mount\s+\/dev\//,
+  /\bmkfs\.\w+\s+\/dev\//,
+  /\bmount\s+\/dev\//,
   // Shutdown/reboot
   /\b(shutdown|reboot|halt|poweroff)\b/,
   // Dangerous redirects
   />\s*\/dev\/sda/,
   // chmod 777 on system dirs
-  /chmod\s.*777\s+\//,
+  /\bchmod\s.*777\s+\//,
   // Write to system files
   />\s*\/etc\//,
   // dd disk writes
-  /dd\s+if=.*of=\/dev\//,
+  /\bdd\s+if=.*of=\/dev\//,
   // kernel module manipulation
   /\bmodprobe\b/,
   // X11/screen capture
   /\bxinput\b/,
   /\bscreencapture\b/,
-  // Windows destructive
-  /^format\s+/i,
-  /^del\s+\/s/i,
-  /^rmdir\s+\/s/i,
-  /^Remove-Item\s+.*-Recurse.*[A-Z]:\\/i,
-  /^shutdown\s/i,
-  /^taskkill\s+\/f\s+\/im/i,
-  /^reg\s+(delete|add)\s/i,
-  /^net\s+user\s/i,
-  /^schtasks\s+\/(create|delete)/i,
-  /Invoke-(WebRequest|Expression|RestMethod).*\|\s*(iex|Invoke-Expression)/i,
-  /^Set-ExecutionPolicy\s/i,
-  /^Start-Process\s.*-Verb\s+RunAs/i,
 ];
 
-function truncateOutput(output: string): string {
-  if (output.length <= MAX_RETURN_CHARS) return output;
-  const half = Math.floor(MAX_RETURN_CHARS / 2) - 50;
-  const truncatedLines = output
-    .slice(half, output.length - half)
-    .split("\n").length;
-  return (
-    output.slice(0, half) +
-    `\n\n[... truncated ${truncatedLines} lines ...]\n\n` +
-    output.slice(output.length - half)
-  );
+// ---- Allowed commands (if whitelist mode is enabled) ----
+const ALLOWED_COMMANDS = [
+  /^(echo|cat|head|tail|less|more)\b/,
+  /^(ls|dir|tree)\b/,
+  /^(pwd|which|where|whereis)\b/,
+  /^(cd|pushd|popd)\b/,
+  /^(cp|mv|mkdir|touch)\b/,
+  /^(find|grep|rg|awk|sed|sort|uniq|wc)\b/,
+  /^(git|hg|svn)\b/,
+  /^(npm|pnpm|yarn|npx)\b/,
+  /^(node|python|python3|ruby|perl)\b/,
+  /^(curl|wget)\b/,
+  /^(ping|traceroute|nslookup)\b/,
+  /^(ps|top|htop|df|du|free)\b/,
+  /^(date|time|uptime)\b/,
+  /^(whoami|id|groups)\b/,
+  /^(env|printenv|set)\b/,
+  /^(npm|npx|tsc|ts-node)\b/,
+];
+
+function isBlocked(command: string): string | null {
+  const trimmed = command.trim();
+  for (const pattern of BLOCKLIST) {
+    if (pattern.test(trimmed)) {
+      return `Blocked: command matches dangerous pattern: ${pattern}`;
+    }
+  }
+  return null;
 }
 
 export interface TerminalArgs {
@@ -74,14 +77,8 @@ export async function executeLocal({
   timeout,
   cwd,
 }: TerminalArgs): Promise<string> {
-  const trimmed = command.trim();
-
-  // Check for dangerous commands
-  for (const pattern of BLOCKED_PATTERNS) {
-    if (pattern.test(trimmed)) {
-      return `[blocked] Command rejected for safety: "${command}". This pattern is not allowed.`;
-    }
-  }
+  const blocked = isBlocked(command);
+  if (blocked) return `[blocked] ${blocked}`;
 
   const timeoutMs = Math.min(Math.max(timeout ?? 30_000, 1000), 120_000);
 
@@ -99,7 +96,7 @@ export async function executeLocal({
       .filter(Boolean)
       .join("\n");
 
-    return truncateOutput(combined || "(no output)");
+    return combined || "(no output)";
   } catch (e: unknown) {
     const err = e as {
       message?: string;
@@ -108,17 +105,15 @@ export async function executeLocal({
       code?: number;
       killed?: boolean;
     };
-
     if (err.killed) {
       return `[timeout] Command exceeded ${timeoutMs}ms and was terminated.`;
     }
-
     const parts: string[] = [];
     if (err.stdout) parts.push(`[stdout]\n${err.stdout}`);
     if (err.stderr) parts.push(`[stderr]\n${err.stderr}`);
     parts.push(
       `[exit] code=${err.code ?? "unknown"}: ${err.message ?? "unknown error"}`
     );
-    return truncateOutput(parts.join("\n"));
+    return parts.join("\n");
   }
 }

@@ -22,6 +22,8 @@ function truncateContent(content: string): string {
   );
 }
 
+type TextEncoding = "ascii" | "utf8" | "utf-8" | "base64" | "latin1";
+
 export const readFileTool = tool({
   description:
     "Read the contents of a text file from the local filesystem. Returns the file content as a string. Use for inspecting code, configs, logs, etc.",
@@ -51,8 +53,9 @@ export const readFileTool = tool({
         return `[error] File too large (${stat.size} bytes > ${MAX_SIZE}). Read a smaller file or use 'limit'.`;
       }
 
-      const enc = (encoding || "utf-8") as BufferEncoding;
-      const data = await fs.readFile(abs, enc);
+      const enc = (encoding || "utf-8") as TextEncoding;
+      const raw = await fs.readFile(abs, { encoding: enc });
+      const data = raw as string;
 
       if (typeof offset === "number" || typeof limit === "number") {
         const lines = data.split(/\r?\n/);
@@ -60,7 +63,7 @@ export const readFileTool = tool({
         const end = typeof limit === "number" ? start + limit : lines.length;
         const slice = lines.slice(start, end);
         return slice
-          .map((l, i) => `${start + i + 1}\t${l}`)
+          .map((l: string, i: number) => `${start + i + 1}\t${l}`)
           .join("\n");
       }
 
