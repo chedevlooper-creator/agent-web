@@ -40,6 +40,7 @@ import {
   X,
   Copy,
   GitCompare,
+  GitBranch,
   Terminal,
   FileText,
   Globe,
@@ -54,6 +55,7 @@ import {
 import { toast } from "sonner";
 import { TtsButton } from "@/components/tts-button";
 import { SttButton } from "@/components/stt-button";
+import { BranchIndicator } from "@/components/chat/branch-indicator";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -494,11 +496,13 @@ function MessageBubble({
   index,
   onRetry,
   onEdit,
+  onBranch,
 }: {
   message: ChatMessage;
   index: number;
   onRetry?: () => void;
   onEdit?: (newContent: string) => void;
+  onBranch?: (messageId: string) => void;
 }) {
   const isUser = message.role === "user";
   const isError = !isUser && message.content.startsWith("Error:");
@@ -728,6 +732,19 @@ function MessageBubble({
             {!isUser && !isError && message.content && (
               <TtsButton text={message.content} />
             )}
+            {!isError && onBranch && (
+              <TooltipIconButton
+                type="button"
+                label="Branch from here"
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => onBranch(message.id)}
+                aria-label="Branch from here"
+              >
+                <GitBranch />
+              </TooltipIconButton>
+            )}
+            {!isError && <BranchIndicator messageId={message.id} />}
           </div>
         )}
       </div>
@@ -1005,6 +1022,7 @@ export function ChatInterface() {
   const appendLocalMessage = useChatStore((s) => s.appendLocalMessage);
   const patchLocalMessage = useChatStore((s) => s.patchLocalMessage);
   const createSession = useChatStore((s) => s.createSession);
+  const branchFrom = useChatStore((s) => s.branchFrom);
   const hydrated = useChatStore((s) => s.hydrated);
 
   const commandPrefill = useChatStore((s) => s.commandPrefill);
@@ -1020,6 +1038,8 @@ export function ChatInterface() {
   const [attachedFiles, setAttachedFiles] = useState<
     { name: string; path: string }[]
   >([]);
+  const [branchTargetId, setBranchTargetId] = useState<string | null>(null);
+  const [branchInput, setBranchInput] = useState("");
   const [filePreviews, setFilePreviews] = useState<Map<string, FilePreview>>(
     new Map(),
   );
@@ -1357,6 +1377,20 @@ export function ChatInterface() {
     });
   }, []);
 
+  const handleBranch = useCallback(
+    async (messageId: string) => {
+      const msg = prompt("Enter your branch message:");
+      if (!msg || !msg.trim()) return;
+      try {
+        await branchFrom(activeSessionId!, messageId, msg.trim());
+      } catch (e) {
+        toast.error("Failed to create branch");
+        console.error("Branch failed:", e);
+      }
+    },
+    [branchFrom, activeSessionId],
+  );
+
   // Group messages for compare-mode rendering. Consecutive assistant messages
   // sharing the same user-prompt timestamp (i.e., dispatched in parallel) are
   // rendered side-by-side as a CompareRow.
@@ -1434,6 +1468,9 @@ export function ChatInterface() {
                     item.msg.role === "user"
                       ? (newContent) => handleEdit(item.msg.id, newContent)
                       : undefined
+                  }
+                  onBranch={
+                    activeSessionId ? () => handleBranch(item.msg.id) : undefined
                   }
                 />
               ) : (

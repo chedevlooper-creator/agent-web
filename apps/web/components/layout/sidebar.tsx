@@ -8,6 +8,7 @@ import {
   Activity,
   Download,
   FileText,
+  GitBranch,
   Globe,
   MessageSquare,
   PanelLeft,
@@ -34,14 +35,16 @@ import {
   Box,
   BarChart3,
   BookOpen,
+  Bot,
   Settings,
   LogOut,
   Library,
 } from "lucide-react";
 import { toast } from "sonner";
 import { KnowledgePanel } from "@/components/knowledge-panel";
+import { AgentMarketplace } from "@/components/agent-marketplace";
 
-type SidebarTab = "chats" | "tools" | "activity" | "context" | "knowledge";
+type SidebarTab = "chats" | "tools" | "activity" | "context" | "knowledge" | "agents";
 type Group =
   | "Today"
   | "Yesterday"
@@ -321,6 +324,9 @@ function ChatsTab({ expanded, search }: { expanded: boolean; search: string }) {
                           <span className="min-w-0 flex-1 truncate text-xs font-medium leading-tight">
                             {session.title}
                           </span>
+                          {session.branchId && (
+                            <GitBranch size={11} className="shrink-0 text-[var(--accent)]" />
+                          )}
                           <span className="shrink-0 font-mono text-[10px] text-[var(--dim-foreground)]">
                             {session.messages.length}
                           </span>
@@ -726,6 +732,7 @@ export function Sidebar() {
     { id: "activity", icon: Activity, label: "Act" },
     { id: "context", icon: Puzzle, label: "Ctx" },
     { id: "knowledge", icon: Library, label: "KB" },
+    { id: "agents", icon: Bot, label: "Agents" },
   ];
 
   return (
@@ -888,6 +895,7 @@ export function Sidebar() {
         {sidebarOpen && activeTab === "activity" && <ActivityTab />}
         {sidebarOpen && activeTab === "context" && <ContextTab />}
         {sidebarOpen && activeTab === "knowledge" && <KnowledgePanel expanded={sidebarOpen} />}
+        {sidebarOpen && activeTab === "agents" && <AgentMarketplace expanded={sidebarOpen} />}
 
         <div
           className={cn(

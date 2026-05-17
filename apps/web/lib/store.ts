@@ -23,6 +23,8 @@ export interface ChatMessage {
   content: string;
   model?: string;
   timestamp: number;
+  parentId?: string | null;
+  branchRootId?: string | null;
   toolCalls?: ToolCallInfo[];
   displayContent?: string;
 }
@@ -34,6 +36,7 @@ export interface Session {
   createdAt: number;
   updatedAt: number;
   projectId?: string | null;
+  branchId?: string | null;
 }
 
 export interface DbProject {
@@ -136,6 +139,9 @@ interface ChatStore {
   // Import/Export
   importFromJson: (json: string) => Promise<{ sessions: number; messages: number }>;
 
+  // Branching
+  branchFrom: (sessionId: string, messageId: string, content: string) => Promise<string>;
+
   // Obsidian Sync
   obsidianVaultPath: string | null;
   obsidianAutoSync: boolean;
@@ -196,13 +202,14 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       hydrate: async () => {
         try {
           const { sessions } = (await apiFetch("/api/sessions")) as {
-            sessions: { id: string; title: string; createdAt: number; updatedAt: number }[];
+            sessions: { id: string; title: string; createdAt: number; updatedAt: number; branchId: string | null }[];
           };
           const enriched: Session[] = sessions.map((s) => ({
             id: s.id,
             title: s.title,
             createdAt: s.createdAt,
             updatedAt: s.updatedAt,
+            branchId: s.branchId,
             messages: [],
           }));
           const activeId = get().activeSessionId || enriched[0]?.id || null;
@@ -739,6 +746,57 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
         await get().hydrate();
         return result;
       },
+
+      branchFrom: async (sessionId, messageId, content) => {
+        set({ syncing: true });
+        try {
+          const { session } = (await fetch(
+            `/api/sessions/${encodeURIComponent(sessionId)}/branch?messageId=${encodeURIComponent(messageId)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content }),
+            }
+          ).then((r) => r.json())) as {
+            session: {
+              id: string;
+              title: string;
+              createdAt: number;
+              updatedAt: number;
+              branchId: string;
+              projectId: string | null;
+            };
+          };
+
+          const newSession: Session = {
+            id: session.id,
+            title: session.title,
+            messages: [],
+            createdAt: session.createdAt,
+            updatedAt: session.updatedAt,
+            projectId: session.projectId,
+            branchId: session.branchId,
+          };
+
+          set((s) => ({
+            sessions: [newSession, ...s.sessions],
+            activeSessionId: session.id,
+          }));
+
+          return session.id;
+        } catch (e) {
+          console.error("Failed to branch session:", e);
+          throw e;
+        } finally {
+          set({ syncing: false });
+        }
+      },
+
+      setObsidianVaultPath: (path) => set({ obsidianVaultPath: path }),
+      setObsidianAutoSync: (enabled) => set({ obsidianAutoSync: enabled }),
+      syncSessionToObsidian: async (_sessionId) => {
+        // No-op by default; Obsidian sync is handled server-side
+      },
   })
 );
 
@@ -762,6 +820,8 @@ async function loadSessionMessages(sessionId: string) {
         role: "user" | "assistant" | "system";
         content: string;
         model: string | null;
+        parentId: string | null;
+        branchRootId: string | null;
         timestamp: number;
       }[];
     };
@@ -775,6 +835,8 @@ async function loadSessionMessages(sessionId: string) {
                 role: m.role,
                 content: m.content,
                 model: m.model ?? undefined,
+                parentId: m.parentId,
+                branchRootId: m.branchRootId,
                 timestamp: m.timestamp,
               })),
             }

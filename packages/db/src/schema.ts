@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 export const projects = sqliteTable("projects", {
@@ -19,6 +19,7 @@ export const sessions = sqliteTable("sessions", {
     .references(() => users.id, { onDelete: "cascade" }),
   projectId: text("project_id").references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  branchId: text("branch_id"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
@@ -34,6 +35,8 @@ export const messages = sqliteTable("messages", {
   role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
   content: text("content").notNull(),
   model: text("model"),
+  parentId: text("parent_id"),
+  branchRootId: text("branch_root_id"),
   timestamp: integer("timestamp").notNull(),
 });
 
@@ -178,6 +181,58 @@ export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type NewKnowledgeDocument = typeof knowledgeDocuments.$inferInsert;
 export type DocumentChunk = typeof documentChunks.$inferSelect;
 export type NewDocumentChunk = typeof documentChunks.$inferInsert;
+
+// ===== Agent Marketplace =====
+
+export const agentCategories = [
+  "coding",
+  "writing",
+  "research",
+  "creative",
+  "productivity",
+  "analysis",
+  "general",
+] as const;
+
+export type AgentCategory = (typeof agentCategories)[number];
+
+export const agentPresets = sqliteTable("agent_presets", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  category: text("category", { enum: agentCategories }).notNull().default("general"),
+  tags: text("tags").notNull().default(""),
+  avatar: text("avatar"),
+  systemPrompt: text("system_prompt").notNull(),
+  tools: text("tools").notNull().default(""),
+  model: text("model"),
+  provider: text("provider"),
+  temperature: real("temperature").default(0.7),
+  featured: integer("featured", { mode: "boolean" }).notNull().default(false),
+  installs: integer("installs").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const installedAgents = sqliteTable("installed_agents", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  presetId: text("preset_id")
+    .notNull()
+    .references(() => agentPresets.id, { onDelete: "cascade" }),
+  customName: text("custom_name"),
+  customPrompt: text("custom_prompt"),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export type AgentPreset = typeof agentPresets.$inferSelect;
+export type NewAgentPreset = typeof agentPresets.$inferInsert;
+export type InstalledAgent = typeof installedAgents.$inferSelect;
+export type NewInstalledAgent = typeof installedAgents.$inferInsert;
 
 export type Memory = typeof memories.$inferSelect;
 export type NewMemory = typeof memories.$inferInsert;

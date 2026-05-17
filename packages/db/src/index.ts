@@ -14,3 +14,19 @@ export {
   searchKnowledge,
 } from "./knowledge.js";
 export type { SearchResult } from "./knowledge.js";
+export {
+  seedDefaultAgents,
+  listAgentPresets,
+  getAgentPreset,
+  installAgent,
+  uninstallAgent,
+  listInstalledAgents,
+  updateInstalledAgent,
+} from "./agents.js";
+export type {
+  AgentPreset,
+  NewAgentPreset,
+  InstalledAgent,
+  NewInstalledAgent,
+  AgentCategory,
+} from "./schema.js";

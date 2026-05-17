@@ -21,3 +21,15 @@ export interface ToolResult {
   output: string;
   error?: string;
 }
+
+export interface AgentPresetConfig {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  systemPrompt: string;
+  tools: string[];
+  model?: string;
+  provider?: string;
+  temperature?: number;
+}

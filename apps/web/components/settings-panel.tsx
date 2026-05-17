@@ -3,7 +3,7 @@
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Settings, X, GitCompare, CheckCircle2, CircleDot } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 const PROVIDERS = [
   {

@@ -167,6 +167,48 @@ CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
 );
 `;
 
+// V5: Agent Marketplace tables
+const CREATE_AGENT_PRESETS = `
+CREATE TABLE IF NOT EXISTS agent_presets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'general',
+  tags TEXT NOT NULL DEFAULT '',
+  avatar TEXT,
+  system_prompt TEXT NOT NULL,
+  tools TEXT NOT NULL DEFAULT '',
+  model TEXT,
+  provider TEXT,
+  temperature REAL DEFAULT 0.7,
+  featured INTEGER NOT NULL DEFAULT 0,
+  installs INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+`;
+
+const CREATE_INSTALLED_AGENTS = `
+CREATE TABLE IF NOT EXISTS installed_agents (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  preset_id TEXT NOT NULL REFERENCES agent_presets(id) ON DELETE CASCADE,
+  custom_name TEXT,
+  custom_prompt TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+`;
+
+const CREATE_INDEX_AGENT_PRESETS_CATEGORY = `
+CREATE INDEX IF NOT EXISTS idx_agent_presets_category ON agent_presets(category);
+`;
+
+const CREATE_INDEX_INSTALLED_AGENTS_USER = `
+CREATE INDEX IF NOT EXISTS idx_installed_agents_user ON installed_agents(user_id);
+`;
+
 let migrated = false;
 
 export async function runMigrations(url?: string, authToken?: string) {
@@ -207,6 +249,17 @@ export async function runMigrations(url?: string, authToken?: string) {
   await client.execute(CREATE_KNOWLEDGE_DOCUMENTS);
   await client.execute(CREATE_DOCUMENT_CHUNKS);
   try { await client.execute(CREATE_CHUNKS_FTS); } catch { /* FTS table may already exist */ }
+
+  // V5 migration: Agent marketplace tables
+  await client.execute(CREATE_AGENT_PRESETS);
+  await client.execute(CREATE_INSTALLED_AGENTS);
+  await client.execute(CREATE_INDEX_AGENT_PRESETS_CATEGORY);
+  await client.execute(CREATE_INDEX_INSTALLED_AGENTS_USER);
+
+  // V6 migration: branching columns (idempotent — fails silently if already present)
+  try { await client.execute("ALTER TABLE messages ADD COLUMN parent_id TEXT REFERENCES messages(id)"); } catch { /* column may already exist */ }
+  try { await client.execute("ALTER TABLE messages ADD COLUMN branch_root_id TEXT"); } catch { /* column may already exist */ }
+  try { await client.execute("ALTER TABLE sessions ADD COLUMN branch_id TEXT"); } catch { /* column may already exist */ }
 
   migrated = true;
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import { getDb, sessions, messages, projects, users, memories, apiKeys, obsidianConfig, ensureMigrated, listMemoriesByCategory as dbListMemoriesByCategory, getImportantMemories as dbGetImportantMemories, searchMemories as dbSearchMemories, type MemoryCategory, createKnowledgeBase as dbCreateKnowledgeBase, listKnowledgeBases as dbListKnowledgeBases, getKnowledgeBase as dbGetKnowledgeBase, deleteKnowledgeBase as dbDeleteKnowledgeBase, addDocument as dbAddDocument, listDocuments as dbListDocuments, getDocument as dbGetDocument, deleteDocument as dbDeleteDocument, searchKnowledge as dbSearchKnowledge, type KnowledgeBase, type KnowledgeDocument, type SearchResult } from "@agent-web/db";
+import { getDb, sessions, messages, projects, users, memories, apiKeys, obsidianConfig, ensureMigrated, listMemoriesByCategory as dbListMemoriesByCategory, getImportantMemories as dbGetImportantMemories, searchMemories as dbSearchMemories, type MemoryCategory, createKnowledgeBase as dbCreateKnowledgeBase, listKnowledgeBases as dbListKnowledgeBases, getKnowledgeBase as dbGetKnowledgeBase, deleteKnowledgeBase as dbDeleteKnowledgeBase, addDocument as dbAddDocument, listDocuments as dbListDocuments, getDocument as dbGetDocument, deleteDocument as dbDeleteDocument, searchKnowledge as dbSearchKnowledge, type KnowledgeBase, type KnowledgeDocument, type SearchResult, seedDefaultAgents as dbSeedDefaultAgents, listAgentPresets as dbListAgentPresets, getAgentPreset as dbGetAgentPreset, installAgent as dbInstallAgent, uninstallAgent as dbUninstallAgent, listInstalledAgents as dbListInstalledAgents, updateInstalledAgent as dbUpdateInstalledAgent, type AgentPreset, type InstalledAgent } from "@agent-web/db";
 import { eq, desc, asc, and, gt, gte, isNull, inArray } from "drizzle-orm";
 
 export type Role = "user" | "assistant" | "system";
@@ -20,6 +20,8 @@ export interface DbMessage {
   role: Role;
   content: string;
   model: string | null;
+  parentId: string | null;
+  branchRootId: string | null;
   timestamp: number;
 }
 
@@ -28,6 +30,7 @@ export interface DbSession {
   userId: string;
   projectId: string | null;
   title: string;
+  branchId: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -137,6 +140,7 @@ export async function listSessions(userId: string, projectId?: string): Promise<
     userId: r.userId,
     projectId: r.projectId,
     title: r.title,
+    branchId: r.branchId,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   }));
@@ -179,6 +183,7 @@ export async function listSessionsWithMessages(userId: string): Promise<DbSessio
     userId: s.userId,
     projectId: s.projectId,
     title: s.title,
+    branchId: s.branchId,
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
     messages: (messagesBySession.get(s.id) || []).map((m) => ({
@@ -188,6 +193,8 @@ export async function listSessionsWithMessages(userId: string): Promise<DbSessio
       role: m.role as Role,
       content: m.content,
       model: m.model,
+      parentId: m.parentId,
+      branchRootId: m.branchRootId,
       timestamp: m.timestamp,
     })),
   }));
@@ -204,6 +211,7 @@ export async function getSession(id: string): Promise<DbSession | null> {
     userId: row.userId,
     projectId: row.projectId,
     title: row.title,
+    branchId: row.branchId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -214,6 +222,7 @@ export async function createSession(input: {
   userId: string;
   projectId?: string | null;
   title?: string;
+  branchId?: string;
 }): Promise<DbSession> {
   await ready();
   const db = getDb();
@@ -223,6 +232,7 @@ export async function createSession(input: {
     userId: input.userId,
     projectId: input.projectId ?? null,
     title: input.title || "New Chat",
+    branchId: input.branchId ?? null,
     createdAt: now,
     updatedAt: now,
   };
@@ -263,6 +273,8 @@ export async function listMessages(sessionId: string): Promise<DbMessage[]> {
     role: m.role as Role,
     content: m.content,
     model: m.model,
+    parentId: m.parentId,
+    branchRootId: m.branchRootId,
     timestamp: m.timestamp,
   }));
 }
@@ -275,6 +287,8 @@ export async function addMessage(input: {
   content: string;
   model?: string | null;
   timestamp?: number;
+  parentId?: string;
+  branchRootId?: string;
 }): Promise<DbMessage> {
   await ready();
   const db = getDb();
@@ -285,6 +299,8 @@ export async function addMessage(input: {
     role: input.role,
     content: input.content,
     model: input.model ?? null,
+    parentId: input.parentId ?? null,
+    branchRootId: input.branchRootId ?? null,
     timestamp: input.timestamp ?? Date.now(),
   };
   await db.insert(messages).values(row);
@@ -702,4 +718,58 @@ export async function searchKnowledge(
 ): Promise<SearchResult[]> {
   await ready();
   return dbSearchKnowledge(userId, query, topK, baseIds);
+}
+
+// ===== Agent Marketplace =====
+
+export async function seedDefaultAgents(): Promise<number> {
+  await ready();
+  return dbSeedDefaultAgents();
+}
+
+export async function listAgentPresets(
+  category?: string,
+  search?: string
+): Promise<AgentPreset[]> {
+  await ready();
+  return dbListAgentPresets(category, search);
+}
+
+export async function getAgentPreset(id: string): Promise<AgentPreset | null> {
+  await ready();
+  return dbGetAgentPreset(id);
+}
+
+export async function installAgent(
+  userId: string,
+  presetId: string,
+  customName?: string,
+  customPrompt?: string
+): Promise<InstalledAgent> {
+  await ready();
+  return dbInstallAgent(userId, presetId, customName, customPrompt);
+}
+
+export async function uninstallAgent(userId: string, id: string): Promise<boolean> {
+  await ready();
+  return dbUninstallAgent(userId, id);
+}
+
+export async function listInstalledAgents(
+  userId: string
+): Promise<(InstalledAgent & { preset: AgentPreset })[]> {
+  await ready();
+  return dbListInstalledAgents(userId);
+}
+
+export async function updateInstalledAgent(
+  id: string,
+  data: {
+    customName?: string | null;
+    customPrompt?: string | null;
+    enabled?: boolean;
+  }
+): Promise<InstalledAgent | null> {
+  await ready();
+  return dbUpdateInstalledAgent(id, data);
 }
