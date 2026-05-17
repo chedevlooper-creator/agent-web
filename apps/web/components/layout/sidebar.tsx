@@ -36,11 +36,12 @@ import {
   BookOpen,
   Settings,
   LogOut,
+  Library,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getToolIcon } from "@/lib/tool-icons";
+import { KnowledgePanel } from "@/components/knowledge-panel";
 
-type SidebarTab = "chats" | "tools" | "activity" | "context";
+type SidebarTab = "chats" | "tools" | "activity" | "context" | "knowledge";
 type Group =
   | "Today"
   | "Yesterday"
@@ -724,6 +725,7 @@ export function Sidebar() {
     { id: "tools", icon: Wrench, label: "Tools" },
     { id: "activity", icon: Activity, label: "Act" },
     { id: "context", icon: Puzzle, label: "Ctx" },
+    { id: "knowledge", icon: Library, label: "KB" },
   ];
 
   return (
@@ -885,6 +887,7 @@ export function Sidebar() {
         {sidebarOpen && activeTab === "tools" && <ToolsTab />}
         {sidebarOpen && activeTab === "activity" && <ActivityTab />}
         {sidebarOpen && activeTab === "context" && <ContextTab />}
+        {sidebarOpen && activeTab === "knowledge" && <KnowledgePanel expanded={sidebarOpen} />}
 
         <div
           className={cn(

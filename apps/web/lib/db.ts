@@ -1,5 +1,5 @@
 import "server-only";
-import { getDb, sessions, messages, projects, users, memories, apiKeys, obsidianConfig, ensureMigrated } from "@agent-web/db";
+import { getDb, sessions, messages, projects, users, memories, apiKeys, obsidianConfig, ensureMigrated, listMemoriesByCategory as dbListMemoriesByCategory, getImportantMemories as dbGetImportantMemories, searchMemories as dbSearchMemories, type MemoryCategory, createKnowledgeBase as dbCreateKnowledgeBase, listKnowledgeBases as dbListKnowledgeBases, getKnowledgeBase as dbGetKnowledgeBase, deleteKnowledgeBase as dbDeleteKnowledgeBase, addDocument as dbAddDocument, listDocuments as dbListDocuments, getDocument as dbGetDocument, deleteDocument as dbDeleteDocument, searchKnowledge as dbSearchKnowledge, type KnowledgeBase, type KnowledgeDocument, type SearchResult } from "@agent-web/db";
 import { eq, desc, asc, and, gt, gte, isNull, inArray } from "drizzle-orm";
 
 export type Role = "user" | "assistant" | "system";
@@ -410,31 +410,65 @@ export async function importSessions(
 
 export interface DbMemory {
   id: string;
+  userId: string | null;
   key: string;
   value: string;
+  category: MemoryCategory;
+  importance: number;
+  context: string | null;
   createdAt: number;
   updatedAt: number;
 }
 
-export async function listMemories(): Promise<DbMemory[]> {
+export async function listMemories(category?: string): Promise<DbMemory[]> {
   await ready();
   const db = getDb();
+  const where = category ? eq(memories.category, category as MemoryCategory) : undefined;
   const rows = await db
     .select()
     .from(memories)
     .orderBy(asc(memories.key));
-  return rows.map((r) => ({
-    id: r.id,
-    key: r.key,
-    value: r.value,
-    createdAt: r.createdAt,
-    updatedAt: r.updatedAt,
-  }));
+  if (category) {
+    const filtered = rows.filter((r) => r.category === category);
+    return filtered.map(mapMemory);
+  }
+  return rows.map(mapMemory);
+}
+
+export async function listMemoriesByCategory(
+  userId: string,
+  category: MemoryCategory
+): Promise<DbMemory[]> {
+  await ready();
+  const rows = await dbListMemoriesByCategory(userId, category);
+  return rows.map(mapMemory);
+}
+
+export async function getImportantMemories(
+  userId: string,
+  minImportance: number
+): Promise<DbMemory[]> {
+  await ready();
+  const rows = await dbGetImportantMemories(userId, minImportance);
+  return rows.map(mapMemory);
+}
+
+export async function searchMemories(
+  userId: string,
+  query: string
+): Promise<DbMemory[]> {
+  await ready();
+  const rows = await dbSearchMemories(userId, query);
+  return rows.map(mapMemory);
 }
 
 export async function upsertMemory(input: {
   key: string;
   value: string;
+  userId?: string;
+  category?: MemoryCategory;
+  importance?: number;
+  context?: string | null;
 }): Promise<DbMemory> {
   await ready();
   const db = getDb();
@@ -447,14 +481,20 @@ export async function upsertMemory(input: {
     .where(eq(memories.key, input.key));
 
   if (existing.length > 0) {
-    await db
-      .update(memories)
-      .set({ value: input.value, updatedAt: now })
-      .where(eq(memories.key, input.key));
+    const updates: Record<string, unknown> = { value: input.value, updatedAt: now };
+    if (input.userId !== undefined) updates.userId = input.userId;
+    if (input.category !== undefined) updates.category = input.category;
+    if (input.importance !== undefined) updates.importance = input.importance;
+    if (input.context !== undefined) updates.context = input.context;
+    await db.update(memories).set(updates).where(eq(memories.key, input.key));
     return {
       id: existing[0].id,
+      userId: (input.userId ?? existing[0].userId) as string | null,
       key: input.key,
       value: input.value,
+      category: (input.category ?? existing[0].category) as MemoryCategory,
+      importance: (input.importance ?? existing[0].importance) as number,
+      context: (input.context !== undefined ? input.context : existing[0].context) as string | null,
       createdAt: existing[0].createdAt,
       updatedAt: now,
     };
@@ -463,19 +503,70 @@ export async function upsertMemory(input: {
   const id = Math.random().toString(36).slice(2, 11) + Date.now().toString(36).slice(-4);
   const row = {
     id,
+    userId: input.userId ?? null,
     key: input.key,
     value: input.value,
+    category: input.category ?? ("fact" as MemoryCategory),
+    importance: input.importance ?? 3,
+    context: input.context ?? null,
     createdAt: now,
     updatedAt: now,
   };
   await db.insert(memories).values(row);
-  return row;
+  return mapMemory(row);
+}
+
+export async function updateMemoryImportance(
+  key: string,
+  importance: number
+): Promise<DbMemory | null> {
+  await ready();
+  const db = getDb();
+  const existing = await db
+    .select()
+    .from(memories)
+    .where(eq(memories.key, key))
+    .limit(1);
+
+  if (existing.length === 0) return null;
+
+  const now = Date.now();
+  await db
+    .update(memories)
+    .set({ importance, updatedAt: now })
+    .where(eq(memories.key, key));
+
+  return { ...mapMemory(existing[0]), importance, updatedAt: now };
 }
 
 export async function deleteMemory(key: string): Promise<void> {
   await ready();
   const db = getDb();
   await db.delete(memories).where(eq(memories.key, key));
+}
+
+function mapMemory(r: {
+  id: string;
+  userId: string | null;
+  key: string;
+  value: string;
+  category: string;
+  importance: number;
+  context: string | null;
+  createdAt: number;
+  updatedAt: number;
+}): DbMemory {
+  return {
+    id: r.id,
+    userId: r.userId,
+    key: r.key,
+    value: r.value,
+    category: r.category as MemoryCategory,
+    importance: r.importance,
+    context: r.context,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
 }
 
 // ===== API Keys CRUD =====
@@ -545,4 +636,70 @@ export async function deleteObsidianConfig(userId: string): Promise<void> {
   await ready();
   const db = getDb();
   await db.delete(obsidianConfig).where(eq(obsidianConfig.userId, userId));
+}
+
+// ===== Knowledge Base CRUD =====
+
+export async function createKnowledgeBase(
+  userId: string,
+  name: string,
+  description?: string
+): Promise<KnowledgeBase> {
+  await ready();
+  return dbCreateKnowledgeBase(userId, name, description);
+}
+
+export async function listKnowledgeBases(userId: string): Promise<KnowledgeBase[]> {
+  await ready();
+  return dbListKnowledgeBases(userId);
+}
+
+export async function getKnowledgeBase(id: string): Promise<KnowledgeBase | null> {
+  await ready();
+  return dbGetKnowledgeBase(id);
+}
+
+export async function deleteKnowledgeBase(id: string): Promise<void> {
+  await ready();
+  return dbDeleteKnowledgeBase(id);
+}
+
+// ===== Knowledge Document CRUD =====
+
+export async function addDocument(
+  knowledgeBaseId: string,
+  userId: string,
+  filename: string,
+  content: string,
+  contentType?: string
+): Promise<KnowledgeDocument> {
+  await ready();
+  return dbAddDocument(knowledgeBaseId, userId, filename, content, contentType);
+}
+
+export async function listDocuments(knowledgeBaseId: string): Promise<KnowledgeDocument[]> {
+  await ready();
+  return dbListDocuments(knowledgeBaseId);
+}
+
+export async function getDocument(id: string): Promise<KnowledgeDocument | null> {
+  await ready();
+  return dbGetDocument(id);
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  await ready();
+  return dbDeleteDocument(id);
+}
+
+// ===== Knowledge Search =====
+
+export async function searchKnowledge(
+  userId: string,
+  query: string,
+  topK?: number,
+  baseIds?: string[]
+): Promise<SearchResult[]> {
+  await ready();
+  return dbSearchKnowledge(userId, query, topK, baseIds);
 }

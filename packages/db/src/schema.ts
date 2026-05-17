@@ -113,13 +113,71 @@ export type NewUser = typeof users.$inferInsert;
 export type AuthToken = typeof authTokens.$inferSelect;
 export type NewAuthToken = typeof authTokens.$inferInsert;
 
+export const memoryCategories = [
+  "user_info",
+  "preference",
+  "fact",
+  "task_context",
+  "conversation_summary",
+] as const;
+
+export type MemoryCategory = (typeof memoryCategories)[number];
+
 export const memories = sqliteTable("memories", {
   id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
   key: text("key").notNull().unique(),
   value: text("value").notNull(),
+  category: text("category", { enum: memoryCategories }).notNull().default("fact"),
+  importance: integer("importance").notNull().default(3),
+  context: text("context"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
+
+export const knowledgeBases = sqliteTable("knowledge_bases", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const knowledgeDocuments = sqliteTable("knowledge_documents", {
+  id: text("id").primaryKey(),
+  knowledgeBaseId: text("knowledge_base_id")
+    .notNull()
+    .references(() => knowledgeBases.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(),
+  content: text("content").notNull(),
+  contentType: text("content_type").notNull().default("text"),
+  chunkCount: integer("chunk_count").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const documentChunks = sqliteTable("document_chunks", {
+  id: text("id").primaryKey(),
+  documentId: text("document_id")
+    .notNull()
+    .references(() => knowledgeDocuments.id, { onDelete: "cascade" }),
+  chunkIndex: integer("chunk_index").notNull(),
+  content: text("content").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+export type KnowledgeBase = typeof knowledgeBases.$inferSelect;
+export type NewKnowledgeBase = typeof knowledgeBases.$inferInsert;
+export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
+export type NewKnowledgeDocument = typeof knowledgeDocuments.$inferInsert;
+export type DocumentChunk = typeof documentChunks.$inferSelect;
+export type NewDocumentChunk = typeof documentChunks.$inferInsert;
 
 export type Memory = typeof memories.$inferSelect;
 export type NewMemory = typeof memories.$inferInsert;

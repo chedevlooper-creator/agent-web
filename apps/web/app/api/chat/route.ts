@@ -8,6 +8,10 @@ import {
   getContextThreshold,
 } from "@agent-web/core";
 import { listMemories } from "@/lib/db";
+import { initObservability } from "@/lib/observability";
+
+// Initialize Langfuse OTEL if configured
+initObservability();
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -210,6 +214,14 @@ export async function POST(req: NextRequest) {
       }>,
       tools,
       maxSteps: 8,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "stream-chat",
+        metadata: {
+          provider,
+          model,
+        },
+      },
     });
 
     return result.toDataStreamResponse({

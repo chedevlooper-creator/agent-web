@@ -110,6 +110,63 @@ const CREATE_INDEX_MEMORIES_KEY = `
 CREATE INDEX IF NOT EXISTS idx_memories_key ON memories(key);
 `;
 
+const MEMORIES_MIGRATE_V3_USER_ID = `ALTER TABLE memories ADD COLUMN user_id TEXT REFERENCES users(id);`;
+const MEMORIES_MIGRATE_V3_CATEGORY = `ALTER TABLE memories ADD COLUMN category TEXT NOT NULL DEFAULT 'fact';`;
+const MEMORIES_MIGRATE_V3_IMPORTANCE = `ALTER TABLE memories ADD COLUMN importance INTEGER NOT NULL DEFAULT 3;`;
+const MEMORIES_MIGRATE_V3_CONTEXT = `ALTER TABLE memories ADD COLUMN context TEXT;`;
+
+const CREATE_INDEX_MEMORIES_USER_CATEGORY = `
+CREATE INDEX IF NOT EXISTS idx_memories_user_category ON memories(user_id, category);
+`;
+
+const CREATE_INDEX_MEMORIES_USER_IMPORTANCE = `
+CREATE INDEX IF NOT EXISTS idx_memories_user_importance ON memories(user_id, importance);
+`;
+
+// V4: Knowledge Base tables
+const CREATE_KNOWLEDGE_BASES = `
+CREATE TABLE IF NOT EXISTS knowledge_bases (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+`;
+
+const CREATE_KNOWLEDGE_DOCUMENTS = `
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+  id TEXT PRIMARY KEY,
+  knowledge_base_id TEXT NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  content TEXT NOT NULL,
+  content_type TEXT NOT NULL DEFAULT 'text',
+  chunk_count INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+`;
+
+const CREATE_DOCUMENT_CHUNKS = `
+CREATE TABLE IF NOT EXISTS document_chunks (
+  id TEXT PRIMARY KEY,
+  document_id TEXT NOT NULL REFERENCES knowledge_documents(id) ON DELETE CASCADE,
+  chunk_index INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+`;
+
+const CREATE_CHUNKS_FTS = `
+CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
+  content,
+  content=document_chunks,
+  content_rowid=rowid
+);
+`;
+
 let migrated = false;
 
 export async function runMigrations(url?: string, authToken?: string) {
@@ -136,6 +193,20 @@ export async function runMigrations(url?: string, authToken?: string) {
   await client.execute(CREATE_INDEX_SESSIONS_UPDATED);
   await client.execute(CREATE_MEMORIES);
   await client.execute(CREATE_INDEX_MEMORIES_KEY);
+
+  // V3 migration: add structured memory columns (idempotent — fails silently if already present)
+  try { await client.execute(MEMORIES_MIGRATE_V3_USER_ID); } catch { /* column may already exist */ }
+  try { await client.execute(MEMORIES_MIGRATE_V3_CATEGORY); } catch { /* column may already exist */ }
+  try { await client.execute(MEMORIES_MIGRATE_V3_IMPORTANCE); } catch { /* column may already exist */ }
+  try { await client.execute(MEMORIES_MIGRATE_V3_CONTEXT); } catch { /* column may already exist */ }
+  try { await client.execute(CREATE_INDEX_MEMORIES_USER_CATEGORY); } catch { /* index may already exist */ }
+  try { await client.execute(CREATE_INDEX_MEMORIES_USER_IMPORTANCE); } catch { /* index may already exist */ }
+
+  // V4 migration: knowledge base tables + FTS5
+  await client.execute(CREATE_KNOWLEDGE_BASES);
+  await client.execute(CREATE_KNOWLEDGE_DOCUMENTS);
+  await client.execute(CREATE_DOCUMENT_CHUNKS);
+  try { await client.execute(CREATE_CHUNKS_FTS); } catch { /* FTS table may already exist */ }
 
   migrated = true;
 }

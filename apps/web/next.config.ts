@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: ["@agent-web/core", "@agent-web/db"],
-  serverExternalPackages: ["@libsql/client", "pdf-parse", "mammoth", "xlsx"],
+  serverExternalPackages: ["@libsql/client", "pdf-parse", "mammoth", "xlsx", "@lobehub/tts"],
   // Force webpack (not Turbopack) to avoid incorrect client-side module tracing
   // that pulls in server-only Node.js deps via @agent-web/core
   webpack: (config, { isServer, webpack }) => {

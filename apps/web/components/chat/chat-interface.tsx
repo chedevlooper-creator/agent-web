@@ -52,6 +52,8 @@ import {
   CornerDownLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { TtsButton } from "@/components/tts-button";
+import { SttButton } from "@/components/stt-button";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -722,6 +724,9 @@ function MessageBubble({
               >
                 {copied ? <Check /> : <Copy />}
               </TooltipIconButton>
+            )}
+            {!isUser && !isError && message.content && (
+              <TtsButton text={message.content} />
             )}
           </div>
         )}
@@ -1546,6 +1551,19 @@ export function ChatInterface() {
                   <Paperclip />
                 )}
               </TooltipIconButton>
+              <SttButton
+                onTranscript={(text) => {
+                  setInput(text);
+                  requestAnimationFrame(() => {
+                    const ta = document.querySelector<HTMLTextAreaElement>('[data-chat-input]');
+                    if (ta) {
+                      ta.style.height = "auto";
+                      ta.style.height = Math.min(ta.scrollHeight, 320) + "px";
+                    }
+                  });
+                }}
+                disabled={!hasApiKey}
+              />
               <label htmlFor="chat-input" className="sr-only">
                 Message
               </label>
