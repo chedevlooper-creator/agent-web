@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { ChatErrorBoundary } from "@/components/error-boundary";
@@ -16,7 +16,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Agent Web",
-  description: "AI Agent powered web interface",
+  description: "Yapay zeka destekli web arayüzü",
+};
+
+export const viewport: Viewport = {
   themeColor: "#0f1019",
 };
 
@@ -26,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="tr" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh`}
       >
@@ -34,7 +37,7 @@ export default function RootLayout({
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[var(--primary)] focus:text-white focus:shadow-lg"
         >
-          Skip to main content
+          Ana içeriğe geç
         </a>
         <ChatErrorBoundary>
           {children}

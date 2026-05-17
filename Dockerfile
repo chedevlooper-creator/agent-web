@@ -93,22 +93,32 @@ EXPOSE 3000
 CMD ["node", "apps/web/server.js"]
 
 # ==========================================
-# Sandbox (terminal execution container)
+# Sandbox (isolated code execution container)
 # ==========================================
-FROM python:3.11-slim AS sandbox
+FROM node:22-slim AS sandbox
 
+# Install Python + common tools alongside Node.js
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nodejs \
-    npm \
+    python3 \
+    python3-pip \
     curl \
     git \
     jq \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir requests beautifulsoup4 pandas numpy
+    && pip3 install --no-cache-dir --break-system-packages \
+        requests beautifulsoup4 pandas numpy 2>/dev/null || \
+       pip3 install --no-cache-dir \
+        requests beautifulsoup4 pandas numpy
+
+# Pre-install tsx for TypeScript execution
+RUN npm install -g tsx
 
 WORKDIR /workspace
 
-RUN useradd -m sandbox-user
+RUN useradd -m sandbox-user \
+    && mkdir -p /workspace \
+    && chown -R sandbox-user:sandbox-user /workspace /tmp
+
 USER sandbox-user
 
 CMD ["tail", "-f", "/dev/null"]

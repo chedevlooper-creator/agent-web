@@ -183,10 +183,13 @@ export function ChatInterface() {
   const setCommandPrefill = useChatStore((s) => s.setCommandPrefill);
   const directSend = useChatStore((s) => s.directSend);
   const setDirectSend = useChatStore((s) => s.setDirectSend);
+  const contextPanelOpen = useChatStore((s) => s.contextPanelOpen);
+  const setContextPanelOpen = useChatStore((s) => s.setContextPanelOpen);
 
   const messages = useActiveMessages();
 
   const [input, setInput] = useState("");
+  const hasKey = savedProviders.includes(provider);
 
   // Watch for commandPrefill from CommandRail, set input and focus
   useEffect(() => {
@@ -217,6 +220,10 @@ export function ChatInterface() {
 
   const { messagesEndRef, scrollContainerRef, showScrollBtn, scrollToBottom, handleScroll } = useScrollAnchor(messages.length);
   const { attachedFiles, isUploading, handleFileUpload, removeAttachedFile, clearAttachedFiles } = useFileUpload();
+
+  const handleAddContext = useCallback(() => {
+    setContextPanelOpen(true);
+  }, [setContextPanelOpen]);
 
   const effectiveModels = useMemo(() => {
     if (compareMode && selectedModels.length >= 2) {
@@ -279,7 +286,7 @@ export function ChatInterface() {
       );
 
       const finalText = error ? "Error: " + error : text;
-      if (error) toast.error(`Error generating response: ${error}`);
+      if (error) toast.error(`Yanıt oluşturulurken hata: ${error}`);
 
       await persistMessage(sessionId, {
         id: placeholderId,
@@ -298,8 +305,6 @@ export function ChatInterface() {
     [provider, activeProjectId, selectedSkills, patchLocalMessage, patchLocalToolInvocations]
   );
 
-  const hasKey = savedProviders.includes(provider);
-
   const submitChat = useCallback(
     async (msgs: { role: string; content: string }[]) => {
       if (isLoading || !hasKey) return;
@@ -308,7 +313,7 @@ export function ChatInterface() {
         try {
           sessionId = await createSession();
         } catch {
-          toast.error("Failed to create session. Please try again.");
+          toast.error("Oturum oluşturulamadı. Lütfen tekrar deneyin.");
           setLoading(false);
           return;
         }
@@ -346,7 +351,11 @@ export function ChatInterface() {
   const handleSend = useCallback(async (overrideInput?: string | React.MouseEvent) => {
     const isString = typeof overrideInput === "string";
     const textToUse = (isString ? overrideInput : input).trim();
-    if (!textToUse || isLoading || !hasKey) return;
+    if (!textToUse || isLoading) return;
+    if (!hasKey) {
+      toast.error("Mesaj göndermeden önce bir sağlayıcı API anahtarı ekleyin.");
+      return;
+    }
 
     // Build message content: user text + attached file contents
     let fullContent = textToUse;
@@ -433,7 +442,7 @@ export function ChatInterface() {
       abortRef.current.abort();
       abortRef.current = null;
       setLoading(false);
-      toast("Generation stopped");
+      toast("Oluşturma durduruldu");
     }
   }, [setLoading]);
 
@@ -474,9 +483,9 @@ export function ChatInterface() {
 
   if (!hydrated) {
     return (
-      <div className="flex-1 flex items-center justify-center" role="status" aria-label="Loading chat">
+      <div className="flex-1 flex items-center justify-center" role="status" aria-label="Sohbet yükleniyor">
         <Loader2 size={20} className="animate-spin text-muted-foreground" aria-hidden="true" />
-        <span className="sr-only">Loading chat…</span>
+        <span className="sr-only">Sohbet yükleniyor…</span>
       </div>
     );
   }
@@ -527,7 +536,7 @@ export function ChatInterface() {
               <TypingIndicator
                 label={
                   compareMode && effectiveModels.length > 1
-                    ? `Comparing ${effectiveModels.join(" vs ")}`
+                    ? `${effectiveModels.join(" vs ")} karşılaştırılıyor`
                     : undefined
                 }
               />
@@ -546,7 +555,7 @@ export function ChatInterface() {
                        gradient-bg-primary text-white
                        shadow-lg shadow-primary/25
                        hover:shadow-xl hover:shadow-primary/35 active:scale-95 transition-[box-shadow,transform] duration-200 animate-bounce-subtle"
-            aria-label="Scroll to bottom"
+            aria-label="Aşağı kaydır"
           >
             <ArrowDown size={16} aria-hidden="true" />
           </button>
@@ -567,6 +576,8 @@ export function ChatInterface() {
         effectiveModels={effectiveModels}
         attachedFiles={attachedFiles}
         isUploading={isUploading}
+        contextPanelOpen={contextPanelOpen}
+        onAddContext={handleAddContext}
         onFileUpload={handleFileUpload}
         onRemoveFile={removeAttachedFile}
       />

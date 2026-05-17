@@ -27,7 +27,8 @@
   },
   "dependencies": {
     "ai": "^4.0.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "@libsql/client": "^0.14.0"
   },
   "devDependencies": {
     "@types/node": "^20",

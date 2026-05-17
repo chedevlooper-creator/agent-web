@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { importSessions, type DbSessionWithMessages } from "@/lib/db";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await req.json();
     const payload = body as {
       version?: number;

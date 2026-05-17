@@ -8,6 +8,7 @@ import {
   deleteMessagesAfter,
   clearMessages,
 } from "@/lib/db";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const messages = await listMessages(id);
+    const { id: sessionId } = await params;
+    const messages = await listMessages(sessionId);
     return NextResponse.json({ messages });
   } catch (e: unknown) {
     const err = e as Error;
@@ -44,6 +45,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { id: sessionId } = await params;
     const body = await req.json();
     const parsed = CreateMessageSchema.safeParse(body);
@@ -57,6 +60,7 @@ export async function POST(
     const message = await addMessage({
       id,
       sessionId,
+      userId,
       role,
       content,
       model,
@@ -74,6 +78,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     await params;
     const body = await req.json();
     const parsed = UpdateMessageSchema.safeParse(body);
@@ -97,6 +103,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { id: sessionId } = await params;
     const { searchParams } = new URL(req.url);
     const messageId = searchParams.get("messageId");

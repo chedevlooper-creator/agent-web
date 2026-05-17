@@ -3,6 +3,7 @@
 import { useChatStore, useIsEmptySession } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   MessageSquare,
   Plus,
@@ -31,6 +32,7 @@ import {
   BarChart3,
   BookOpen,
   Settings,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { toolDescriptions } from "@agent-web/core";
@@ -71,6 +73,12 @@ const GROUP_ORDER: Group[] = [
   "Daha Eski",
 ];
 
+const pinnedItems = [
+  { title: "Auth modülünü yeniden düzenle", meta: "10:24", icon: Box },
+  { title: "Build hattını optimize et", meta: "Dün", icon: Box },
+  { title: "Tasarım sistemi revizyonu", meta: "14 Mayıs", icon: Box },
+];
+
 function AgentMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
@@ -100,7 +108,7 @@ function ProjectBar() {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      await createProject(`Proje ${projects.length + 1}`);
+      await createProject(`Project ${projects.length + 1}`);
     } catch {
       toast.error("Proje oluşturulamadı");
     } finally {
@@ -154,6 +162,9 @@ function ProjectBar() {
                   : "border-border/70 bg-black/15 text-fg-secondary hover:border-cyan/30 hover:text-cyan"
               )}
               aria-label={item.label}
+              aria-pressed={Boolean(item.active)}
+              data-tooltip={item.label}
+              title={item.label}
             >
               <Icon size={18} aria-hidden="true" />
             </button>
@@ -181,6 +192,7 @@ function SessionItem({
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(session.title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const displayTitle = session.title;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -250,7 +262,7 @@ function SessionItem({
             className={cn("shrink-0 transition-colors duration-200", isActive ? "text-electric" : "opacity-80 group-hover/btn:opacity-100")}
             aria-hidden="true"
           />
-          <span className="truncate flex-1">{session.title}</span>
+          <span className="truncate flex-1">{displayTitle}</span>
           <span className="absolute right-3 top-1/2 max-w-[64px] -translate-y-1/2 truncate text-[10px] font-medium text-muted-foreground/70 transition-opacity duration-200 group-hover/btn:opacity-0">
             {formatSessionMeta(session.updatedAt)}
           </span>
@@ -308,7 +320,7 @@ function ChatsTab({
   const [searchUnlocked, setSearchUnlocked] = useState(false);
 
   const handleDelete = (id: string) => {
-    if (typeof window !== "undefined" && window.confirm("Bu konuşma silinsin mi?")) {
+    if (typeof window !== "undefined" && window.confirm("Bu konuşmayı silmek istiyor musunuz?")) {
       deleteSession(id);
     }
   };
@@ -322,7 +334,7 @@ function ChatsTab({
   const handleNewChat = useCallback(async () => {
     // Reuse an existing empty "New Chat" session instead of creating duplicates
     const emptySession = sessions.find(
-      (s) => s.title === "Yeni Sohbet" && (!s.messages || s.messages.length === 0)
+      (s) => (s.title === "New Chat" || s.title === "Yeni Sohbet") && (!s.messages || s.messages.length === 0)
     );
     if (emptySession) {
       setActiveSession(emptySession.id);
@@ -343,10 +355,10 @@ function ChatsTab({
     let list = sessions;
 
     // Deduplicate empty "New Chat" sessions (keep only the active one or the most recent one)
-    const emptyNewChats = list.filter(s => s.title === "Yeni Sohbet" && (!s.messages || s.messages.length === 0));
+    const emptyNewChats = list.filter(s => (s.title === "New Chat" || s.title === "Yeni Sohbet") && (!s.messages || s.messages.length === 0));
     if (emptyNewChats.length > 1) {
       const keepId = emptyNewChats.find(s => s.id === activeSessionId)?.id || emptyNewChats[0].id;
-      list = list.filter(s => !(s.title === "Yeni Sohbet" && (!s.messages || s.messages.length === 0) && s.id !== keepId));
+      list = list.filter(s => !((s.title === "New Chat" || s.title === "Yeni Sohbet") && (!s.messages || s.messages.length === 0) && s.id !== keepId));
     }
 
     const q = search.trim().toLowerCase();
@@ -396,7 +408,7 @@ function ChatsTab({
                     : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                 )}
                 title={session.title}
-                aria-label={`${session.title} oturumunu aç`}
+            aria-label={`${session.title} oturumunu aç`}
               >
                 <MessageSquare size={16} />
               </button>
@@ -464,6 +476,8 @@ function ChatsTab({
               onClick={() => setSearch("")}
               className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded bg-black/40 text-muted-foreground hover:text-foreground hover:bg-muted/50 flex items-center justify-center transition-colors"
               aria-label="Aramayı temizle"
+              data-tooltip="Aramayı temizle"
+              title="Aramayı temizle"
             >
               <X size={12} />
             </button>
@@ -488,6 +502,8 @@ function ChatsTab({
                     ? "bg-white/5 text-foreground border border-border/40 shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                 )}
+                aria-label={tab.label}
+                aria-pressed={activeTab === tab.id}
               >
                 <tab.icon size={14} aria-hidden="true" className={activeTab === tab.id ? "text-electric" : "opacity-70"} />
                 {tab.label}
@@ -501,6 +517,27 @@ function ChatsTab({
       <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-4">
         {grouped.length > 0 ? (
           <>
+            <div className="space-y-0.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-2">
+                Sabitlenenler
+              </p>
+              {pinnedItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.title}
+                    type="button"
+                    className="min-h-[42px] w-full flex items-center gap-2.5 px-3 pr-20 text-left text-[13px] cursor-pointer rounded-[6px] text-muted-foreground hover:bg-white/[0.045] hover:text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative"
+                  >
+                    <Icon size={14} className="shrink-0 opacity-80" aria-hidden="true" />
+                    <span className="truncate flex-1">{item.title}</span>
+                    <span className="absolute right-3 top-1/2 max-w-[74px] -translate-y-1/2 truncate text-[10px] font-medium text-muted-foreground/70">
+                      {item.meta}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             {GROUP_ORDER.map(groupName => {
               const actualGroup = grouped.find(g => g.group === groupName);
               if (!actualGroup) return null;
@@ -527,7 +564,7 @@ function ChatsTab({
           </>
         ) : search && filtered.length === 0 ? (
           <div className="text-center text-muted-foreground text-xs py-8 px-4 animate-fade-in">
-            &quot;{search}&quot; ile eşleşen sohbet yok.
+            &quot;{search}&quot; ile eşleşen sohbet bulunamadı.
           </div>
         ) : (
           <div className="px-3 py-8 text-xs text-muted-foreground/70">
@@ -549,14 +586,18 @@ function ToolsTab({ expanded }: { expanded: boolean }) {
         {tools.map(([key, tool]) => {
           const Icon = getToolIcon(key);
           return (
-            <div
+            <button
               key={key}
+              type="button"
+              onClick={() => toast.info(`${tool.name} aracı aktif`)}
               className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto
-                         text-muted-foreground hover:bg-surface-elevated hover:text-foreground transition-colors duration-200"
+                         text-muted-foreground hover:bg-surface-elevated hover:text-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`${tool.name} aracı aktif`}
+              data-tooltip={tool.name}
               title={tool.name}
             >
-              <Icon size={18} />
-            </div>
+              <Icon size={18} aria-hidden="true" />
+            </button>
           );
         })}
       </div>
@@ -592,8 +633,7 @@ function ToolsTab({ expanded }: { expanded: boolean }) {
       })}
 
       <p className="text-[11px] text-muted-foreground/60 px-1 pt-2 leading-relaxed">
-        Araçlar yerel makinede tam yetkiyle çalışır. Yalnızca güvenilir
-        geliştirme ortamlarında kullanın.
+        Araçlar yerel çalışma alanına erişimle çalışır. Bunları yalnızca güvenilir geliştirme ortamlarında kullanın.
       </p>
     </div>
   );
@@ -628,13 +668,13 @@ function getSkillColor(name: string) {
 
 function getSkillCategory(name: string) {
   const n = name.toLowerCase();
-  if (n.includes("design") || n.includes("ui") || n.includes("styling") || n.includes("banner")) return "Tasarım";
-  if (n.includes("test") || n.includes("debug") || n.includes("audit")) return "Kalite";
-  if (n.includes("react") || n.includes("next") || n.includes("frontend") || n.includes("vercel")) return "Önyüz";
-  if (n.includes("slides") || n.includes("docx") || n.includes("pdf") || n.includes("xlsx")) return "Doküman";
-  if (n.includes("insforge") || n.includes("db") || n.includes("data")) return "Veri";
-  if (n.includes("browser") || n.includes("web") || n.includes("desktop")) return "Çalışma Zamanı";
-  return "Ajan";
+  if (n.includes("design") || n.includes("ui") || n.includes("styling") || n.includes("banner")) return "Design";
+  if (n.includes("test") || n.includes("debug") || n.includes("audit")) return "Quality";
+  if (n.includes("react") || n.includes("next") || n.includes("frontend") || n.includes("vercel")) return "Frontend";
+  if (n.includes("slides") || n.includes("docx") || n.includes("pdf") || n.includes("xlsx")) return "Docs";
+  if (n.includes("insforge") || n.includes("db") || n.includes("data")) return "Data";
+  if (n.includes("browser") || n.includes("web") || n.includes("desktop")) return "Runtime";
+  return "Agent";
 }
 
 // ===== Skills Tab =====
@@ -686,7 +726,7 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
                   : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
               )}
               title={s.name}
-              aria-label={`${s.name} yeteneğini ${isSelected ? "kaldır" : "ekle"}`}
+              aria-label={`${isSelected ? "Kaldır" : "Ekle"} ${s.name} becerisi`}
               aria-pressed={isSelected}
             >
               <Icon size={18} />
@@ -736,7 +776,7 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
             spellCheck={false}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Yetenekleri filtrele…"
+            placeholder="Yeteneklerde ara…"
             className="min-h-[44px] w-full pl-8 pr-8 rounded-xl text-xs
                        bg-surface-muted/50 border border-border-muted
                        placeholder:text-muted-foreground/40
@@ -768,14 +808,14 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
             <div className="w-10 h-10 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto">
               <Puzzle size={18} className="text-muted-foreground/30" />
             </div>
-            <p className="text-xs text-muted-foreground">Henüz yetenek yüklenmemiş.</p>
+            <p className="text-xs text-muted-foreground">Henüz yetenek yüklenmedi.</p>
             <p className="text-[10px] text-muted-foreground/50 leading-relaxed max-w-[200px] mx-auto">
-              <code className="px-1 py-0.5 rounded bg-surface-muted text-[10px] border border-border-muted font-mono">skills/</code> dizinine yetenek ekleyin
+              <code className="px-1 py-0.5 rounded bg-surface-muted text-[10px] border border-border-muted font-mono">skills/</code> dizinine yetenek ekleyin.
             </p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-10 px-4">
-            <p className="text-xs text-muted-foreground">&quot;{search}&quot; ile eşleşen yetenek yok</p>
+            <p className="text-xs text-muted-foreground">&quot;{search}&quot; ile eşleşen yetenek bulunamadı.</p>
           </div>
         ) : (
           filtered.map((skill, i) => {
@@ -796,7 +836,7 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
                 )}
                 style={{ animationDelay: `${Math.min(i * 25, 200)}ms` }}
                 aria-pressed={isSelected}
-                aria-label={`${skill.name} yeteneğini ${isSelected ? "kaldır" : "ekle"}`}
+                aria-label={`${isSelected ? "Kaldır" : "Ekle"} ${skill.name} becerisi`}
               >
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
                   <Icon size={13} />
@@ -814,7 +854,7 @@ function SkillsTab({ expanded }: { expanded: boolean }) {
                     {skill.description}
                   </p>
                 </div>
-              </div>
+              </button>
             );
           })
         )}
@@ -828,7 +868,21 @@ export function Sidebar() {
   const sidebarOpen = useChatStore((s) => s.sidebarOpen);
   const toggleSidebar = useChatStore((s) => s.toggleSidebar);
   const setSidebarOpen = useChatStore((s) => s.setSidebarOpen);
+  const currentUser = useChatStore((s) => s.currentUser);
+  const setCurrentUser = useChatStore((s) => s.setCurrentUser);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<SidebarTab>("chats");
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      window.location.href = "/login";
+    } catch {
+      // If the request fails, force redirect anyway
+      window.location.href = "/login";
+    }
+  }
 
   // Close sidebar on Escape (mobile)
   useEffect(() => {
@@ -868,26 +922,29 @@ export function Sidebar() {
             : "sidebar-cockpit border-r border-border/60",
           "transition-[width,transform,background-color,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
           sidebarOpen
-            ? "w-[320px] 2xl:w-[360px] translate-x-0"
-            : "w-0 md:w-[64px] -translate-x-[320px] 2xl:-translate-x-[360px] md:translate-x-0"
+            ? "w-[320px] 2xl:w-[350px] translate-x-0"
+            : "w-0 md:w-[64px] -translate-x-[320px] 2xl:-translate-x-[350px] md:translate-x-0"
         )}
       >
         {/* Header */}
-        <div className={cn("flex items-center h-[82px] px-5 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/60")}>
+        <div className={cn("flex items-center h-[82px] px-3.5 border-b shrink-0 transition-colors duration-500", showVideo ? "border-border/20" : "border-border/60")}>
           {sidebarOpen ? (
             <>
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <div className="w-11 h-11 flex items-center justify-center shrink-0 text-electric shadow-[0_0_22px_rgba(176,226,39,0.14)] animate-pulse-ring">
-                  <AgentMark className="h-11 w-11" />
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-10 h-10 flex items-center justify-center shrink-0 text-electric shadow-[0_0_22px_rgba(176,226,39,0.14)] animate-pulse-ring">
+                  <AgentMark className="h-10 w-10" />
                 </div>
-                <span className="font-black text-lg uppercase truncate animate-fade-in">
-                  Agent <span className="text-electric">Web</span>
+                <span className="brand-wordmark truncate animate-fade-in">
+                  Agent <span>Web</span>
                 </span>
               </div>
               <button
                 onClick={toggleSidebar}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center border border-transparent hover:border-border/70 hover:bg-muted transition-colors duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="min-w-[38px] min-h-[38px] flex items-center justify-center border border-transparent hover:border-border/70 hover:bg-muted transition-colors duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Kenar çubuğunu daralt"
+                aria-expanded="true"
+                data-tooltip="Kenar çubuğunu daralt"
+                title="Kenar çubuğunu daralt"
               >
                 <PanelLeftClose size={16} className="text-muted-foreground" />
               </button>
@@ -897,6 +954,9 @@ export function Sidebar() {
               onClick={toggleSidebar}
               className="min-w-[44px] min-h-[44px] flex items-center justify-center border border-transparent hover:border-border/70 hover:bg-muted transition-colors duration-200 mx-auto active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Kenar çubuğunu genişlet"
+              aria-expanded="false"
+              data-tooltip="Kenar çubuğunu genişlet"
+              title="Kenar çubuğunu genişlet"
             >
               <PanelLeft size={16} className="text-muted-foreground" />
             </button>
@@ -920,6 +980,8 @@ export function Sidebar() {
                       : "text-muted-foreground hover:text-foreground"
                   )}
                   aria-label={tab.label}
+                  aria-pressed={activeTab === tab.id}
+                  data-tooltip={tab.label}
                   title={tab.label}
                 >
                   <tab.icon size={15} aria-hidden="true" />
@@ -944,6 +1006,8 @@ export function Sidebar() {
                 )}
                 title={tab.label}
                 aria-label={tab.label}
+                aria-pressed={activeTab === tab.id}
+                data-tooltip={tab.label}
               >
                 <tab.icon size={18} />
               </button>
@@ -962,6 +1026,48 @@ export function Sidebar() {
         {activeTab === "tools" && <ToolsTab expanded={sidebarOpen} />}
         {activeTab === "skills" && <SkillsTab expanded={sidebarOpen} />}
         {sidebarOpen && <ProjectBar />}
+
+        {/* Current user & logout at bottom */}
+        {sidebarOpen && (
+          <div className="mt-auto px-3 py-3 border-t border-border/60 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-electric/20 border border-electric/30 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-electric">
+                    {currentUser ? currentUser.username[0].toUpperCase() : "?"}
+                  </span>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm text-fg-primary truncate">
+                    {currentUser?.username ?? "Misafir"}
+                  </span>
+                  <div className="flex gap-2 text-[10px]">
+                    <button
+                      onClick={() => router.push("/profile")}
+                      className="text-fg-muted hover:text-electric transition-colors"
+                    >
+                      Profil
+                    </button>
+                    <button
+                      onClick={() => router.push("/admin")}
+                      className="text-fg-muted hover:text-electric transition-colors"
+                    >
+                      Yönetici
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg text-fg-muted hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                title="Çıkış yap"
+                aria-label="Çıkış yap"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );

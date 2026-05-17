@@ -44,6 +44,7 @@ interface ChatStore {
   contextPanelOpen: boolean;
   isLoading: boolean;
   syncing: boolean;
+  currentUser: { id: string; username: string } | null;
 
   // Skills
   selectedSkills: string[];
@@ -61,6 +62,7 @@ interface ChatStore {
 
   // Hydration
   hydrate: () => Promise<void>;
+  setCurrentUser: (user: { id: string; username: string } | null) => void;
 
   // Projects
   createProject: (name: string) => Promise<string>;
@@ -111,6 +113,13 @@ interface ChatStore {
 
   // Import/Export
   importFromJson: (json: string) => Promise<{ sessions: number; messages: number }>;
+
+  // Obsidian Sync
+  obsidianVaultPath: string | null;
+  obsidianAutoSync: boolean;
+  setObsidianVaultPath: (path: string | null) => void;
+  setObsidianAutoSync: (enabled: boolean) => void;
+  syncSessionToObsidian: (sessionId: string) => Promise<void>;
 }
 
 export function genId() {
@@ -167,6 +176,7 @@ export const useChatStore = create<ChatStore>()((set, get) => {
     contextPanelOpen: false,
     isLoading: false,
     syncing: false,
+    currentUser: null,
 
     provider: "openrouter",
     model: "openai/gpt-4o-mini",
@@ -175,8 +185,18 @@ export const useChatStore = create<ChatStore>()((set, get) => {
     selectedModels: [],
     compareMode: false,
 
+    // Obsidian Sync
+    obsidianVaultPath: null,
+    obsidianAutoSync: true,
+
     hydrate: async () => {
       try {
+        // Load current user
+        const { user } = (await apiFetch("/api/auth/me")) as {
+          user: { id: string; username: string } | null;
+        };
+        set({ currentUser: user });
+
         // Load projects first
         const { projects } = (await apiFetch("/api/projects")) as {
           projects: { id: string; name: string; rootPath: string; createdAt: number; updatedAt: number }[];
@@ -377,6 +397,13 @@ export const useChatStore = create<ChatStore>()((set, get) => {
         if (next) {
           loadSessionMessages(next).catch(() => {});
         }
+        // Also delete the vault file on session deletion
+        const { obsidianAutoSync, obsidianVaultPath } = get();
+        if (obsidianVaultPath) {
+          fetch(`/api/obsidian/sync?sessionId=${encodeURIComponent(id)}`, {
+            method: "DELETE",
+          }).catch(() => {});
+        }
       },
 
       setActiveSession: (id) => {
@@ -408,6 +435,8 @@ export const useChatStore = create<ChatStore>()((set, get) => {
         } finally {
           set({ syncing: false });
         }
+        // Re-sync if title changed (file rename)
+        get().syncSessionToObsidian(id).catch(() => {});
       },
 
       addMessage: async (msg) => {
@@ -458,6 +487,8 @@ export const useChatStore = create<ChatStore>()((set, get) => {
         } finally {
           set({ syncing: false });
         }
+        // Trigger Obsidian sync after successful persistence
+        get().syncSessionToObsidian(sessionId).catch(() => {});
       },
 
       updateMessage: async (id, content) => {
@@ -629,6 +660,7 @@ export const useChatStore = create<ChatStore>()((set, get) => {
       toggleContextPanel: () => set((s) => ({ contextPanelOpen: !s.contextPanelOpen })),
       setLoading: (v) => set({ isLoading: v }),
       setSyncing: (v) => set({ syncing: v }),
+      setCurrentUser: (user) => set({ currentUser: user }),
 
       toggleSkill: (name) =>
         set((s) => {
@@ -733,6 +765,24 @@ export const useChatStore = create<ChatStore>()((set, get) => {
         await get().hydrate();
         return result;
       },
+
+      setObsidianVaultPath: (path) => set({ obsidianVaultPath: path }),
+
+      setObsidianAutoSync: (enabled) => set({ obsidianAutoSync: enabled }),
+
+      syncSessionToObsidian: async (sessionId) => {
+        const { obsidianVaultPath, obsidianAutoSync } = get();
+        if (!obsidianAutoSync || !obsidianVaultPath) return;
+        try {
+          await apiFetch("/api/obsidian/sync", {
+            method: "POST",
+            body: JSON.stringify({ sessionId }),
+          });
+        } catch (e) {
+          // Silently fail — sync is best-effort
+          console.debug("Obsidian sync skipped:", (e as Error).message);
+        }
+      },
     };
     return store;
   });
@@ -751,6 +801,7 @@ if (typeof window !== "undefined") {
       if (prefs.activeProjectId !== undefined) useChatStore.setState({ activeProjectId: prefs.activeProjectId });
       if (prefs.activeSessionId !== undefined) useChatStore.setState({ activeSessionId: prefs.activeSessionId });
       if (prefs.selectedSkills) useChatStore.setState({ selectedSkills: prefs.selectedSkills });
+      if (prefs.obsidianAutoSync !== undefined) useChatStore.setState({ obsidianAutoSync: prefs.obsidianAutoSync });
     } catch {
       // ignore corrupt prefs
     }
@@ -768,6 +819,7 @@ if (typeof window !== "undefined") {
       activeProjectId: state.activeProjectId,
       activeSessionId: state.activeSessionId,
       selectedSkills: state.selectedSkills,
+      obsidianAutoSync: state.obsidianAutoSync,
     };
     const json = JSON.stringify(prefs);
     if (json !== prevPrefs) {

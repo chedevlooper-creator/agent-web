@@ -29,6 +29,31 @@ export const toolDescriptions = {
     description: "Search files by glob name pattern or regex text content",
     status: "active" as const,
   },
+  web_fetch: {
+    name: "Web Fetch",
+    description: "Fetch a URL and extract readable text content from pages",
+    status: "active" as const,
+  },
+  execute_code: {
+    name: "Execute Code",
+    description: "Execute JavaScript or TypeScript in a sandboxed Node.js process",
+    status: "active" as const,
+  },
+  git: {
+    name: "Git",
+    description: "Execute Git commands in the project workspace",
+    status: "active" as const,
+  },
+  db_query: {
+    name: "DB Query",
+    description: "Execute read-only SQL queries against the local SQLite database",
+    status: "active" as const,
+  },
+  api_test: {
+    name: "API Test",
+    description: "Send HTTP requests to test APIs and endpoints",
+    status: "active" as const,
+  },
 };
 
 export type ToolName = keyof typeof toolDescriptions;

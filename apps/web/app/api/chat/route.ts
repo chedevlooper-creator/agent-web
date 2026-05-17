@@ -5,6 +5,7 @@ import { tools, toolDescriptions } from "@agent-web/core/tools";
 import { z } from "zod";
 import { estimateTokens } from "@/lib/utils";
 import { getApiKey, getProjectById } from "@/lib/db";
+import { getUserIdFromRequest } from "@/lib/auth";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 
@@ -105,7 +106,8 @@ export async function POST(req: NextRequest) {
 
     // If no apiKey in the request, look it up from the encrypted DB store
     if (!apiKey) {
-      apiKey = (await getApiKey(provider)) ?? undefined;
+      const userId = await getUserIdFromRequest(req);
+      apiKey = userId ? ((await getApiKey(provider, userId)) ?? undefined) : undefined;
       if (!apiKey) {
         return new Response(
           JSON.stringify({
