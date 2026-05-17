@@ -1,11 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { listSessionsWithMessages } from "@/lib/db";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const sessions = await listSessionsWithMessages();
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    const sessions = await listSessionsWithMessages(userId);
     const payload = {
       version: 1,
       exportedAt: Date.now(),

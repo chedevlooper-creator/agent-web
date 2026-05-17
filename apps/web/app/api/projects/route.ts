@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { listProjects, createProject, updateProject, deleteProject } from "@/lib/db";
+import { getUserIdFromRequest } from "@/lib/auth";
 import { genId } from "@/lib/store";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -20,9 +21,11 @@ const DeleteProjectSchema = z.object({
   id: z.string().min(1).max(100),
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const projects = await listProjects();
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    const projects = await listProjects(userId);
     return NextResponse.json({ projects });
   } catch (e) {
     console.error("GET /api/projects failed:", e);
@@ -32,6 +35,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await req.json();
     const parsed = CreateProjectSchema.safeParse(body);
     if (!parsed.success) {
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     await mkdir(rootPath, { recursive: true });
 
-    const project = await createProject({ id, name: parsed.data.name, rootPath });
+    const project = await createProject({ id, userId, name: parsed.data.name, rootPath });
     return NextResponse.json({ project }, { status: 201 });
   } catch (e) {
     console.error("POST /api/projects failed:", e);
@@ -56,6 +61,8 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await req.json();
     const parsed = UpdateProjectSchema.safeParse(body);
     if (!parsed.success) {
@@ -75,6 +82,8 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const parsed = DeleteProjectSchema.safeParse({ id });

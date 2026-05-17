@@ -6,6 +6,7 @@ import {
   deleteSession,
   updateSession,
 } from "@/lib/db";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,11 @@ const DeleteSessionSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId") || undefined;
-    const sessions = await listSessions(projectId);
+    const sessions = await listSessions(userId, projectId);
     return NextResponse.json({ sessions });
   } catch (e: unknown) {
     const err = e as Error;
@@ -38,13 +41,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await req.json();
     const parsed = CreateSessionSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
     const { id, projectId, title } = parsed.data;
-    const session = await createSession({ id, projectId, title });
+    const session = await createSession({ id, userId, projectId, title });
     return NextResponse.json({ session });
   } catch (e: unknown) {
     const err = e as Error;
@@ -54,6 +59,8 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await req.json();
     const parsed = UpdateSessionSchema.safeParse(body);
     if (!parsed.success) {
@@ -70,6 +77,8 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const parsed = DeleteSessionSchema.safeParse({ id });

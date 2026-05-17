@@ -6,6 +6,9 @@ import { listDirectoryTool } from "./list-directory.js";
 import { searchFilesTool } from "./search-files.js";
 import { webFetchTool } from "./web-fetch.js";
 import { executeCodeTool } from "./execute-code/index.js";
+import { gitTool } from "./git-tool.js";
+import { dbQueryTool } from "./db-query.js";
+import { apiTestTool } from "./api-test.js";
 
 export const tools = {
   terminal: terminalTool,
@@ -16,6 +19,9 @@ export const tools = {
   search_files: searchFilesTool,
   web_fetch: webFetchTool,
   execute_code: executeCodeTool,
+  git: gitTool,
+  db_query: dbQueryTool,
+  api_test: apiTestTool,
 } as const;
 
 export { toolDescriptions, type ToolName } from "./tool-descriptions.js";
@@ -28,4 +34,7 @@ export {
   searchFilesTool,
   webFetchTool,
   executeCodeTool,
+  gitTool,
+  dbQueryTool,
+  apiTestTool,
 };
