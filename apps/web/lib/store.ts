@@ -8,6 +8,15 @@ export interface ToolCallInfo {
   result?: string;
 }
 
+// Used by ToolCallBubble component
+export interface ToolInvocation {
+  toolCallId: string;
+  toolName: string;
+  state: "pending" | "running" | "done";
+  args: Record<string, unknown>;
+  result?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -15,15 +24,15 @@ export interface ChatMessage {
   model?: string;
   timestamp: number;
   toolCalls?: ToolCallInfo[];
-}
-
-export interface ChatMessage extends ChatMessageData {
   displayContent?: string;
-  toolInvocations?: ToolInvocation[];
 }
 
-export interface Session extends Omit<SessionData, "messages"> {
+export interface Session {
+  id: string;
+  title: string;
   messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
   projectId?: string | null;
 }
 
@@ -121,6 +130,10 @@ interface ChatStore {
   fetchSkills: () => Promise<void>;
   toggleSkill: (name: string) => void;
 
+  // API Keys
+  saveKey: (provider: string, key: string) => Promise<void>;
+  deleteKey: (provider: string) => Promise<void>;
+
   // Import/Export
   importFromJson: (json: string) => Promise<{ sessions: number; messages: number }>;
 
@@ -156,17 +169,17 @@ async function apiFetch(input: string, init?: RequestInit) {
 }
 
 export const useChatStore = create<ChatStore>()((set, get) => ({
+      projects: [],
+      activeProjectId: null,
       sessions: [],
       activeSessionId: null,
       hydrated: false,
-
-/** Rollback sessions to a prior snapshot. Exported for testing. */
-export function rollbackSessions(snapshot: ReturnType<typeof snapshotSessions>) {
-  useChatStore.setState(() => ({
-    sessions: snapshot,
-  }));
-}
-
+      sidebarOpen: true,
+      contextPanelOpen: false,
+      isLoading: false,
+      syncing: false,
+      currentUser: null,
+      selectedSkills: [],
       provider: "openrouter",
       model: "openai/gpt-4o-mini",
       apiKey: "",
@@ -174,51 +187,39 @@ export function rollbackSessions(snapshot: ReturnType<typeof snapshotSessions>) 
       serverProviders: {},
       selectedModels: [],
       compareMode: false,
-
       skills: [],
       enabledSkills: [],
+      commandPrefill: null,
+      directSend: null,
+      obsidianVaultPath: null,
+      obsidianAutoSync: false,
 
       hydrate: async () => {
         try {
           const { sessions } = (await apiFetch("/api/sessions")) as {
             sessions: { id: string; title: string; createdAt: number; updatedAt: number }[];
           };
-          // Eagerly load messages for active or first session; others load on click.
-          const enriched: Session[] = [];
-          for (const s of sessions) {
-            enriched.push({
-              id: s.id,
-              title: s.title,
-              createdAt: s.createdAt,
-              updatedAt: s.updatedAt,
-              messages: [],
-            });
-          }
+          const enriched: Session[] = sessions.map((s) => ({
+            id: s.id,
+            title: s.title,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
+            messages: [],
+          }));
           const activeId = get().activeSessionId || enriched[0]?.id || null;
           set({
             sessions: enriched,
             activeSessionId: activeId,
             hydrated: true,
           });
+          if (activeId) {
+            await loadSessionMessages(activeId);
+          }
+        } catch (e) {
+          console.error("Failed to hydrate:", e);
+          set({ hydrated: true });
         }
-        const activeId = get().activeSessionId || enriched[0]?.id || null;
-        set({
-          projects,
-          sessions: enriched,
-          activeSessionId: activeId,
-          hydrated: true,
-        });
-        if (activeId) {
-          await loadSessionMessages(activeId);
-        }
-
-        // Load saved API keys from server (not localStorage)
-        store.loadApiKeysFromServer().catch(() => {});
-      } catch (e) {
-        console.error("Failed to hydrate:", e);
-        set({ hydrated: true });
-      }
-    },
+      },
 
     // ===== Project actions =====
     createProject: async (name: string) => {
@@ -729,6 +730,16 @@ export function rollbackSessions(snapshot: ReturnType<typeof snapshotSessions>) 
       },
   })
 );
+
+function snapshotSessions() {
+  return useChatStore.getState().sessions;
+}
+
+export function rollbackSessions(snapshot: Session[]) {
+  useChatStore.setState(() => ({
+    sessions: snapshot,
+  }));
+}
 
 async function loadSessionMessages(sessionId: string) {
   try {

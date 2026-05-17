@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
@@ -106,14 +105,17 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-[--fg-muted]">
           Hesabın yok mu?{" "}
-          <Link
-            href="/register"
-            className="text-[--electric] hover:text-[--electric-hover] transition-colors"
-          >
-            Oluştur
-          </Link>
+          <span className="text-[--fg-muted] opacity-60">Oluştur</span>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

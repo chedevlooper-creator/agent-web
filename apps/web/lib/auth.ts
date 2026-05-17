@@ -1,12 +1,21 @@
 import "server-only";
 import bcrypt from "bcryptjs";
-import { getDb } from "@agent-web/db";
+import { getDb, ensureMigrated } from "@agent-web/db";
 import { users, authTokens } from "@agent-web/db";
 import { eq, and, gt } from "drizzle-orm";
 
 const SALT_ROUNDS = 12;
 const TOKEN_LENGTH = 96;
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+let migrationPromise: Promise<void> | null = null;
+
+async function ensureDb() {
+  if (!migrationPromise) {
+    migrationPromise = ensureMigrated();
+  }
+  await migrationPromise;
+}
 
 // ===== Password Hashing =====
 
@@ -21,6 +30,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 // ===== User CRUD =====
 
 export async function createUser(username: string, password: string) {
+  await ensureDb();
   const db = getDb();
   const now = Date.now();
   const id = crypto.randomUUID();
@@ -38,6 +48,7 @@ export async function createUser(username: string, password: string) {
 }
 
 export async function findUserByUsername(username: string) {
+  await ensureDb();
   const db = getDb();
   const result = await db
     .select()
@@ -84,6 +95,7 @@ export function generateToken(): string {
 }
 
 export async function createSession(userId: string): Promise<string> {
+  await ensureDb();
   const db = getDb();
   const token = generateToken();
   const now = Date.now();
@@ -100,6 +112,7 @@ export async function createSession(userId: string): Promise<string> {
 }
 
 export async function validateSession(token: string): Promise<string | null> {
+  await ensureDb();
   const db = getDb();
   const result = await db
     .select()

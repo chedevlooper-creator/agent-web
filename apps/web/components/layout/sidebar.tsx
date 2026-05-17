@@ -2,7 +2,7 @@
 
 import { useChatStore, type Session } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -27,8 +27,6 @@ import {
   Database,
   Gamepad2,
   Code,
-  FileText,
-  Globe,
   Brain,
   Palette,
   FolderOpen,
@@ -40,7 +38,6 @@ import {
   LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
-import { toolDescriptions } from "@agent-web/core";
 import { getToolIcon } from "@/lib/tool-icons";
 
 type SidebarTab = "chats" | "tools" | "activity" | "context";
@@ -93,11 +90,11 @@ function groupOf(timestamp: number): Group {
   const today = startOfDay(now);
   const ts = startOfDay(new Date(timestamp));
   const diffDays = Math.floor((today - ts) / (24 * 60 * 60 * 1000));
-  if (diffDays <= 0) return "Bugün";
-  if (diffDays === 1) return "Dün";
-  if (diffDays <= 7) return "Son 7 Gün";
-  if (diffDays <= 30) return "Son 30 Gün";
-  return "Daha Eski";
+  if (diffDays <= 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays <= 7) return "Previous 7 Days";
+  if (diffDays <= 30) return "Previous 30 Days";
+  return "Older";
 }
 
 function formatTime(timestamp: number) {
@@ -152,6 +149,7 @@ function ChatsTab({ expanded, search }: { expanded: boolean; search: string }) {
   const deleteSession = useChatStore((s) => s.deleteSession);
   const renameSession = useChatStore((s) => s.renameSession);
   const setActiveSession = useChatStore((s) => s.setActiveSession);
+  const setSidebarOpen = useChatStore((s) => s.setSidebarOpen);
 
   const handleDelete = (id: string) => {
     if (
@@ -289,77 +287,61 @@ function ChatsTab({ expanded, search }: { expanded: boolean; search: string }) {
             </span>
           </div>
         ) : (
-          grouped.map(({ group, sessions: groupSessions }) => (
-            <div key={group}>
-              <div className="px-2 pb-1 pt-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--dim-foreground)]">
-                {group}
-              </div>
-              {groupSessions.map((session) => {
-                const isActive = session.id === activeSessionId;
-                return (
-                  <div key={session.id} className="group relative">
-                    <button
-                      onClick={() => setActiveSession(session.id)}
-                      className={cn(
-                        "flex h-[38px] w-full items-center gap-2 border-l-2 px-2 text-left transition-all",
-                        isActive
-                          ? "border-[var(--primary)] bg-[var(--surface-elevated)] text-[var(--foreground)] shadow-[inset_1px_0_0_rgba(0,229,153,0.05)]"
-                          : "border-transparent text-[var(--muted-foreground)] hover:bg-[var(--overlay)] hover:text-[var(--foreground)]",
-                      )}
-                    >
-                      <MessageSquare
-                        size={15}
-                        className={cn(
-                          "shrink-0",
-                          isActive && "text-[var(--primary)]",
-                        )}
-                      />
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium leading-tight">
-                        {session.title}
-                      </span>
-                      <span className="shrink-0 font-mono text-[10px] text-[var(--dim-foreground)]">
-                        {session.messages.length}
-                      </span>
-                    </button>
-                    <button
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleDelete(session.id);
-                      }}
-                      className="absolute right-1 top-1/2 flex h-[22px] w-[22px] -translate-y-1/2 items-center justify-center border border-transparent bg-[var(--surface-elevated)] text-[var(--muted-foreground)] opacity-0 transition-all hover:border-[var(--destructive)] hover:text-[var(--destructive)] group-hover:opacity-100"
-                      aria-label="Delete session"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            {GROUP_ORDER.map(groupName => {
+          GROUP_ORDER.map(groupName => {
               const actualGroup = grouped.find(g => g.group === groupName);
               if (!actualGroup) return null;
               
               return (
                 <div key={groupName} className="space-y-0.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-1">
-                    {groupName}
+                    {groupName === "Today" ? "Bugün" : groupName === "Yesterday" ? "Dün" : groupName === "Previous 7 Days" ? "Son 7 Gün" : groupName === "Previous 30 Days" ? "Son 30 Gün" : "Daha Eski"}
                   </p>
                   
-                  {actualGroup?.sessions.map((session) => (
-                    <SessionItem
-                      key={session.id}
-                      session={session}
-                      isActive={session.id === activeSessionId}
-                      onSelect={() => handleSelectSession(session.id)}
-                      onDelete={() => handleDelete(session.id)}
-                      onRename={(id, title) => renameSession(id, title)}
-                    />
-                  ))}
+                  {actualGroup?.sessions.map((session) => {
+                    const isActive = session.id === activeSessionId;
+                    return (
+                      <div key={session.id} className="group relative">
+                        <button
+                          onClick={() => handleSelectSession(session.id)}
+                          className={cn(
+                            "flex h-[38px] w-full items-center gap-2 border-l-2 px-2 text-left transition-all",
+                            isActive
+                              ? "border-[var(--primary)] bg-[var(--surface-elevated)] text-[var(--foreground)] shadow-[inset_1px_0_0_rgba(0,229,153,0.05)]"
+                              : "border-transparent text-[var(--muted-foreground)] hover:bg-[var(--overlay)] hover:text-[var(--foreground)]",
+                          )}
+                        >
+                          <MessageSquare
+                            size={15}
+                            className={cn(
+                              "shrink-0",
+                              isActive && "text-[var(--primary)]",
+                            )}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-xs font-medium leading-tight">
+                            {session.title}
+                          </span>
+                          <span className="shrink-0 font-mono text-[10px] text-[var(--dim-foreground)]">
+                            {session.messages.length}
+                          </span>
+                        </button>
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(session.id);
+                          }}
+                          className="absolute right-1 top-1/2 flex h-[22px] w-[22px] -translate-y-1/2 items-center justify-center border border-transparent bg-[var(--surface-elevated)] text-[var(--muted-foreground)] opacity-0 transition-all hover:border-[var(--destructive)] hover:text-[var(--destructive)] group-hover:opacity-100"
+                          aria-label="Delete session"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               );
-            })}
-          </>
-        ) : search && filtered.length === 0 ? (
+            })
+        )}
+        {search && filtered.length === 0 ? (
           <div className="text-center text-muted-foreground text-xs py-8 px-4 animate-fade-in">
             &quot;{search}&quot; ile eşleşen sohbet bulunamadı.
           </div>

@@ -212,9 +212,6 @@ export async function POST(req: NextRequest) {
       maxSteps: 8,
     });
 
-    // Clean up timeout when stream finishes
-    result.text.then(() => clearTimeout(timeout)).catch(() => clearTimeout(timeout));
-
     return result.toDataStreamResponse({
       getErrorMessage: (e: unknown) =>
         e instanceof Error ? e.message : String(e),

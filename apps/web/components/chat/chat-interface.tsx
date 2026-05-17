@@ -49,14 +49,12 @@ import {
   Table2,
   Code2,
   FileJson,
+  CornerDownLeft,
 } from "lucide-react";
-import { TypingIndicator } from "./typing-indicator";
-import { CompareRow } from "./compare-row";
-import { WelcomeHero } from "./welcome-hero";
-import { formatFileSize } from "./file-upload";
-import { useScrollAnchor, useFileUpload } from "@/lib/hooks";
-import { MessageBubble } from "./message-bubble";
-import { ChatInput } from "./chat-input";
+import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // ---- File preview types ----
 interface FilePreview {
@@ -99,11 +97,6 @@ function isPreviewable(filename: string): boolean {
   return ext ? PREVIEWABLE_EXTS.has(ext) : false;
 }
 
-function genId() {
-  return (
-    Math.random().toString(36).slice(2, 11) + Date.now().toString(36).slice(-4)
-  );
-}
 
 const STARTER_PROMPTS = [
   "Review this interface and return three UX improvements.",
@@ -870,37 +863,34 @@ async function streamChat(
           } catch {
             error = trimmed.slice(2);
           }
+        } else if (trimmed.startsWith("9:")) {
+          // tool call started (Vercel AI SDK format)
+          try {
+            const tc = JSON.parse(trimmed.slice(2));
+            if (tc.toolCallId && tc.toolName) {
+              onToolCall?.({
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                args: tc.args ?? {},
+              });
+            }
+          } catch {}
+        } else if (trimmed.startsWith("a:")) {
+          // tool call result (Vercel AI SDK format)
+          try {
+            const tr = JSON.parse(trimmed.slice(2));
+            if (tr.toolCallId) {
+              const result = typeof tr.result === "string" ? tr.result : JSON.stringify(tr.result);
+              onToolCall?.({
+                toolCallId: tr.toolCallId,
+                toolName: "",
+                args: {},
+                result,
+              });
+            }
+          } catch {}
         }
-      } catch {}
-    } else if (trimmed.startsWith("3:")) {
-      try {
-        const e = JSON.parse(trimmed.slice(2));
-        error = typeof e === "string" ? e : JSON.stringify(e);
-      } catch {
-        error = trimmed.slice(2);
       }
-    } else if (trimmed.startsWith("9:")) {
-      try {
-        const tc = JSON.parse(trimmed.slice(2));
-        if (tc.toolCallId && tc.toolName) {
-          callbacks.onToolCall({
-            toolCallId: tc.toolCallId,
-            toolName: tc.toolName,
-            args: tc.args ?? {},
-          });
-        }
-      } catch {}
-    } else if (trimmed.startsWith("a:")) {
-      try {
-        const tr = JSON.parse(trimmed.slice(2));
-        if (tr.toolCallId) {
-          const result = typeof tr.result === "string" ? tr.result : JSON.stringify(tr.result);
-          callbacks.onToolResult({
-            toolCallId: tr.toolCallId,
-            result,
-          });
-        }
-      } catch {}
     }
     return { text, error, toolCalls };
   } catch (e: unknown) {
@@ -1041,6 +1031,15 @@ export function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distFromBottom < 100;
+    shouldAutoScroll.current = nearBottom;
+    setShowScrollBtn(!nearBottom);
+  }, []);
+
   // Watch for commandPrefill from CommandRail, set input and focus
   useEffect(() => {
     if (commandPrefill) {
@@ -1073,24 +1072,8 @@ export function ChatInterface() {
     return [model];
   }, [compareMode, selectedModels, model]);
 
-  const patchLocalToolInvocations = useCallback(
-    (messageId: string, updater: (prev: ToolInvocation[]) => ToolInvocation[]) => {
-      useChatStore.setState((s) => ({
-        sessions: s.sessions.map((ses) => {
-          if (ses.id !== s.activeSessionId) return ses;
-          return {
-            ...ses,
-            messages: ses.messages.map((m) =>
-              m.id === messageId
-                ? { ...m, toolInvocations: updater(m.toolInvocations ?? []) }
-                : m
-            ),
-          };
-        }),
-      }));
-    },
-    []
-  );
+
+
 
   const runSingle = useCallback(
     async (
@@ -1101,7 +1084,6 @@ export function ChatInterface() {
     ) => {
       const currentFiles = attachedFiles;
       const { text, error } = await streamChat(
-        { messages: msgs, provider, model: useModel, projectId: activeProjectId ?? undefined, skills: selectedSkills.length > 0 ? selectedSkills : undefined },
         {
           messages: msgs,
           provider,
@@ -1119,11 +1101,11 @@ export function ChatInterface() {
           // Update tool calls in the local message
           const ses = useChatStore
             .getState()
-            .sessions.find((s) => s.id === sessionId);
-          const msg = ses?.messages.find((m) => m.id === placeholderId);
+            .sessions.find((s: { id: string }) => s.id === sessionId);
+            const msg = ses?.messages.find((m: ChatMessage) => m.id === placeholderId);
           if (msg) {
             const existing = msg.toolCalls || [];
-            const idx = existing.findIndex((t) => t.id === tc.toolCallId);
+            const idx = existing.findIndex((t: ToolCallInfo) => t.id === tc.toolCallId);
             const mappedTc = {
               id: tc.toolCallId,
               name: tc.toolName,
@@ -1153,8 +1135,8 @@ export function ChatInterface() {
       patchLocalMessage(placeholderId, finalText);
 
       function getCurrentText(id: string): string {
-        const ses = useChatStore.getState().sessions.find((s) => s.id === sessionId);
-        return ses?.messages.find((m) => m.id === id)?.content ?? "";
+        const ses = useChatStore.getState().sessions.find((s: { id: string }) => s.id === sessionId);
+        return ses?.messages.find((m: ChatMessage) => m.id === id)?.content ?? "";
       }
     },
     [provider, enabledSkills, attachedFiles, patchLocalMessage],
@@ -1186,10 +1168,10 @@ export function ChatInterface() {
       });
 
       try {
-        await Promise.all(
+        const results = await Promise.allSettled(
           placeholders.map((p) => runSingle(sessionId!, msgs, p.model, p.id)),
         );
-        results.forEach((r, i) => {
+        results.forEach((r: PromiseSettledResult<void>, i: number) => {
           if (r.status === "rejected") {
             const reason = r.reason instanceof Error ? r.reason.message : String(r.reason);
             toast.error(`${placeholders[i].model}: ${reason}`);
@@ -1284,15 +1266,11 @@ export function ChatInterface() {
     const userMsg: ChatMessage = {
       id: genId(),
       role: "user",
-      content: fullContent,
-      displayContent: displayContent !== fullContent ? displayContent : undefined,
+      content: input,
       timestamp: Date.now(),
     };
     
-    if (!isString) {
-      setInput("");
-      clearAttachedFiles();
-    }
+    setInput("");
 
     await addMessage(userMsg);
 
@@ -1305,28 +1283,28 @@ export function ChatInterface() {
     const currentMessages = [
       ...(useChatStore
         .getState()
-        .sessions.find((s) => s.id === useChatStore.getState().activeSessionId)
+        .sessions.find((s: { id: string }) => s.id === useChatStore.getState().activeSessionId)
         ?.messages ?? []),
     ];
     // Build prompt history (skip empty assistant placeholders, drop model meta)
     const msgs = currentMessages
-      .filter((m) => m.content)
-      .map((m) => ({ role: m.role, content: m.content }));
+      .filter((m: ChatMessage) => m.content)
+      .map((m: ChatMessage) => ({ role: m.role, content: m.content }));
 
     await submitChat(msgs);
   }, [input, isLoading, hasApiKey, addMessage, attachedFiles, submitChat]);
 
   const handleRetry = useCallback(
     async (errorMessageId: string) => {
-      const idx = messages.findIndex((m) => m.id === errorMessageId);
+      const idx = messages.findIndex((m: ChatMessage) => m.id === errorMessageId);
       if (idx === -1) return;
       const target = messages[idx];
       await truncateAfter(target.timestamp, true);
       const freshSession = useChatStore.getState().sessions.find(
-        (s) => s.id === useChatStore.getState().activeSessionId
+        (s: { id: string }) => s.id === useChatStore.getState().activeSessionId
       );
       const remaining = freshSession?.messages ?? [];
-      const msgs = remaining.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content }));
+      const msgs = remaining.filter((m: ChatMessage) => m.content).map((m: ChatMessage) => ({ role: m.role, content: m.content }));
       await submitChat(msgs);
     },
     [messages, truncateAfter, submitChat],
@@ -1334,7 +1312,7 @@ export function ChatInterface() {
 
   const handleEdit = useCallback(
     async (messageId: string, newContent: string) => {
-      const idx = messages.findIndex((m) => m.id === messageId);
+      const idx = messages.findIndex((m: ChatMessage) => m.id === messageId);
       if (idx === -1) return;
       const target = messages[idx];
       await updateMessage(messageId, newContent);
@@ -1343,10 +1321,10 @@ export function ChatInterface() {
       // Build prompt: messages up to and including edited message (with new content)
       const remaining = messages
         .slice(0, idx + 1)
-        .map((m) => (m.id === messageId ? { ...m, content: newContent } : m));
+        .map((m: ChatMessage) => (m.id === messageId ? { ...m, content: newContent } : m));
       const msgs = remaining
-        .filter((m) => m.content)
-        .map((m) => ({ role: m.role, content: m.content }));
+        .filter((m: ChatMessage) => m.content)
+        .map((m: ChatMessage) => ({ role: m.role, content: m.content }));
 
       await submitChat(msgs);
     },
@@ -1442,7 +1420,6 @@ export function ChatInterface() {
                   key={item.msg.id}
                   message={item.msg}
                   index={item.index}
-                  isStreaming={isLoading && item.index === messages.length - 1}
                   onRetry={
                     item.msg.role === "assistant" && item.msg.content.startsWith("Error:")
                       ? () => handleRetry(item.msg.id)

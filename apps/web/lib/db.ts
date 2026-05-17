@@ -1,8 +1,8 @@
 import "server-only";
-import { getDb, sessions, messages, memories, ensureMigrated } from "@agent-web/db";
-import { eq, desc, asc, and, gt, gte } from "drizzle-orm";
+import { getDb, sessions, messages, projects, users, memories, apiKeys, obsidianConfig, ensureMigrated } from "@agent-web/db";
+import { eq, desc, asc, and, gt, gte, isNull, inArray } from "drizzle-orm";
 
-export type { Role };
+export type Role = "user" | "assistant" | "system";
 
 export interface DbProject {
   id: string;
@@ -476,4 +476,73 @@ export async function deleteMemory(key: string): Promise<void> {
   await ready();
   const db = getDb();
   await db.delete(memories).where(eq(memories.key, key));
+}
+
+// ===== API Keys CRUD =====
+
+export async function listApiKeys(userId: string): Promise<{ provider: string; keyPreview: string }[]> {
+  await ready();
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(apiKeys)
+    .where(eq(apiKeys.userId, userId))
+    .orderBy(asc(apiKeys.createdAt));
+  return rows.map((r) => ({
+    provider: r.provider,
+    keyPreview: r.key.slice(0, 8) + "...",
+  }));
+}
+
+export async function saveApiKey(provider: string, key: string, userId: string): Promise<void> {
+  await ready();
+  const db = getDb();
+  const now = Date.now();
+  await db
+    .insert(apiKeys)
+    .values({ provider, userId, key, createdAt: now, updatedAt: now })
+    .onConflictDoUpdate({
+      target: [apiKeys.provider, apiKeys.userId],
+      set: { key, updatedAt: now },
+    });
+}
+
+export async function deleteApiKey(provider: string, userId: string): Promise<void> {
+  await ready();
+  const db = getDb();
+  await db
+    .delete(apiKeys)
+    .where(and(eq(apiKeys.provider, provider), eq(apiKeys.userId, userId)));
+}
+
+// ===== Obsidian Config CRUD =====
+
+export async function getObsidianConfig(userId: string): Promise<{ vaultPath: string } | null> {
+  await ready();
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(obsidianConfig)
+    .where(eq(obsidianConfig.userId, userId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function setObsidianConfig(userId: string, vaultPath: string): Promise<void> {
+  await ready();
+  const db = getDb();
+  const now = Date.now();
+  await db
+    .insert(obsidianConfig)
+    .values({ userId, vaultPath, updatedAt: now })
+    .onConflictDoUpdate({
+      target: [obsidianConfig.userId],
+      set: { vaultPath, updatedAt: now },
+    });
+}
+
+export async function deleteObsidianConfig(userId: string): Promise<void> {
+  await ready();
+  const db = getDb();
+  await db.delete(obsidianConfig).where(eq(obsidianConfig.userId, userId));
 }

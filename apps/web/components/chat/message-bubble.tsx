@@ -193,10 +193,19 @@ export function MessageBubble({
           )}
 
           {/* Tool invocations */}
-          {!isUser && message.toolInvocations && message.toolInvocations.length > 0 && (
+          {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
             <div className="mt-2.5 space-y-1.5">
-              {message.toolInvocations.map((inv) => (
-                <ToolCallBubble key={inv.toolCallId} invocation={inv} />
+              {message.toolCalls.map((tc) => (
+                <ToolCallBubble
+                  key={tc.id}
+                  invocation={{
+                    toolCallId: tc.id,
+                    toolName: tc.name,
+                    state: tc.result ? "done" : "pending",
+                    args: (() => { try { return JSON.parse(tc.args); } catch { return {}; } })(),
+                    result: tc.result,
+                  }}
+                />
               ))}
             </div>
           )}

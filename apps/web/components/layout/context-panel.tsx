@@ -1,6 +1,6 @@
 "use client";
 
-import { useChatStore, useActiveSession, useIsEmptySession } from "@/lib/store";
+import { useChatStore, useActiveSession, useIsEmptySession, type ChatMessage, type ToolCallInfo } from "@/lib/store";
 import { cn, estimateTokens } from "@/lib/utils";
 import React, { useMemo } from "react";
 import {
@@ -55,14 +55,14 @@ export function ContextPanel() {
       };
     }
     const msgs = activeSession.messages;
-    const assistantMsgs = msgs.filter((m) => m.role === "assistant");
+    const assistantMsgs = msgs.filter((m: ChatMessage) => m.role === "assistant");
     let toolCalls = 0;
     for (const m of msgs) {
-      if (m.toolInvocations) {
-        toolCalls += m.toolInvocations.length;
+      if (m.toolCalls) {
+        toolCalls += m.toolCalls.length;
       }
     }
-    const uniqueModels = [...new Set(assistantMsgs.map((m) => m.model).filter(Boolean))] as string[];
+    const uniqueModels = [...new Set(assistantMsgs.map((m: ChatMessage) => m.model).filter(Boolean))] as string[];
 
     return {
       messageCount: msgs.length,
@@ -84,8 +84,8 @@ export function ContextPanel() {
     if (!activeSession) return [];
     const msgs = activeSession.messages;
     for (let i = msgs.length - 1; i >= 0; i--) {
-      if (msgs[i].toolInvocations && msgs[i].toolInvocations!.length > 0) {
-        return msgs[i].toolInvocations!.filter((t) => t.state === "pending");
+      if (msgs[i].toolCalls && msgs[i].toolCalls!.length > 0) {
+        return msgs[i].toolCalls!.filter((t: ToolCallInfo) => t.result === undefined);
       }
     }
     return [];
@@ -207,12 +207,12 @@ export function ContextPanel() {
             <h3 className="section-label">Aktif Araçlar</h3>
             {activeTools.length > 0 ? (
               <div className="space-y-1">
-                {activeTools.map((t) => {
-                  const ToolIcon = getToolIcon(t.toolName);
+                {activeTools.map((t: ToolCallInfo) => {
+                  const ToolIcon = getToolIcon(t.name);
                   return (
-                    <div key={t.toolCallId} className="flex items-center gap-2 text-xs text-warning">
+                    <div key={t.id} className="flex items-center gap-2 text-xs text-warning">
                       <ToolIcon size={12} aria-hidden="true" />
-                      <span className="min-w-0 truncate font-mono">{t.toolName}</span>
+                      <span className="min-w-0 truncate font-mono">{t.name}</span>
                       <span className="ml-auto shrink-0 text-[10px] text-muted-foreground animate-pulse">çalışıyor…</span>
                     </div>
                   );
