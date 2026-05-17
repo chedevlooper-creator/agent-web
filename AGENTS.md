@@ -127,3 +127,31 @@ graph TD
 
 - **Working with deleted files**:
   - A large number of source files were deleted from the working tree but remain in Git history. If you need to reference or restore them, use `git show HEAD:<path>`.
+
+## Cursor Cloud specific instructions
+
+### Environment setup
+
+- **Node.js 22 + pnpm 9.0.0** are available via nvm/corepack. The update script runs `pnpm install` and builds both workspace packages (`@agent-web/core`, `@agent-web/db`).
+- **`.env.local`** must exist at `apps/web/.env.local` (copy from `.env.example`). At least one LLM provider key (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or `DEEPSEEK_API_KEY`) is needed for chat to work end-to-end.
+- The database is SQLite at `apps/web/data/local.db` (auto-created). To reset, delete this file and restart the dev server.
+
+### Known migration issue
+
+The migration in `packages/db/src/migrate.ts` batches multiple `ALTER TABLE` statements in a single `client.execute()` call (`CREATE_USERS_MIGRATE_V2`). On a fresh database, this silently fails because `api_keys` already has `user_id` from its `CREATE TABLE` statement. After the first `pnpm dev` run, you must manually add the missing columns:
+
+```bash
+node --input-type=module -e "
+import { createClient } from '/workspace/node_modules/.pnpm/@libsql+client@0.14.0/node_modules/@libsql/client/lib-esm/node.js';
+const client = createClient({ url: 'file:./apps/web/data/local.db' });
+try { await client.execute('ALTER TABLE sessions ADD COLUMN user_id TEXT'); } catch {}
+try { await client.execute('ALTER TABLE messages ADD COLUMN user_id TEXT'); } catch {}
+"
+```
+
+### Running services
+
+- **Dev server**: `pnpm dev` starts Turbo which builds packages and runs `next dev --webpack` on port 3000. The app redirects to `/login` — register a user via POST `/api/auth/register` or through the UI.
+- **Lint**: `pnpm lint` — has 1 pre-existing error (`SyncSettings` undefined in `settings-panel.tsx`) and ~35 warnings; these are not regressions.
+- **Tests**: `pnpm test` — 3 pre-existing failures in `store.test.ts` (missing `snapshotSessions` function); 53 tests pass.
+- Docker is not needed for local development.
