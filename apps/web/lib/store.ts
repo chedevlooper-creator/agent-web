@@ -646,16 +646,6 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       setSyncing: (v) => set({ syncing: v }),
       setCurrentUser: (user) => set({ currentUser: user }),
 
-      toggleSkill: (name) =>
-        set((s) => {
-          const exists = s.selectedSkills.includes(name);
-          return {
-            selectedSkills: exists
-              ? s.selectedSkills.filter((n) => n !== name)
-              : [...s.selectedSkills, name],
-          };
-        }),
-
       setConfig: (c) => set((s) => ({ ...s, ...c })),
 
       checkApiKeyStatus: async () => {
