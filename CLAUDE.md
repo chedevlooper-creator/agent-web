@@ -131,10 +131,13 @@ the `memories` table is injected under "User Context", capped by
 - `Dockerfile` (Node 22 base) targets: `development`, `production`,
   `sandbox` (isolated Node + Python executor, unprivileged user; the compose
   `sandbox` service uses `profiles: [sandbox]` and is not started by default).
-- `apps/web/DESIGN_SYSTEM.md` has been **deleted from the working tree** but
-  remains in git history (dark-first, glassmorphism, WCAG 2.1 AA, 8pt grid).
-  Many source files were similarly deleted; recover with
-  `git show HEAD:<path>`.
+- `apps/web/DESIGN_SYSTEM.md` was **deleted** (commit `a2961d4`, "cleanup:
+  remove stale files…") and is **not** present at `HEAD` — it covered
+  dark-first, glassmorphism, WCAG 2.1 AA, 8pt grid. Many source files were
+  similarly removed. To recover one, find the deleting commit with
+  `git log --diff-filter=D -- <path>` and read it via
+  `git show <deleting-commit>^:<path>` (plain `git show HEAD:<path>` fails
+  for files already deleted before HEAD).
 
 ## Environment variables
 
