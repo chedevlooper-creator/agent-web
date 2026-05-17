@@ -56,6 +56,63 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const apiKeys = sqliteTable("api_keys", {
+  provider: text("provider").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  key: text("key").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.provider, table.userId] }),
+}));
+
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
+
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const authTokens = sqliteTable("auth_tokens", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: integer("expires_at").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const obsidianConfig = sqliteTable("obsidian_config", {
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  vaultPath: text("vault_path").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId] }),
+}));
+
+export type ObsidianConfig = typeof obsidianConfig.$inferSelect;
+export type NewObsidianConfig = typeof obsidianConfig.$inferInsert;
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type AuthToken = typeof authTokens.$inferSelect;
+export type NewAuthToken = typeof authTokens.$inferInsert;
+
 export const memories = sqliteTable("memories", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
@@ -64,9 +121,5 @@ export const memories = sqliteTable("memories", {
   updatedAt: integer("updated_at").notNull(),
 });
 
-export type Session = typeof sessions.$inferSelect;
-export type NewSession = typeof sessions.$inferInsert;
-export type Message = typeof messages.$inferSelect;
-export type NewMessage = typeof messages.$inferInsert;
 export type Memory = typeof memories.$inferSelect;
 export type NewMemory = typeof memories.$inferInsert;
