@@ -16,17 +16,17 @@ const BACKEND = getBackend();
 
 export const executeCodeTool = tool({
   description:
-    "Execute JavaScript or TypeScript code in a sandboxed Node.js process. " +
+    "Execute JavaScript, TypeScript, or Python code in a sandboxed environment. " +
     (BACKEND === "docker"
-      ? "Runs inside an isolated Docker sandbox container."
+      ? "Runs inside an isolated Docker sandbox container with pandas, numpy, openpyxl, requests, beautifulsoup4 pre-installed."
       : "Writes code to a temp file, runs it, and returns stdout/stderr. Blocks dangerous imports (child_process, fs, net, etc.).") +
     ` Default timeout: ${DEFAULT_TIMEOUT_MS}ms.`,
   parameters: z.object({
     code: z.string().describe("The source code to execute"),
     language: z
-      .enum(["javascript", "typescript"])
+      .enum(["javascript", "typescript", "python"])
       .describe(
-        "Programming language of the code ('javascript' or 'typescript')"
+        "Programming language of the code ('javascript', 'typescript', or 'python')"
       ),
     timeout: z
       .number()

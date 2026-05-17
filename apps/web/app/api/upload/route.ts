@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,11 @@ async function ensureDir() {
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     await ensureDir();
 
     const formData = await req.formData();
@@ -47,8 +54,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ files });
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e, req);
   }
 }
 

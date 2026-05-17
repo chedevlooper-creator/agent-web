@@ -12,7 +12,7 @@ const RequestSchema = z.object({
     )
     .min(1)
     .max(500),
-  provider: z.enum(["openai", "openrouter", "opencode", "deepseek"]),
+  provider: z.enum(["deepseek"]),
   model: z.string().min(1).max(200),
   apiKey: z.string().optional(),
   projectRootPath: z.string().optional(),
@@ -21,8 +21,8 @@ const RequestSchema = z.object({
 describe("Chat API request schema", () => {
   const validBody = {
     messages: [{ role: "user", content: "Hello" }],
-    provider: "openrouter",
-    model: "openai/gpt-4o-mini",
+    provider: "deepseek",
+    model: "deepseek-v4-pro",
     apiKey: "sk-test",
   };
 

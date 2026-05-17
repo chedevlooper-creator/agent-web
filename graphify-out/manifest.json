@@ -1,0 +1,414 @@
+{
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\eslint.config.mjs": {
+    "mtime": 1778655463.0539339,
+    "hash": "6c4307ffa009658f5c97f5629094c0c2"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\middleware.ts": {
+    "mtime": 1779006642.7864735,
+    "hash": "c684c71c909142dfb0a718d4880c575f"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\next-env.d.ts": {
+    "mtime": 1779007145.77236,
+    "hash": "b698cdd97fe8e3bd16dcd74899ad7cef"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\next.config.ts": {
+    "mtime": 1779003740.3976734,
+    "hash": "45e09bf67c984d24e5d3404f2684d246"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\postcss.config.mjs": {
+    "mtime": 1779003558.4909947,
+    "hash": "c0c313a495c36c02be449fd09aa4478e"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\tailwind.config.ts": {
+    "mtime": 1779003740.3987508,
+    "hash": "29fd1fce6afff6498e86bd5c65438713"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\vitest.config.ts": {
+    "mtime": 1779003740.3987508,
+    "hash": "addb9e1f005e90d477ff58bbadfdaede"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\vitest.setup.ts": {
+    "mtime": 1779003740.3997643,
+    "hash": "9672bdba875cd96c3d27f51c0dad6881"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\layout.tsx": {
+    "mtime": 1779006373.727283,
+    "hash": "27f9c445a639e41090d666ca947a7892"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\page.tsx": {
+    "mtime": 1779003929.684353,
+    "hash": "34e44e0c60677e38a403b031c3ff8727"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\auth\\login\\route.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "4c3e567f96fd752a69d366d04ef9183a"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\auth\\logout\\route.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "1dea1946ce6a1e93f118b975c0c4c657"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\auth\\me\\route.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "49337a65561277e4bd78622f1b3601bf"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\auth\\password\\route.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "d433db1c315baa33b374f67547e9fd0b"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\auth\\register\\route.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "7843a47880146596253c0207c823486d"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\auth\\users\\route.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "584164b20c3d115c78885c3042c7cfac"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\chat\\route.ts": {
+    "mtime": 1779006691.4738462,
+    "hash": "07bcf78955cf856a4288d1abdc859ae6"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\chat\\__tests__\\route.test.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "72606564aa2473946120c1a206d16fbd"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\config\\status\\route.ts": {
+    "mtime": 1779003929.684353,
+    "hash": "675a11a1bc7d656943db1ab9756a741f"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\keys\\route.ts": {
+    "mtime": 1779003740.376218,
+    "hash": "98bc573b444ca42fdc1c533b89ff7786"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\memory\\route.ts": {
+    "mtime": 1779003929.684353,
+    "hash": "1b4acfd3381b76a1fcd142d73a2b01bc"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\obsidian\\config\\route.ts": {
+    "mtime": 1779003740.381458,
+    "hash": "e1fccf37dc09d73dcf1fbb982e64db57"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\obsidian\\sync\\route.ts": {
+    "mtime": 1779003740.382087,
+    "hash": "075c70dbed26891519fda4344e08e507"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\projects\\route.ts": {
+    "mtime": 1779003740.3830905,
+    "hash": "7bf3d3ae28e053211a3de1c270e98f48"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\projects\\[id]\\files\\route.ts": {
+    "mtime": 1778902391.4145668,
+    "hash": "215b773d32ffb0eb67f3b18e5cbc85d9"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\search\\route.ts": {
+    "mtime": 1779003740.3834865,
+    "hash": "7a216d6f92bc1194296c7aae4e2bb18f"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\sessions\\route.ts": {
+    "mtime": 1779003740.38498,
+    "hash": "d8f013597a03e81a5bd52d274b6bc106"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\sessions\\export\\route.ts": {
+    "mtime": 1779003740.3838596,
+    "hash": "f0590cec0cb8f9bd1b3a32e0ed51d853"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\sessions\\import\\route.ts": {
+    "mtime": 1779003740.38498,
+    "hash": "b5e5c09c60e6bfe4c5884fee01a84594"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\sessions\\[id]\\messages\\route.ts": {
+    "mtime": 1779003740.3838596,
+    "hash": "1b8e057d2298b7bc35b580c222b70245"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\skills\\route.ts": {
+    "mtime": 1778979356.4383588,
+    "hash": "47a56a14912549ecd6fc6ce2c7185fa4"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\upload\\route.ts": {
+    "mtime": 1779003929.684353,
+    "hash": "4a9795b22cdb55b186be026cf57aafdc"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\api\\upload\\preview\\route.ts": {
+    "mtime": 1779003929.684353,
+    "hash": "4dd8404226ecd472e330ed866ba14478"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\app\\login\\page.tsx": {
+    "mtime": 1779006651.1392117,
+    "hash": "4f5d4e2bed2cda36d8810292e27e0c01"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\async-view.tsx": {
+    "mtime": 1779007539.3444097,
+    "hash": "4ae5a50454fc389d050cd6ea51942781"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\error-boundary.tsx": {
+    "mtime": 1779007539.3483047,
+    "hash": "99e885597813eba65ed5e21f50488b1a"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\settings-panel.tsx": {
+    "mtime": 1779007590.6310687,
+    "hash": "6c27a3b9f9e3f6b957df84e2fc314654"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\skeleton-loader.tsx": {
+    "mtime": 1779007539.35147,
+    "hash": "af4740585d36879b23d2dbe08e118181"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\chat-input.tsx": {
+    "mtime": 1779007539.3454635,
+    "hash": "f3a7a3cdf4a7e2a3dfe08ecf4ce7456c"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\chat-interface.tsx": {
+    "mtime": 1779007539.3464737,
+    "hash": "0f35d41d6e30eb9efd6b2b3e81e86c4a"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\compare-row.tsx": {
+    "mtime": 1779007539.3464737,
+    "hash": "ea2e92385c2bc9ebe25c1b15eb5c933b"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\file-upload.tsx": {
+    "mtime": 1779007539.3464737,
+    "hash": "2a8043778ca8c8b2c4cbb3ca897c7d28"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\markdown-renderer.tsx": {
+    "mtime": 1779007539.3474946,
+    "hash": "dc431631e67dbadee4b291f9983fe19f"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\message-bubble.tsx": {
+    "mtime": 1779007539.3479838,
+    "hash": "dfd232073404579f958c61aef94e92ff"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\tool-call-bubble.tsx": {
+    "mtime": 1779007539.3483047,
+    "hash": "8966f4df3376749e559f577c5d658fbb"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\typing-indicator.tsx": {
+    "mtime": 1779007539.3483047,
+    "hash": "7d9767a56da1b6a8b26b477720c279e6"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\welcome-hero.tsx": {
+    "mtime": 1779007539.3483047,
+    "hash": "56683947f36c3b9e6c4f515ddf7aa8e5"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\chat\\__tests__\\message-bubble.test.tsx": {
+    "mtime": 1779007539.3454635,
+    "hash": "02d935a8e8fd3b03cc123f66526e9534"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\layout\\context-panel.tsx": {
+    "mtime": 1779007539.3494523,
+    "hash": "8628ef71b79fe4db57ac9eb80750424e"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\layout\\sidebar.tsx": {
+    "mtime": 1779007539.3494523,
+    "hash": "37b5603b7a14768458c194b903dd1d73"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\settings\\sync-settings.tsx": {
+    "mtime": 1779007539.350457,
+    "hash": "1a7d0245baf212a12d91d34d1cdde6ff"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\badge.tsx": {
+    "mtime": 1779007539.35147,
+    "hash": "1ff3e04a7fd408f9bd7520187dce5d19"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\button.tsx": {
+    "mtime": 1779007539.35147,
+    "hash": "fa7dc9bec92a2ea0344e2a5c4738514f"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\card.tsx": {
+    "mtime": 1779007539.3524716,
+    "hash": "8ce8ba8f46073af348bcd6751b909682"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\scroll-area.tsx": {
+    "mtime": 1779007539.3524716,
+    "hash": "7e213fb00f86a1b00b2df7cfab32525d"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\separator.tsx": {
+    "mtime": 1779007539.3524716,
+    "hash": "bb51ace4279e49d0a4628fafa6ea10b9"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\skeleton.tsx": {
+    "mtime": 1779007539.3534641,
+    "hash": "58a45c5aceb0b4cb1c16d06758ea16d6"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\textarea.tsx": {
+    "mtime": 1779007539.3534641,
+    "hash": "378ccca2b6eee051a23c1e6d7bc80952"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\components\\ui\\tooltip.tsx": {
+    "mtime": 1779007539.3538663,
+    "hash": "498f1fcb6267150c8026b8e17a400607"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\auth.ts": {
+    "mtime": 1779006373.727283,
+    "hash": "d65d8fec3cc7f640e85f7bc63c1522eb"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\crypto.ts": {
+    "mtime": 1779003740.3957217,
+    "hash": "ec7aadc6818e524bc0c373568d811647"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\db.ts": {
+    "mtime": 1779006718.069348,
+    "hash": "36578da07b681d8d32349747f829afb4"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\hooks.ts": {
+    "mtime": 1778900452.8032894,
+    "hash": "66e051aca9adb9d78eb473fde5691366"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\obsidian.ts": {
+    "mtime": 1779003740.3966615,
+    "hash": "0deb2a4e48dcf28f4c59c39857f0190a"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\rate-limit.ts": {
+    "mtime": 1778979402.4178455,
+    "hash": "64e33eb275c1ef18e5fb3a3cab5a8b92"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\store.ts": {
+    "mtime": 1779007639.8584764,
+    "hash": "de879ed1bcce4eeb5c99ce52b7a0e383"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\tool-icons.tsx": {
+    "mtime": 1779003781.075586,
+    "hash": "006b805244c3788e29275dfebefb280c"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\utils.ts": {
+    "mtime": 1778979368.5435271,
+    "hash": "0cd3ae8b878903c0037e3f45eceb34c6"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\__tests__\\rate-limit.test.ts": {
+    "mtime": 1778979533.6408863,
+    "hash": "4dbd3393249367676935105135f97a33"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\__tests__\\store.test.ts": {
+    "mtime": 1779003740.3947089,
+    "hash": "f73903a63aec89d6e843079e79133730"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\apps\\web\\lib\\__tests__\\utils.test.ts": {
+    "mtime": 1778979458.5952427,
+    "hash": "828235b1c2403555d87f74f9f26d6c43"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\vitest.config.ts": {
+    "mtime": 1778979475.2902474,
+    "hash": "87ccba62dfdfa1ff70c36f817875e8d2"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\context.ts": {
+    "mtime": 1779003929.7053375,
+    "hash": "def6af3176104ddda71b7d2ec5b9f64f"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\index.ts": {
+    "mtime": 1779007175.5069497,
+    "hash": "af716b66109df7f3af95f6f2032a9b43"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\types.ts": {
+    "mtime": 1778770713.6391716,
+    "hash": "278d7392ffebc11a9576edf1318b86f1"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\api-test.ts": {
+    "mtime": 1779003740.4396408,
+    "hash": "adbc701985a8dec4a638b13ba1f48653"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\db-query.ts": {
+    "mtime": 1779003740.4396408,
+    "hash": "63ac6cda608d8f6058a62464444a045a"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\file-read.ts": {
+    "mtime": 1779003929.7053375,
+    "hash": "cd830cda17533058f27e5c054ca4df7b"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\file-write.ts": {
+    "mtime": 1778979117.3290336,
+    "hash": "bcf36f03b87803ed75f65d21fd0d523e"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\git-tool.ts": {
+    "mtime": 1779003740.4416912,
+    "hash": "f7ee55842191eb24d905421c278bcb98"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\list-directory.ts": {
+    "mtime": 1778979125.6591425,
+    "hash": "10e3d41fc50dee863f6e0cfff20f6db7"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\path-security.ts": {
+    "mtime": 1778979142.2725387,
+    "hash": "971f0cf8927e0d1758e8c2d9da0581e1"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\registry.ts": {
+    "mtime": 1779004083.4130065,
+    "hash": "94ccb65b9318a7e41a224ad3d1cfbf4a"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\search-files.ts": {
+    "mtime": 1778979133.3640022,
+    "hash": "9eb581290ed82e197bf1f52ce7ff92e5"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\tool-descriptions.ts": {
+    "mtime": 1779003772.498628,
+    "hash": "940c2729dd5862b3e6c601fd1886e2cb"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\web-fetch.ts": {
+    "mtime": 1779003740.4435894,
+    "hash": "b34632ba44e05fa15d5fdb4270481ad8"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\web-search.ts": {
+    "mtime": 1779003740.4445994,
+    "hash": "15380cdbc8e333cd38424807f0acb0bb"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\execute-code\\docker.ts": {
+    "mtime": 1779003740.4406903,
+    "hash": "b9648d10cd76d96c8b8587130fc954c3"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\execute-code\\index.ts": {
+    "mtime": 1779003740.4406903,
+    "hash": "90bc94c9e7f752cb2a4fdf5221f9f365"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\execute-code\\local.ts": {
+    "mtime": 1779003740.4406903,
+    "hash": "c39305532a37883a58a6c75a5cf12fc6"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\terminal\\docker.ts": {
+    "mtime": 1779003929.7079265,
+    "hash": "a06abe6679082899181d473237fa29ba"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\terminal\\index.ts": {
+    "mtime": 1779003929.7079265,
+    "hash": "f53db71ec32a716c85b9e525774916a6"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\terminal\\local.ts": {
+    "mtime": 1779003929.7079265,
+    "hash": "a33b850d2bb320d5a5c446cf0650e14d"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\core\\src\\tools\\__tests__\\path-security.test.ts": {
+    "mtime": 1778979501.7688718,
+    "hash": "cb47e177b8ca5aefcd97903ce4988f77"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\db\\src\\client.ts": {
+    "mtime": 1778770681.1164002,
+    "hash": "26a9946b07d69a479e65eea6d931afc3"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\db\\src\\index.ts": {
+    "mtime": 1778770696.5333345,
+    "hash": "3b61e1e3c1967d65d4cbea64669c37e8"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\db\\src\\migrate.ts": {
+    "mtime": 1779004194.1037588,
+    "hash": "b3fae787c20426d5fa7c32dd3ec3a517"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\packages\\db\\src\\schema.ts": {
+    "mtime": 1779004202.6565506,
+    "hash": "ac5cb79c84bb07ccfbeda48404a81ceb"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\AGENTS.md": {
+    "mtime": 1779007539.3434632,
+    "hash": "e658d01f0954faeead1807e92d57ac8b"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\CLAUDE.md": {
+    "mtime": 1779007539.3444097,
+    "hash": "208f16cb38b530c2e6ae34f102805b2f"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\docker-compose.prod.yml": {
+    "mtime": 1779003740.4017568,
+    "hash": "ad08efbf390df98642c271ef62902bcb"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\docker-compose.yml": {
+    "mtime": 1779003740.4026716,
+    "hash": "95f3c80c43977dd77686a4656ac48a07"
+  },
+  "C:\\Users\\isaha\\OneDrive\\Desktop\\agent-web\\pnpm-workspace.yaml": {
+    "mtime": 1778655463.0605397,
+    "hash": "62cf619ba44cea403e3ab3ed2f69673b"
+  }
+}

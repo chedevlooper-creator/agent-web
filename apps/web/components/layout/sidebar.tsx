@@ -732,6 +732,15 @@ export function Sidebar() {
         <div
           className="fixed inset-0 z-40 bg-black/55 md:hidden"
           onClick={toggleSidebar}
+          aria-label="Close sidebar"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleSidebar();
+            }
+          }}
         />
       )}
 
@@ -766,6 +775,7 @@ export function Sidebar() {
                 onClick={toggleSidebar}
                 className="flex h-7 w-7 items-center justify-center border border-[var(--border-strong)] bg-[var(--surface-elevated)] text-[var(--muted-foreground)] transition-all hover:bg-[var(--overlay)] hover:text-[var(--foreground)] active:translate-y-px"
                 aria-label="Collapse sidebar"
+                aria-expanded={sidebarOpen}
               >
                 <PanelLeftClose size={14} />
               </button>
@@ -775,6 +785,7 @@ export function Sidebar() {
               onClick={toggleSidebar}
               className="flex h-9 w-9 items-center justify-center text-[var(--muted-foreground)] transition-colors hover:bg-[var(--overlay)] hover:text-[var(--foreground)]"
               aria-label="Expand sidebar"
+              aria-expanded={sidebarOpen}
             >
               <PanelLeft size={18} />
             </button>

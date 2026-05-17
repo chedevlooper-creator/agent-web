@@ -179,8 +179,8 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       syncing: false,
       currentUser: null,
       selectedSkills: [],
-      provider: "openrouter",
-      model: "openai/gpt-4o-mini",
+      provider: "deepseek",
+      model: "deepseek-v4-pro",
       apiKey: "",
       hasApiKey: false,
       serverProviders: {},
@@ -739,10 +739,17 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
         await get().hydrate();
         return result;
       },
+
+      // Obsidian Sync
+      setObsidianVaultPath: (path) => set({ obsidianVaultPath: path }),
+      setObsidianAutoSync: (enabled) => set({ obsidianAutoSync: enabled }),
+      syncSessionToObsidian: async (_sessionId) => {
+        // no-op until Obsidian plugin is integrated
+      },
   })
 );
 
-function snapshotSessions() {
+export function snapshotSessions() {
   return useChatStore.getState().sessions;
 }
 

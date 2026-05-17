@@ -66,7 +66,7 @@ function truncateOutput(output: string): string {
 
 export interface CodeExecArgs {
   code: string;
-  language: "javascript" | "typescript";
+  language: "javascript" | "typescript" | "python";
   timeout?: number;
 }
 
@@ -101,7 +101,7 @@ export async function executeCodeInDocker({
     );
   }
 
-  const ext = language === "typescript" ? ".ts" : ".js";
+  const ext = language === "typescript" ? ".ts" : language === "python" ? ".py" : ".js";
   const hostDir = join(tmpdir(), "agent-web-code-exec");
   const hostFilename = join(hostDir, `${randomUUID()}${ext}`);
   const containerFilename = `/tmp/${randomUUID()}${ext}`;
@@ -120,7 +120,9 @@ export async function executeCodeInDocker({
 
     try {
       let cmd: string;
-      if (language === "typescript") {
+      if (language === "python") {
+        cmd = `python3 "${containerFilename}" 2>/tmp/stderr.txt`;
+      } else if (language === "typescript") {
         // Try tsx first, fall back to --experimental-strip-types
         cmd = `npx tsx "${containerFilename}" 2>/tmp/stderr.txt; if [ $? -ne 0 ]; then node --experimental-strip-types "${containerFilename}" 2>/tmp/stderr.txt; fi`;
       } else {

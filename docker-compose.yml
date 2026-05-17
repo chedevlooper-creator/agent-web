@@ -67,6 +67,8 @@ services:
     container_name: agent-web-sandbox
     volumes:
       - sandbox_workspace:/workspace
+      # Shared uploads directory — app container writes here, sandbox reads from here
+      - ./data/uploads:/app/data/uploads
     environment:
       - SANDBOX_ENABLED=true
       - SANDBOX_MAX_CPU_MS=5000

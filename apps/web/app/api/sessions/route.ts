@@ -7,6 +7,7 @@ import {
   updateSession,
 } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 
 export const dynamic = "force-dynamic";
 

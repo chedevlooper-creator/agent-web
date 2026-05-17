@@ -106,9 +106,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install --no-cache-dir --break-system-packages \
-        requests beautifulsoup4 pandas numpy 2>/dev/null || \
+        requests beautifulsoup4 pandas numpy openpyxl 2>/dev/null || \
        pip3 install --no-cache-dir \
-        requests beautifulsoup4 pandas numpy
+        requests beautifulsoup4 pandas numpy openpyxl
 
 # Pre-install tsx for TypeScript execution
 RUN npm install -g tsx

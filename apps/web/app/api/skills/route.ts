@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
+import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 
 interface SkillInfo {
   name: string;
@@ -30,8 +32,11 @@ function parseSkillMd(filePath: string): { name: string; description: string } |
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+
     const skills: SkillInfo[] = [];
 
     // Scan .verdent/skills in project root
@@ -80,7 +85,6 @@ export async function GET() {
 
     return NextResponse.json(skills);
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e);
   }
 }

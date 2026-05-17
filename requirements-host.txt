@@ -1,0 +1,12 @@
+# Host Python dependencies for local file processing
+# These are needed when TERMINAL_BACKEND=local for:
+# - Excel file reading/writing (.xlsx, .xls)
+# - Data analysis with pandas
+# - Web scraping
+#
+# Install with: pip install -r requirements-host.txt
+
+pandas>=2.0.0
+openpyxl>=3.1.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0

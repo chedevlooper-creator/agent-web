@@ -13,10 +13,10 @@ beforeEach(() => {
     isLoading: false,
     sidebarOpen: true,
     contextPanelOpen: false,
-    provider: "openrouter",
-    model: "openai/gpt-4o-mini",
+    provider: "deepseek",
+    model: "deepseek-v4-pro",
     apiKey: "sk-test",
-    savedProviders: [],
+    serverProviders: {},
     selectedModels: [],
     compareMode: false,
   });
@@ -512,9 +512,9 @@ describe("useChatStore — local messages", () => {
   });
 
   it("setConfig updates multiple settings", () => {
-    useChatStore.getState().setConfig({ provider: "openai", model: "gpt-4" });
+    useChatStore.getState().setConfig({ provider: "deepseek", model: "deepseek-v4-pro" });
     const state = useChatStore.getState();
-    expect(state.provider).toBe("openai");
-    expect(state.model).toBe("gpt-4");
+    expect(state.provider).toBe("deepseek");
+    expect(state.model).toBe("deepseek-v4-pro");
   });
 });

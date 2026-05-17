@@ -6,8 +6,8 @@ const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 
 /**
- * Get the encryption key from environment or derive a default.
- * In production, always set ENCRYPTION_KEY to a unique 64-char hex string.
+ * Get the encryption key from environment.
+ * ENCRYPTION_KEY must be set to a 64-char hex string in all environments.
  */
 function getEncryptionKey(): Buffer {
   const secret = process.env.ENCRYPTION_KEY;
@@ -18,12 +18,8 @@ function getEncryptionKey(): Buffer {
     // If not 32 bytes hex, SHA-256 hash it to get a 32-byte key
     return createHash("sha256").update(secret).digest();
   }
-  // Fallback: derive from a known string (WARN: this is not secure for production)
-  if (typeof process.env.NODE_ENV !== "undefined" && process.env.NODE_ENV !== "production") {
-    return createHash("sha256").update("agent-web-dev-key-do-not-use-in-production").digest();
-  }
   throw new Error(
-    "ENCRYPTION_KEY environment variable is required in production mode."
+    "ENCRYPTION_KEY environment variable is required. Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
   );
 }
 

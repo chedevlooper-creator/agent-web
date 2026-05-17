@@ -3,11 +3,12 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { SettingsPanel } from "@/components/settings-panel";
+import { ContextPanel } from "@/components/context-panel";
 import { useChatStore } from "@/lib/store";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, Square } from "lucide-react";
 
 export default function Home() {
-  const { sidebarOpen, toggleSidebar } = useChatStore();
+  const { sidebarOpen, toggleSidebar, contextPanelOpen, toggleContextPanel } = useChatStore();
 
   return (
     <main className="signal-shell">
@@ -26,6 +27,14 @@ export default function Home() {
                 <PanelLeft size={12} />
                 <span className="hidden sm:inline">Toggle Sidebar</span>
               </button>
+              <button
+                onClick={toggleContextPanel}
+                className="signal-button"
+                aria-label={contextPanelOpen ? "Close context panel" : "Open context panel"}
+              >
+                <Square size={12} />
+                <span className="hidden sm:inline">Context</span>
+              </button>
               <SettingsPanel />
             </div>
           </header>
@@ -37,6 +46,8 @@ export default function Home() {
             <ChatInterface />
           </div>
         </div>
+
+        <ContextPanel />
       </div>
     </main>
   );

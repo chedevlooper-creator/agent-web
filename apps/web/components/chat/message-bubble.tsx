@@ -216,7 +216,7 @@ export function MessageBubble({
           <div
             className={cn(
               "flex items-center gap-0.5 transition-opacity duration-200",
-              "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
+              "opacity-100 md:opacity-40 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
               isUser ? "flex-row-reverse" : "flex-row"
             )}
           >

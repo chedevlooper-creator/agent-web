@@ -101,6 +101,15 @@ export function ContextPanel() {
       <div
         className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm xl:hidden animate-fade-in cursor-pointer"
         onClick={toggleContextPanel}
+        aria-label="Bağlam panelini kapat"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleContextPanel();
+          }
+        }}
       />
 
       {/* Panel */}

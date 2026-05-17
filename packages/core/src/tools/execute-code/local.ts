@@ -69,7 +69,7 @@ function truncateOutput(output: string): string {
 
 export interface CodeExecArgs {
   code: string;
-  language: "javascript" | "typescript";
+  language: "javascript" | "typescript" | "python";
   timeout?: number;
 }
 
@@ -92,7 +92,7 @@ export async function executeCodeLocally({
     }
   }
 
-  const ext = language === "typescript" ? ".ts" : ".js";
+  const ext = language === "typescript" ? ".ts" : language === "python" ? ".py" : ".js";
   const runDir = join(tmpdir(), "agent-web-code-exec");
   const filename = join(runDir, `${randomUUID()}${ext}`);
 
@@ -107,7 +107,15 @@ export async function executeCodeLocally({
     let stderr: string;
 
     try {
-      if (language === "typescript") {
+      if (language === "python") {
+        const result = await execFileAsync("python3", [filename], {
+          timeout: timeoutMs,
+          maxBuffer: MAX_RETURN_CHARS * 4,
+          cwd: runDir,
+        });
+        stdout = result.stdout || "";
+        stderr = result.stderr || "";
+      } else if (language === "typescript") {
         // Try tsx first, fall back to node --experimental-strip-types
         try {
           const result = await execFileAsync("npx", ["tsx", filename], {

@@ -99,9 +99,7 @@ Copy `.env.example` to `.env.local`. Key vars:
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `OPENAI_API_KEY` | — | At least one provider key required |
-| `OPENROUTER_API_KEY` | — | Used by default (`openrouter` provider) |
-| `DEEPSEEK_API_KEY` | — | |
+| `DEEPSEEK_API_KEY` | — | Required for API access |
 | `DATABASE_URL` | `file:./data/local.db` | libsql remote: `libsql://...` |
 | `DATABASE_AUTH_TOKEN` | — | Required for Turso/libsql remote |
 | `TERMINAL_BACKEND` | `local` | `docker` for sandbox isolation |
@@ -111,7 +109,7 @@ Copy `.env.example` to `.env.local`. Key vars:
 
 ## Adding Features
 
-**New LLM provider:** Add API key env check in `getServerApiKey()` (route.ts), add branch in `POST` handler (create client, handle special behaviors like DeepSeek's fetch wrapper), update settings-panel UI.
+**New LLM provider:** Add API key env check, update chat route to create the client, update settings-panel UI.
 
 **New tool:** Create `packages/core/src/tools/<name>.ts` using `ai/tool` + `zod`, register in `packages/core/src/tools/registry.ts`, re-export from `packages/core/src/index.ts`. Tools are automatically available in the route via the `tools` import.
 

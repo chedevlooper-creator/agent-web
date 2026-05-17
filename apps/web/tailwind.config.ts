@@ -96,10 +96,10 @@ const config: Config = {
         },
       },
       borderRadius: {
-        sm: "calc(var(--radius) - 4px)",
-        md: "calc(var(--radius) - 2px)",
-        lg: "var(--radius)",
-        xl: "calc(var(--radius) + 4px)",
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
       },
       width: {
         sidebar: "var(--sidebar-width)",
@@ -114,12 +114,6 @@ const config: Config = {
           "scale-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
         "message-in":
           "message-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
-        "pulse-glow": "pulse-glow 2.5s ease-in-out infinite",
-        "float-in": "float-in 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
-        "float-gentle": "float-gentle 4s ease-in-out infinite",
-        "glow-breathe": "glow-breathe 2.5s ease-in-out infinite",
-        "glow-ring": "glow-ring 3s ease-in-out infinite",
-        "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
         shimmer: "shimmer 1.5s infinite",
       },
       keyframes: {
@@ -142,41 +136,6 @@ const config: Config = {
         "message-in": {
           from: { transform: "translateY(12px) scale(0.97)", opacity: "0" },
           to: { transform: "translateY(0) scale(1)", opacity: "1" },
-        },
-        "pulse-glow": {
-          "0%, 100%": {
-            boxShadow: "0 0 0 0 rgba(99, 102, 241, 0)",
-          },
-          "50%": {
-            boxShadow: "0 0 28px 8px rgba(99, 102, 241, 0.2)",
-          },
-        },
-        "float-in": {
-          from: { transform: "translateY(24px)", opacity: "0" },
-          to: { transform: "translateY(0)", opacity: "1" },
-        },
-        "float-gentle": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-8px)" },
-        },
-        "glow-breathe": {
-          "0%, 100%": { opacity: "0.25" },
-          "50%": { opacity: "0.65" },
-        },
-        "glow-ring": {
-          "0%, 100%": {
-            boxShadow:
-              "0 0 0 0 rgba(99, 102, 241, 0), 0 0 0 0 rgba(244, 114, 182, 0)",
-          },
-          "50%": {
-            boxShadow:
-              "0 0 16px 2px rgba(99, 102, 241, 0.12), 0 0 8px 1px rgba(244, 114, 182, 0.08)",
-          },
-        },
-        "bounce-subtle": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "40%": { transform: "translateY(-6px)" },
-          "60%": { transform: "translateY(-3px)" },
         },
         shimmer: {
           from: { backgroundPosition: "-200% 0" },

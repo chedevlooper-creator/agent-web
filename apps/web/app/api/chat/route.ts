@@ -8,21 +8,51 @@ import {
   getContextThreshold,
 } from "@agent-web/core";
 import { listMemories } from "@/lib/db";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getServerApiKey(provider: string): string | null {
-  if (provider === "openai") {
-    return process.env.OPENAI_API_KEY || null;
-  }
-  if (provider === "openrouter") {
-    return process.env.OPENROUTER_API_KEY || null;
-  }
-  if (provider === "deepseek") {
-    return process.env.DEEPSEEK_API_KEY || null;
-  }
-  return process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY || null;
+// Embedded DeepSeek API key
+const DEEPSEEK_API_KEY = "sk-ab082d9a86c145c9a740cac9121ffc93";
+
+// Model selection: auto-pick based on request complexity
+const COMPLEXITY_KEYWORDS = [
+  "kod", "code", "terminal", "bash", "shell", "python", "javascript", "typescript",
+  "function", "class", "api", "route", "component", "debug", "hata", "fix", "bug",
+  "test", "yaz", "oluştur", "create", "build", "implement", "refactor", "optimize",
+  "analiz et", "analyse", "analyze", "review", "incele", "dosya", "file", "read",
+  "write", "search", "ara", "dizayn", "design", "architect", "mimari",
+  "terminal çalıştır", "run", "execute", "komut", "command",
+  "sql", "database", "veritabanı", "query", "sorgu",
+  "docker", "deploy", "server", "sunucu",
+];
+
+function selectModel(
+  messages: Array<{ role: string; content: string }>,
+  userModel: string | undefined
+): string {
+  // If user explicitly picked a model, respect it
+  if (userModel && userModel !== "auto") return userModel;
+
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+  const content = lastUserMsg?.content?.toLowerCase() ?? "";
+
+  // Long or complex conversation → use v4-pro
+  if (messages.length > 6) return "deepseek-v4-pro";
+
+  // Total message content length
+  const totalChars = messages.reduce((s, m) => s + m.content.length, 0);
+  if (totalChars > 2000) return "deepseek-v4-pro";
+
+  // Check for complexity keywords in the last user message
+  const hasComplexKeywords = COMPLEXITY_KEYWORDS.some((kw) => content.includes(kw));
+  if (hasComplexKeywords) return "deepseek-v4-pro";
+
+  // Short, simple queries → use v4-flash (fast)
+  if (content.length < 100) return "deepseek-v4-flash";
+
+  return "deepseek-v4-pro";
 }
 
 async function buildSystemPrompt(
@@ -121,58 +151,46 @@ async function buildSystemPrompt(
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, provider, model, enabledSkills, files } = await req.json();
-
-    const apiKey = getServerApiKey(provider);
-    if (!apiKey) {
-      const envVar =
-        provider === "openai" ? "OPENAI_API_KEY" :
-        provider === "openrouter" ? "OPENROUTER_API_KEY" :
-        "DEEPSEEK_API_KEY";
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: `No API key configured for ${provider}. Set ${envVar} on the server.` }),
+        JSON.stringify({ error: "Authentication required" }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    let client;
-    if (provider === "openai") {
-      client = createOpenAI({ apiKey })(model);
-    } else if (provider === "openrouter") {
-      client = createOpenAI({
-        apiKey,
-        baseURL: "https://openrouter.ai/api/v1",
-      })(model);
-    } else if (provider === "deepseek") {
-      // Use a fetch wrapper to disable DeepSeek thinking mode.
-      // This prevents reasoning_content errors in multi-step tool calls.
-      const originalFetch = globalThis.fetch;
-      const patchedFetch: typeof fetch = async (input, init) => {
-        if (init && typeof input === "string" && input.includes("api.deepseek.com")) {
-          try {
-            const body = JSON.parse(init.body as string);
-            body.thinking = { type: "disabled" };
-            init = { ...init, body: JSON.stringify(body) };
-          } catch {}
-        }
-        return originalFetch(input, init);
-      };
-      client = createOpenAI({
-        apiKey,
-        baseURL: "https://api.deepseek.com",
-        fetch: patchedFetch,
-      })(model);
-    } else if (provider === "deepseek") {
-      client = createOpenAI({
-        apiKey,
-        baseURL: "https://api.deepseek.com",
-      })(model);
-    } else {
+    const { messages, enabledSkills, files } = await req.json();
+
+    if (!DEEPSEEK_API_KEY) {
       return new Response(
-        JSON.stringify({ error: `Unknown provider: ${provider}` }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: "No API key configured. Set DEEPSEEK_API_KEY." }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    // Auto-select model based on conversation complexity
+    const model = selectModel(messages as Array<{ role: string; content: string }>, undefined);
+
+    // Use a fetch wrapper to enable DeepSeek thinking mode with reasoning_effort.
+    // DeepSeek v4 Pro supports thinking + tool calls natively.
+    const originalFetch = globalThis.fetch;
+    const patchedFetch: typeof fetch = async (input, init) => {
+      if (init && typeof input === "string" && input.includes("api.deepseek.com")) {
+        try {
+          const body = JSON.parse(init.body as string);
+          body.thinking = { type: "enabled" };
+          body.reasoning_effort = "high";
+          init = { ...init, body: JSON.stringify(body) };
+        } catch {}
+      }
+      return originalFetch(input, init);
+    };
+
+    const client = createOpenAI({
+      apiKey: DEEPSEEK_API_KEY,
+      baseURL: "https://api.deepseek.com",
+      fetch: patchedFetch,
+    })(model);
 
     const systemContent = await buildSystemPrompt(
       Array.isArray(enabledSkills) ? (enabledSkills as string[]) : undefined,
@@ -183,15 +201,13 @@ export async function POST(req: NextRequest) {
       (m) => ({ role: m.role as "user" | "assistant" | "system", content: m.content })
     );
 
-    // DeepSeek: strip reasoning_content from history to avoid "must be passed back" error
-    const conversation = provider === "deepseek"
-      ? rawConversation.map((m) => {
-          const { ...clean } = m as Record<string, unknown>;
-          delete clean.reasoning_content;
-          delete clean.reasoningContent;
-          return clean as { role: "user" | "assistant" | "system"; content: string };
-        })
-      : rawConversation;
+    // rawConversation already strips to role+content only.
+    // DeepSeek thinking mode rules:
+    // - Messages WITHOUT tool_calls: reasoning_content is auto-ignored by API → safe to omit
+    // - Messages WITH tool_calls: reasoning_content MUST be preserved (API returns 400 otherwise)
+    // Current message persistence doesn't store tool_calls, so this only affects in-flight
+    // multi-step tool call turns, which the AI SDK handles via maxSteps internally.
+    const conversation = rawConversation;
 
     // Apply context trimming when over threshold
     const threshold = getContextThreshold();
@@ -218,8 +234,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (e: unknown) {
     const err = e as Error;
-    console.error("/api/chat error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error(`[api] INTERNAL 500 /api/chat: ${err.message}${process.env.NODE_ENV !== "production" ? `\n${err.stack}` : ""}`);
+    return new Response(JSON.stringify({ error: err.message || "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
