@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 import {
   getSession,
   listMessages,
@@ -68,9 +69,8 @@ export async function POST(req: NextRequest) {
       path: writtenPath,
     });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("Obsidian sync error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Obsidian sync error:", e);
+    return handleApiError(e, req);
   }
 }
 
@@ -114,8 +114,7 @@ export async function DELETE(req: NextRequest) {
       path: deletedPath,
     });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("Obsidian delete error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Obsidian delete error:", e);
+    return handleApiError(e, req);
   }
 }

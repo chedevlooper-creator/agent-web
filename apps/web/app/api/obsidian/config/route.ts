@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 import {
   getObsidianConfig,
   setObsidianConfig,
@@ -41,9 +42,8 @@ export async function GET(req: NextRequest) {
       configuredPerUser: !!userConfig?.vaultPath,
     });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("Obsidian config GET error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Obsidian config GET error:", e);
+    return handleApiError(e, req);
   }
 }
 
@@ -81,9 +81,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, vaultPath });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("Obsidian config POST error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Obsidian config POST error:", e);
+    return handleApiError(e, req);
   }
 }
 
@@ -102,8 +101,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("Obsidian config DELETE error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Obsidian config DELETE error:", e);
+    return handleApiError(e, req);
   }
 }

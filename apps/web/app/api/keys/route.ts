@@ -5,6 +5,7 @@ import {
   deleteApiKey,
 } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -28,9 +29,8 @@ export async function GET(req: NextRequest) {
     const keys = await listApiKeys(userId);
     return Response.json({ keys });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("GET /api/keys error:", err);
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error("GET /api/keys error:", e);
+    return handleApiError(e, req);
   }
 }
 
@@ -59,9 +59,8 @@ export async function POST(req: NextRequest) {
       keyPreview: key.slice(0, 8) + "...",
     });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("POST /api/keys error:", err);
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error("POST /api/keys error:", e);
+    return handleApiError(e, req);
   }
 }
 
@@ -86,8 +85,7 @@ export async function DELETE(req: NextRequest) {
     await deleteApiKey(provider, userId);
     return Response.json({ success: true, provider });
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("DELETE /api/keys error:", err);
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error("DELETE /api/keys error:", e);
+    return handleApiError(e, req);
   }
 }

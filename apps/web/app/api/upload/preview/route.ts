@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { getUserIdFromRequest } from "@/lib/auth";
+import { handleApiError } from "@/lib/error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +119,8 @@ async function previewText(filePath: string): Promise<PreviewResult> {
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { path: filePath } = (await req.json()) as { path?: string };
     if (!filePath) {
       return NextResponse.json({ error: "Missing file path" }, { status: 400 });
@@ -161,7 +165,6 @@ export async function POST(req: NextRequest) {
     result.filename = filePath;
     return NextResponse.json(result);
   } catch (e: unknown) {
-    const err = e as Error;
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(e, req);
   }
 }

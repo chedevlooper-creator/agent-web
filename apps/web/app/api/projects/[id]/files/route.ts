@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { ensureMigrated } from "@agent-web/db";
 import { promises as fs } from "node:fs";
 import { join, relative, extname } from "node:path";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { id } = await params;
     await ensureMigrated();
     const db = getDb();
