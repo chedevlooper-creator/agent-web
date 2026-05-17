@@ -34,7 +34,8 @@ deleting `data/local.db` and restarting.
 
 ## Architecture
 
-Monorepo: pnpm 9 workspaces (`apps/*`, `packages/*`) orchestrated by Turbo
+Monorepo: pnpm-v9 workspaces (`apps/*`, `packages/*` — currently `apps/web`,
+`packages/core`, `packages/db`) orchestrated by Turbo
 (`turbo.json`: `build`, `dev` persistent/uncached, `lint`, `test`).
 
 ### Packages
@@ -63,8 +64,13 @@ under `components/`, helpers under `lib/`.
 3. Client built via `createOpenAI()`: OpenAI native, OpenRouter (custom
    baseURL), or DeepSeek (baseURL + a `fetch` wrapper that disables thinking
    mode).
-4. System prompt assembled from the tool list, attached files, enabled skills
-   (`SKILL.md` frontmatter), and memories (when `ENABLE_MEMORY=true`).
+4. System prompt is a **hard-coded base string** in `route.ts` that names
+   only `terminal`/`read_file`/`web_search`, with attached files, enabled
+   skills (`SKILL.md` frontmatter), and memories (when `ENABLE_MEMORY=true`)
+   appended. The full 13-tool set is still advertised to the model via the
+   SDK `tools` param (step 6) — it is **not** enumerated in the prompt text,
+   so update the base string in `route.ts` if you want new tools mentioned
+   there.
 5. Context compression: `countMessagesTokens` → `trimToTokenLimit` (sliding
    window keeping system + first user + most recent;
    `CONTEXT_COMPRESSION_THRESHOLD`, default 80000).
@@ -72,8 +78,11 @@ under `components/`, helpers under `lib/`.
    implementations from `@agent-web/core`.
 7. Returns `toDataStreamResponse()`. The client does **not** use `useChat`;
    it runs a custom `fetch` + `getReader()` loop parsing the Vercel AI SDK
-   data stream (`0:` text, `1:` tool call, `2:` tool result, `3:` error).
-   The chat route is `runtime: "nodejs"` and `dynamic: "force-dynamic"`.
+   data stream. The parser in `components/chat/chat-interface.tsx` handles
+   `0:` text, `3:` error, **both** `1:` and `9:` for tool calls, and **both**
+   `2:` and `a:` for tool results (the SDK emits the `9:`/`a:` variants in
+   practice — handle all four when debugging tool streaming). The chat route
+   is `runtime: "nodejs"` and `dynamic: "force-dynamic"`.
 
 **State:** Zustand v5 store (`lib/store.ts`) with optimistic updates —
 mutations apply locally then persist via `/api/sessions/...`. Sessions,
@@ -88,10 +97,12 @@ with a per-call `ensureMigrated()` guard.
 `packages/core/src/tools/registry.ts` (older docs saying "3" or "8" are
 wrong): `image_generate`, `terminal`, `read_file`, `write_file`,
 `web_search`, `list_directory`, `search_files`, `web_fetch`, `execute_code`,
-`git`, `db_query`, `api_test`, `knowledge_search`. Additional MCP tools are
-merged at request time via `loadMcpTools()` / `getAllTools()`. File tools are
-restricted to the workspace via path-traversal protection (override base with
-`TOOL_ALLOWED_BASE`, discouraged in prod). `terminal`/`execute_code` honor
+`git`, `db_query`, `api_test`, `knowledge_search`. `@agent-web/core` also
+exposes `loadMcpTools()` / `getAllTools()` for merging MCP tools, but
+**`/api/chat` currently imports and passes only the built-in `tools`** — MCP
+tools are not wired into the chat route today; call `getAllTools()` there if
+you want them. File tools are restricted to the workspace via path-traversal
+protection (override base with `TOOL_ALLOWED_BASE`, discouraged in prod). `terminal`/`execute_code` honor
 `TERMINAL_BACKEND` (`local` blocklist+timeout vs `docker` sandbox).
 
 ### API routes (`apps/web/app/api/`)
@@ -141,11 +152,13 @@ the `memories` table is injected under "User Context", capped by
 
 ## Environment variables
 
-Copy `.env.example` to `.env.local`. Notable:
+Copy `.env.example` to `.env.local`. Note `.env.example` only ships
+`OPENAI_API_KEY` and `OPENROUTER_API_KEY`; `DEEPSEEK_API_KEY` is supported by
+the code (`getServerApiKey()`) but you must add it manually. Notable:
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `OPENAI_API_KEY` / `OPENROUTER_API_KEY` / `DEEPSEEK_API_KEY` | — | At least one required |
+| `OPENAI_API_KEY` / `OPENROUTER_API_KEY` / `DEEPSEEK_API_KEY` | — | At least one required (only the first two are in `.env.example`) |
 | `DATABASE_URL` | `file:./data/local.db` | libsql remote: `libsql://...` |
 | `DATABASE_AUTH_TOKEN` | — | Required for Turso/libsql remote |
 | `TERMINAL_BACKEND` | `local` | `docker` for sandbox isolation |
