@@ -27,14 +27,14 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
+        setError(data.error || "Kayıt başarısız");
         return;
       }
 
       setSuccess(true);
       setTimeout(() => router.push("/login"), 1500);
     } catch {
-      setError("Network error. Please try again.");
+      setError("Ağ hatası. Lütfen tekrar deneyin.");
     } finally {
       setLoading(false);
     }
@@ -47,19 +47,19 @@ export default function RegisterPage() {
           <div className="text-center space-y-4">
             <div className="text-5xl mb-4">✓</div>
             <h1 className="text-xl font-semibold text-[--fg-primary]">
-              Account created!
+              Hesap oluşturuldu!
             </h1>
             <p className="text-[--fg-secondary]">
-              Redirecting to login...
+              Giriş sayfasına yönlendiriliyor...
             </p>
           </div>
         ) : (
           <>
             <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">
-              Create Account
+              Hesap Oluştur
             </h1>
             <p className="text-sm text-[--fg-secondary] mb-8">
-              Enter a username and password to get started
+              Başlamak için kullanıcı adı ve şifre girin
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -74,14 +74,14 @@ export default function RegisterPage() {
                   htmlFor="username"
                   className="block text-sm font-medium text-[--fg-secondary]"
                 >
-                  Username
+                  Kullanıcı Adı
                 </label>
                 <input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Choose a username"
+                  placeholder="Bir kullanıcı adı seçin"
                   autoComplete="username"
                   autoFocus
                   className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
@@ -93,14 +93,14 @@ export default function RegisterPage() {
                   htmlFor="password"
                   className="block text-sm font-medium text-[--fg-secondary]"
                 >
-                  Password
+                  Şifre
                 </label>
                 <input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a password"
+                  placeholder="Bir şifre oluşturun"
                   autoComplete="new-password"
                   className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
                 />
@@ -111,17 +111,17 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full py-2.5 rounded-lg bg-[--electric] text-[--void-deep] font-medium hover:bg-[--electric-hover] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {loading ? "Creating account..." : "Create Account"}
+                {loading ? "Hesap oluşturuluyor..." : "Hesap Oluştur"}
               </button>
             </form>
 
             <p className="mt-6 text-center text-sm text-[--fg-muted]">
-              Already have an account?{" "}
+              Zaten hesabın var mı?{" "}
               <Link
                 href="/login"
                 className="text-[--electric] hover:text-[--electric-hover] transition-colors"
               >
-                Log in
+                Giriş Yap
               </Link>
             </p>
           </>

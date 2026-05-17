@@ -24,7 +24,7 @@ export default function ProfilePage() {
     setError("");
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Şifreler eşleşmiyor");
       return;
     }
 
@@ -37,15 +37,15 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Failed to update password");
+        setError(data.error || "Şifre güncellenemedi");
         return;
       }
-      setMessage("Password updated successfully");
+      setMessage("Şifre başarıyla güncellendi");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch {
-      setError("Network error");
+      setError("Ağ hatası");
     } finally {
       setLoading(false);
     }
@@ -57,12 +57,12 @@ export default function ProfilePage() {
     <div className="min-h-dvh bg-[--void-deep] p-4">
       <div className="max-w-md mx-auto pt-12">
         <button onClick={() => router.push("/")} className="text-sm text-[--fg-secondary] hover:text-[--electric] mb-6 transition-colors">
-          &larr; Back to Chat
+          &larr; Sohbete Dön
         </button>
 
-        <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">Profile</h1>
+        <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">Profil</h1>
         <p className="text-sm text-[--fg-secondary] mb-8">
-          Logged in as <span className="text-[--electric] font-medium">{currentUser.username}</span>
+          Giriş yapan: <span className="text-[--electric] font-medium">{currentUser.username}</span>
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -79,7 +79,7 @@ export default function ProfilePage() {
 
           <div className="space-y-2">
             <label htmlFor="currentPassword" className="block text-sm font-medium text-[--fg-secondary]">
-              Current Password
+              Mevcut Şifre
             </label>
             <input
               id="currentPassword"
@@ -92,7 +92,7 @@ export default function ProfilePage() {
 
           <div className="space-y-2">
             <label htmlFor="newPassword" className="block text-sm font-medium text-[--fg-secondary]">
-              New Password
+              Yeni Şifre
             </label>
             <input
               id="newPassword"
@@ -105,7 +105,7 @@ export default function ProfilePage() {
 
           <div className="space-y-2">
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-[--fg-secondary]">
-              Confirm New Password
+              Yeni Şifreyi Onayla
             </label>
             <input
               id="confirmPassword"
@@ -121,7 +121,7 @@ export default function ProfilePage() {
             disabled={loading}
             className="w-full py-2.5 rounded-lg bg-[--electric] text-[--void-deep] font-medium hover:bg-[--electric-hover] disabled:opacity-50 transition-all"
           >
-            {loading ? "Updating..." : "Update Password"}
+            {loading ? "Güncelleniyor..." : "Şifreyi Güncelle"}
           </button>
         </form>
       </div>

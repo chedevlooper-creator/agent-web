@@ -28,16 +28,16 @@ export default function AdminPage() {
     <div className="min-h-dvh bg-[--void-deep] p-4">
       <div className="max-w-2xl mx-auto pt-12">
         <button onClick={() => router.push("/")} className="text-sm text-[--fg-secondary] hover:text-[--electric] mb-6 transition-colors">
-          &larr; Back to Chat
+          &larr; Sohbete Dön
         </button>
 
-        <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">Admin Panel</h1>
+        <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">Yönetici Paneli</h1>
         <p className="text-sm text-[--fg-secondary] mb-8">
-          Registered users
+          Kayıtlı kullanıcılar
         </p>
 
         {loading ? (
-          <p className="text-[--fg-muted]">Loading...</p>
+          <p className="text-[--fg-muted]">Yükleniyor...</p>
         ) : (
           <div className="space-y-2">
             {users.map((u) => (
@@ -54,17 +54,17 @@ export default function AdminPage() {
                   <div>
                     <p className="text-sm font-medium text-[--fg-primary]">{u.username}</p>
                     <p className="text-xs text-[--fg-muted]">
-                      Joined {new Date(u.createdAt).toLocaleDateString()}
+                      Katılma {new Date(u.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 {u.id === currentUser.id && (
-                  <span className="text-xs px-2 py-1 rounded bg-electric/10 text-electric">You</span>
+                  <span className="text-xs px-2 py-1 rounded bg-electric/10 text-electric">Sen</span>
                 )}
               </div>
             ))}
             {users.length === 0 && (
-              <p className="text-[--fg-muted] text-sm">No users found.</p>
+              <p className="text-[--fg-muted] text-sm">Kullanıcı bulunamadı.</p>
             )}
           </div>
         )}

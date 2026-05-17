@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useCallback } from "react";
-import { Send, Square, Paperclip, Sparkles, CornerDownLeft, GitCompare } from "lucide-react";
+import { Square, Paperclip, GitCompare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UploadedFile } from "./file-upload";
 import { FilePreviewBar } from "./file-upload";
@@ -19,6 +19,8 @@ interface ChatInputProps {
   effectiveModels: string[];
   attachedFiles: UploadedFile[];
   isUploading: boolean;
+  contextPanelOpen: boolean;
+  onAddContext: () => void;
   onFileUpload: (files: FileList | null) => void;
   onRemoveFile: (storedName: string) => void;
 }
@@ -36,6 +38,8 @@ export function ChatInput({
   effectiveModels,
   attachedFiles,
   isUploading,
+  contextPanelOpen,
+  onAddContext,
   onFileUpload,
   onRemoveFile,
 }: ChatInputProps) {
@@ -63,15 +67,16 @@ export function ChatInput({
   );
 
   const canSend = input.trim() && hasApiKey;
+  const composerModel = model || `${provider}/model`;
 
   return (
-    <div className="shrink-0 z-10 w-full px-4 pb-4 pt-3">
-      <div className="max-w-3xl mx-auto">
+    <div className="shrink-0 z-10 w-full px-6 pb-0 pt-2">
+      <div className="max-w-[900px] mx-auto flex flex-col gap-3">
         {/* Compare mode badge */}
         {compareMode && effectiveModels.length > 1 && (
-          <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] bg-accent/10 text-accent border border-accent/20 font-medium">
+          <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] bg-accent/10 text-accent border border-accent/20 font-medium w-fit">
             <GitCompare size={11} />
-            Compare: {effectiveModels.join(" vs ")}
+            Karşılaştır: {effectiveModels.join(" vs ")}
           </div>
         )}
 
@@ -79,7 +84,7 @@ export function ChatInput({
         <FilePreviewBar files={attachedFiles} onRemove={onRemoveFile} />
 
         {/* Hidden file input */}
-        <label htmlFor="file-upload-input" className="sr-only">Upload files</label>
+        <label htmlFor="file-upload-input" className="sr-only">Dosya yükle</label>
         <input
           id="file-upload-input"
           ref={fileInputRef}
@@ -93,78 +98,125 @@ export function ChatInput({
         {/* Input bar */}
         <div
           className={cn(
-            "flex items-end gap-2 p-2.5 rounded-2xl",
-            "bg-surface-elevated/60 border border-border/50 backdrop-blur-sm",
-            "focus-within:ring-2 focus-within:ring-primary/15 focus-within:border-primary/30",
-            "shadow-sm hover:shadow-md",
-            "transition-all duration-300"
+            "composer-frame flex flex-col p-4 md:p-5",
+            "focus-within:ring-1 focus-within:ring-electric/30",
+            "transition-[border-color,box-shadow,background-color] duration-300"
           )}
         >
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className={cn(
-              "min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg shrink-0 transition-all duration-200",
-              isUploading
-                ? "text-primary animate-pulse"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-            aria-label="Attach file"
-          >
-            {isUploading ? (
-              <Paperclip size={16} className="animate-spin" aria-hidden="true" />
-            ) : (
-              <Paperclip size={16} aria-hidden="true" />
-            )}
-          </button>
-          <label htmlFor="chat-input-textarea" className="sr-only">Message</label>
+          <label htmlFor="chat-input-textarea" className="sr-only">Mesaj</label>
           <textarea
             id="chat-input-textarea"
+            data-chat-input="true"
             ref={textareaRef}
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={hasApiKey ? "Message Agent Web…" : "Configure API key in settings first"}
+            placeholder="Agent Web'e her şeyi sor..."
             disabled={!hasApiKey}
             rows={1}
-            className="flex-1 bg-transparent text-sm resize-none px-2.5 py-1.5 min-h-[40px] max-h-[320px]
-                       placeholder:text-muted-foreground/50 focus:outline-none
+            className="w-full bg-transparent text-[15px] resize-none mb-6 min-h-[36px] max-h-[320px]
+                       font-mono placeholder:text-muted-foreground focus:outline-none
                        disabled:opacity-50 disabled:cursor-not-allowed"
           />
-          <button
-            onClick={isLoading ? onCancel : onSend}
-            disabled={!isLoading && !canSend}
-            className={cn(
-              "min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl shrink-0 transition-all duration-200",
-              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              isLoading
-                ? "bg-destructive text-white hover:bg-destructive/90 active:scale-95"
-                : canSend
-                  ? "bg-gradient-to-br from-primary to-accent text-white shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-95"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
-            )}
-            aria-label={isLoading ? "Stop generation" : "Send message"}
-          >
-            {isLoading ? <Square size={14} className="fill-current" aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
-          </button>
+
+          {/* Bottom Controls */}
+          <div className="flex items-center justify-between">
+            {/* Left side */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className={cn(
+                  "h-12 w-12 flex items-center justify-center rounded-lg border border-border/40 bg-black/20 shrink-0 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isUploading
+                    ? "text-primary animate-pulse"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                aria-label="Dosya ekle"
+                data-tooltip={isUploading ? "Dosya yükleniyor" : "Dosya ekle"}
+                title={isUploading ? "Dosya yükleniyor" : "Dosya ekle"}
+              >
+                {isUploading ? (
+                  <Paperclip size={18} className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Paperclip size={18} aria-hidden="true" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={onAddContext}
+                className={cn(
+                  "h-12 px-4 flex items-center gap-2 rounded-lg border text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  contextPanelOpen
+                    ? "border-electric/40 bg-electric-muted/25 text-electric"
+                    : "border-border/40 bg-black/20 text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                aria-label={contextPanelOpen ? "Bağlam paneli açık" : "Bağlam panelini aç"}
+                aria-expanded={contextPanelOpen}
+                aria-controls="context-panel"
+              >
+                <div className="relative">
+                  <Square size={14} className="opacity-50 absolute -top-0.5 -left-0.5" />
+                  <Square size={14} className="opacity-75 absolute top-0.5 left-0.5" />
+                  <Square size={14} className="relative z-10" />
+                </div>
+                Bağlam ekle
+              </button>
+            </div>
+
+            {/* Right side */}
+            <div className="flex items-center gap-2">
+              <div className="h-12 flex items-center gap-2 px-4 rounded-lg bg-black/30 border border-border/40 text-xs text-muted-foreground cursor-pointer hover:bg-black/50 transition-colors">
+                <span className="max-w-[170px] truncate font-mono">{composerModel}</span>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+
+              <button
+                type="button"
+                onClick={isLoading ? onCancel : onSend}
+                disabled={!isLoading && !canSend}
+                className={cn(
+                  "h-14 w-16 flex items-center justify-center transition-all duration-200",
+                  "focus-visible:ring-2 focus-visible:ring-electric focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  isLoading
+                    ? "bg-destructive text-white hover:bg-destructive/90 active:scale-90 clip-path-composer"
+                    : canSend
+                      ? "bg-electric text-black shadow-[0_0_15px_rgba(176,226,39,0.25)] hover:shadow-[0_0_30px_rgba(176,226,39,0.5)] active:scale-90"
+                      : "bg-electric text-black opacity-60 cursor-not-allowed",
+                  "clip-path-composer"
+                )}
+                style={{
+                   clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)"
+                }}
+                aria-label={isLoading ? "Durdur" : "Mesaj gönder"}
+              >
+                {isLoading ? (
+                   <Square size={14} className="fill-current" aria-hidden="true" />
+                ) : (
+                   <div className="relative">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                       <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                     </svg>
+                     <span className="absolute -top-1 -right-2 text-[10px] font-bold">+</span>
+                   </div>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Bottom hints */}
-        <div className="flex items-center justify-between mt-1.5 px-1">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
-            <Sparkles className="w-3 h-3 text-primary/60" />
-            <span>{provider}</span>
-            <span className="text-border">/</span>
-            <span className="font-medium text-muted-foreground/80">{model}</span>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
-            <CornerDownLeft size={10} />
-            <span>Enter to send</span>
-            <span className="text-border">·</span>
-            <kbd className="px-1.5 py-0.5 rounded-md border border-border-muted bg-surface-muted font-mono text-[9px]">Ctrl+N</kbd>
-            <span>New chat</span>
-          </div>
+        {/* Shortcuts */}
+        <div className="flex items-center justify-center gap-6 mt-1 text-[10px] text-muted-foreground font-mono">
+          <div className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded bg-black/40 border border-border/50">Enter</span> gönder</div>
+          <div className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded bg-black/40 border border-border/50">Shift+Enter</span> yeni satır</div>
+          <div className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded bg-black/40 border border-border/50">Ctrl+K</span> ara</div>
+          <div className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded bg-black/40 border border-border/50">Ctrl+T</span> araçları aç/kapat</div>
         </div>
+
       </div>
     </div>
   );

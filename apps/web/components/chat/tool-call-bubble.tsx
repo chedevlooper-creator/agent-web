@@ -8,7 +8,7 @@ import type { ToolInvocation } from "@/lib/store";
 
 export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
   const [expanded, setExpanded] = useState(false);
-  const Icon = getToolIcon(invocation.toolName);
+  const iconName = invocation.toolName;
   const isPending = invocation.state === "pending";
 
   const argsPreview = useMemo(() => {
@@ -21,14 +21,15 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
 
   return (
     <div className={cn(
-      "my-1 rounded-xl overflow-hidden text-xs transition-all duration-200 border-l-[3px]",
+      "my-1 rounded-xl overflow-hidden text-xs transition-[border-color,background-color] duration-200 border-l-[3px]",
       isPending
         ? "border-l-warning bg-warning/5 border border-warning/15"
         : "border-l-success bg-success/5 border border-success/15"
     )}>
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/30 transition-colors text-left"
+        className="min-h-[48px] w-full flex items-center gap-2 px-3 hover:bg-muted/30 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-expanded={expanded}
       >
         <div className={cn(
           "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
@@ -39,7 +40,10 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
           {isPending ? (
             <Loader2 size={12} className="animate-spin" />
           ) : (
-            <Icon size={12} />
+            (() => {
+              const TheIcon = getToolIcon(iconName);
+              return <TheIcon size={12} />;
+            })()
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -54,9 +58,9 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {isPending ? (
-            <span className="text-[10px] text-warning font-semibold">Running…</span>
+            <span className="text-[10px] text-warning font-semibold">Çalışıyor…</span>
           ) : (
-            <span className="text-[10px] text-success font-semibold">Done</span>
+            <span className="text-[10px] text-success font-semibold">Tamam</span>
           )}
           {expanded ? <ChevronDown size={12} className="text-muted-foreground" /> : <ChevronRight size={12} className="text-muted-foreground" />}
         </div>
@@ -66,7 +70,7 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
         <div className="border-t border-border-muted/50 animate-slide-up">
           {Object.keys(invocation.args).length > 0 && (
             <div className="px-3 py-2 border-b border-border-muted/50">
-              <p className="section-label mb-1">Arguments</p>
+              <p className="section-label mb-1">Argümanlar</p>
               <pre className="text-[11px] text-foreground bg-muted/50 rounded-lg px-2.5 py-1.5 overflow-x-auto max-h-40 whitespace-pre-wrap break-all border border-border-muted">
                 {JSON.stringify(invocation.args, null, 2)}
               </pre>
@@ -74,7 +78,7 @@ export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
           )}
           {invocation.result != null && (
             <div className="px-3 py-2">
-              <p className="section-label mb-1">Result</p>
+              <p className="section-label mb-1">Sonuç</p>
               <pre className="text-[11px] text-foreground bg-muted/50 rounded-lg px-2.5 py-1.5 overflow-x-auto max-h-60 whitespace-pre-wrap break-all border border-border-muted">
                 {invocation.result}
               </pre>

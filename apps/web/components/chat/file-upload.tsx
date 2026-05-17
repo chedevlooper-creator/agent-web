@@ -34,15 +34,15 @@ export function FilePreviewBar({ files, onRemove }: FilePreviewBarProps) {
       {files.map((f) => (
         <div
           key={f.storedName}
-          className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-primary/8 border border-primary/20 text-xs font-medium text-foreground animate-slide-up"
+          className="flex min-h-[44px] items-center gap-2 pl-3 pr-1.5 py-1 rounded-xl bg-primary/8 border border-primary/20 text-xs font-medium text-foreground animate-slide-up"
         >
           {getFileIcon(f.type)}
           <span className="max-w-[120px] truncate">{f.name}</span>
           <span className="text-[10px] text-muted-foreground">{formatFileSize(f.size)}</span>
           <button
             onClick={() => onRemove(f.storedName)}
-            className="p-0.5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors"
-            aria-label={`Remove ${f.name}`}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-destructive/20 hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`${f.name}'i kaldır`}
           >
             <X size={12} />
           </button>

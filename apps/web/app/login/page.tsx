@@ -29,13 +29,13 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Login failed");
+        setError(data.error || "Giriş başarısız");
         return;
       }
 
       router.push(redirectTo);
     } catch {
-      setError("Network error. Please try again.");
+      setError("Ağ hatası. Lütfen tekrar deneyin.");
     } finally {
       setLoading(false);
     }
@@ -45,10 +45,10 @@ export default function LoginPage() {
     <div className="min-h-dvh flex items-center justify-center bg-[--void-deep] p-4">
       <div className="w-full max-w-sm animate-fade-in">
         <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">
-          Welcome back
+          Tekrar Hoş Geldin
         </h1>
         <p className="text-sm text-[--fg-secondary] mb-8">
-          Log in to your account
+          Hesabına giriş yap
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -63,14 +63,14 @@ export default function LoginPage() {
               htmlFor="username"
               className="block text-sm font-medium text-[--fg-secondary]"
             >
-              Username
+              Kullanıcı Adı
             </label>
             <input
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
+              placeholder="Kullanıcı adını gir"
               autoComplete="username"
               autoFocus
               className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
@@ -82,14 +82,14 @@ export default function LoginPage() {
               htmlFor="password"
               className="block text-sm font-medium text-[--fg-secondary]"
             >
-              Password
+              Şifre
             </label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Şifreni gir"
               autoComplete="current-password"
               className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
             />
@@ -100,17 +100,17 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-2.5 rounded-lg bg-[--electric] text-[--void-deep] font-medium hover:bg-[--electric-hover] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
-            {loading ? "Logging in..." : "Log in"}
+            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[--fg-muted]">
-          Don&apos;t have an account?{" "}
+          Hesabın yok mu?{" "}
           <Link
             href="/register"
             className="text-[--electric] hover:text-[--electric-hover] transition-colors"
           >
-            Create one
+            Oluştur
           </Link>
         </p>
       </div>
