@@ -7,13 +7,13 @@ export function ToasterProvider() {
 
   useEffect(() => {
     setTheme(
-      document.documentElement.getAttribute("data-theme") === "light"
+      document.documentElement.getAttribute("data-theme") === "day"
         ? "light"
         : "dark",
     );
     const observer = new MutationObserver(() => {
       setTheme(
-        document.documentElement.getAttribute("data-theme") === "light"
+        document.documentElement.getAttribute("data-theme") === "day"
           ? "light"
           : "dark",
       );

@@ -1,41 +1,66 @@
 "use client";
 
-import { Sidebar } from "@/components/layout/sidebar";
+import { WorkshopSidebar } from "@/components/layout/sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { SettingsPanel } from "@/components/settings-panel";
-import { useChatStore } from "@/lib/store";
-import { PanelLeft } from "lucide-react";
+import { useChatStore, useActiveMessages } from "@/lib/store";
+import { useMemo } from "react";
 
 export default function Home() {
-  const { sidebarOpen, toggleSidebar } = useChatStore();
+  const sidebarOpen = useChatStore((s) => s.sidebarOpen);
+  const toggleSidebar = useChatStore((s) => s.toggleSidebar);
+  const provider = useChatStore((s) => s.provider);
+  const model = useChatStore((s) => s.model);
+  const messages = useActiveMessages();
+
+  const lastUserMsg = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") return messages[i].content;
+    }
+    return null;
+  }, [messages]);
 
   return (
-    <main className="signal-shell">
-      <div className="signal-frame">
-        <Sidebar />
+    <main className="wk-app">
+      {sidebarOpen && (
+        <div
+          className="wk-sidebar-overlay md:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+      <WorkshopSidebar />
 
-        <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--background)]">
-          <header className="signal-topbar">
-            <span className="signal-topbar-label select-none">Agent Web</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleSidebar}
-                className="signal-button"
-                aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-              >
-                <PanelLeft size={12} />
-                <span className="hidden sm:inline">Toggle Sidebar</span>
-              </button>
-              <SettingsPanel />
+      <div className="wk-main">
+        {/* Top bar */}
+        <header className="wk-top">
+          <div className="wk-top-left">
+            <div className="wk-crumb">
+              <span>agent-web</span>
+              <span className="wk-crumb-sep">/</span>
+              <span>sohbet</span>
+              <span className="wk-crumb-sep">/</span>
+              <span className="wk-crumb-curr">
+                {lastUserMsg
+                  ? lastUserMsg.slice(0, 50) + (lastUserMsg.length > 50 ? "…" : "")
+                  : "yeni sohbet"}
+              </span>
             </div>
-          </header>
-
-          <div
-            id="main-content"
-            className="min-h-0 min-w-0 flex-1 overflow-hidden"
-          >
-            <ChatInterface />
           </div>
+          <div className="wk-top-right">
+            <button className="wk-model">
+              <span className="wk-model-led" />
+              <span>{provider} · {model}</span>
+              <span style={{ opacity: 0.5 }}>▾</span>
+            </button>
+            <button className="wk-iconbtn" title="Dallandır">⌥</button>
+            <button className="wk-iconbtn" title="Paylaş">↗</button>
+            <SettingsPanel />
+          </div>
+        </header>
+
+        {/* Main chat area */}
+        <div id="main-content" className="min-h-0 min-w-0 flex-1 overflow-hidden">
+          <ChatInterface />
         </div>
       </div>
     </main>

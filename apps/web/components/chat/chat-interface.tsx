@@ -111,19 +111,28 @@ function isPreviewable(filename: string): boolean {
 
 const STARTER_PROMPTS = [
   {
-    icon: Lightbulb,
-    label: "Review UX",
-    prompt: "Review this interface and return three UX improvements.",
+    key: "migration",
+    label: "migration",
+    prompt: "Drizzle şemasındaki messages tablosuna nullable bir tags (JSON array) kolonu ekle. V7 idempotent migration olsun. Sonra vitest dosyası yaz.",
+    desc: "Drizzle şemasına tags kolonu ekle",
   },
   {
-    icon: Target,
-    label: "Execution Plan",
-    prompt: "Turn this idea into a polished execution plan.",
+    key: "audit",
+    label: "audit",
+    prompt: "Bu repodaki tüm useEffect hooks'larını tarayıp dependency array eksik olanları listele.",
+    desc: "useEffect dependency eksiklerini bul",
   },
   {
-    icon: Layers,
-    label: "Compare",
-    prompt: "Compare two approaches and recommend the stronger one.",
+    key: "mcp",
+    label: "mcp",
+    prompt: "MCP filesystem server'ı kurup tool'ları listele.",
+    desc: "filesystem MCP'yi kur ve test et",
+  },
+  {
+    key: "scaffold",
+    label: "scaffold",
+    prompt: "packages/core'da yeni bir image_generate tool'u taslağı oluştur.",
+    desc: "Yeni bir agent tool'u iskelesi",
   },
 ] as const;
 
@@ -317,37 +326,18 @@ function FilePreviewCard({
   );
 }
 
-// ===== Typing Indicator =====
+// ===== Typing Indicator (Workshop) =====
 function TypingIndicator({ label }: { label?: string }) {
   return (
-    <div
-      className="agent-message-row flex w-full items-start gap-2 animate-message-in sm:gap-3"
-      role="status"
-    >
-      <div className="agent-avatar-cube agent-avatar-cube--assistant">
-        <Bot className="text-[var(--primary)]" />
+    <div className="wk-block wk-block--running" role="status">
+      <div className="wk-block-margin">
+        <span className="wk-spinner" />
       </div>
-      <Card
-        className="agent-message-card agent-message-card--stream w-full max-w-[520px] py-0"
-        size="sm"
-      >
-        <CardContent className="flex flex-col gap-3 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <Badge variant="outline" className="agent-model-badge">
-              {label ?? "assistant stream"}
-            </Badge>
-            <div className="flex items-center gap-1.5" aria-hidden="true">
-              <span className="typing-dot" />
-              <span className="typing-dot" />
-              <span className="typing-dot" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-2.5 w-[72%] rounded-none bg-[var(--primary-muted)]" />
-            <Skeleton className="h-2.5 w-[46%] rounded-none bg-[var(--muted)]" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="wk-block-body">
+        <span className="wk-running-label">
+          {label ?? "agent çalışıyor"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -434,82 +424,60 @@ function AssistantContent({ content }: { content: string }) {
   );
 }
 
-// ===== Tool Call Card =====
+// ===== Tool Call Card (Workshop) =====
 function ToolCallCard({ tc }: { tc: ToolCallInfo }) {
   const [expanded, setExpanded] = useState(false);
   const isDone = tc.result !== undefined;
-  const IconComp =
-    tc.name === "terminal"
-      ? Terminal
-      : tc.name.includes("file") || tc.name.includes("read")
-        ? FileText
-        : Globe;
+  const status = !isDone ? "running" : "ok";
 
-  let argsPreview: string;
+  const glyphMap: Record<string, string> = {
+    terminal: "❯", read_file: "◧", write_file: "◨",
+    search_files: "⌕", web_search: "◯", git: "⌥", db_query: "▤",
+    execute_code: "⌘", knowledge_search: "◉", api_test: "↗",
+    list_directory: "▤",
+  };
+  const glyph = glyphMap[tc.name] || "▤";
+
+  let argsPreview = "";
   try {
     const parsed = JSON.parse(tc.args);
-    argsPreview =
-      typeof parsed === "object" && parsed !== null
-        ? Object.values(parsed)[0]?.toString()?.slice(0, 60) ||
-          tc.args.slice(0, 60)
-        : tc.args.slice(0, 60);
-  } catch {
-    argsPreview = tc.args.slice(0, 60);
-  }
-  if (argsPreview.length >= 60) argsPreview += "...";
+    const vals = Object.values(parsed);
+    if (vals.length > 0) {
+      const first = typeof vals[0] === "string" ? vals[0] as string : JSON.stringify(vals[0]);
+      argsPreview = first.length > 60 ? first.slice(0, 57) + "…" : first;
+    }
+  } catch { argsPreview = tc.args.slice(0, 60); }
 
   return (
-    <Card className="agent-tool-card my-1 gap-0 py-0" size="sm">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => isDone && setExpanded(!expanded)}
-        disabled={!isDone}
-        className={cn(
-          "h-auto w-full justify-start rounded-none px-3 py-2 font-mono text-xs",
-          "disabled:pointer-events-auto disabled:opacity-100",
-        )}
+    <div className={cn("wk-tool-block", status === "running" && "wk-tool-block--running", status === "ok" && "wk-tool-block--ok")}>
+      <button
+        className="wk-tool-block-head"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
       >
-        <IconComp
-          data-icon="inline-start"
-          className={cn(
-            isDone
-              ? "text-[var(--success)]"
-              : "animate-pulse text-[var(--accent)]",
+        <span className="wk-tool-block-glyph">{glyph}</span>
+        <span className="wk-tool-block-name">{tc.name}</span>
+        <span className="wk-tool-block-args">{argsPreview}</span>
+        <span className="wk-tool-block-spacer" />
+        {status === "running" && <span className="wk-spinner" />}
+        {status === "ok" && <span className="wk-tool-block-tick">✓</span>}
+        <span className={cn("wk-tool-block-caret", expanded && "is-open")}>▾</span>
+      </button>
+      {expanded && (
+        <div className="wk-tool-block-body">
+          {tc.args && tc.args !== "{}" && (
+            <pre className="wk-tool-block-output">{JSON.stringify(JSON.parse(tc.args), null, 2)}</pre>
           )}
-        />
-        <span className="font-semibold">{tc.name}</span>
-        <span className="min-w-0 flex-1 truncate text-left text-[var(--muted-foreground)]">
-          {argsPreview}
-        </span>
-        {!isDone && (
-          <Badge
-            variant="outline"
-            className="agent-status-badge text-[var(--accent)]"
-          >
-            running
-          </Badge>
-        )}
-        {isDone &&
-          (expanded ? (
-            <ChevronDown className="text-[var(--muted-foreground)]" />
-          ) : (
-            <ChevronRight className="text-[var(--muted-foreground)]" />
-          ))}
-      </Button>
-      {expanded && isDone && (
-        <CardContent className="border-t border-[var(--border)] bg-[var(--background)] px-3 py-2">
-          <pre className="max-h-[200px] overflow-y-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed">
-            {tc.result}
-          </pre>
-        </CardContent>
+          {tc.result && (
+            <pre className="wk-tool-block-output">{tc.result}</pre>
+          )}
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
 
-// ===== Message Bubble =====
+// ===== Message Bubble (Workshop) =====
 function MessageBubble({
   message,
   index,
@@ -571,208 +539,144 @@ function MessageBubble({
     } catch {}
   };
 
-  // handleMessageAction will be forwarded from ChatInterface
+  const time = new Date(message.timestamp).toTimeString().slice(0, 5);
+
+  if (isUser) {
+    return (
+      <div
+        className="wk-block wk-block--user animate-block-in group/message"
+        style={{ animationDelay: `${Math.min(index * 30, 150)}ms` }}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
+      >
+        <div className="wk-block-margin">
+          <span className="wk-block-marker wk-block-marker--user">❯</span>
+        </div>
+        <div className="wk-block-body">
+          {editing ? (
+            <div className="flex flex-col gap-3">
+              <textarea
+                ref={editRef}
+                value={draft}
+                onChange={(e) => { setDraft(e.target.value); autoSize(e.target); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
+                  else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSaveEdit(); }
+                }}
+                className="min-h-20 max-h-[320px] w-full resize-none border border-[var(--rule)] bg-transparent font-mono text-sm text-[var(--ink)] px-3 py-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]"
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button onClick={handleCancelEdit} className="wk-starter">İptal</button>
+                <button onClick={handleSaveEdit} className="wk-send is-ready">Kaydet</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="wk-user-block-head">
+                <span className="wk-user-tag">sen</span>
+                <span className="wk-user-time">{time}</span>
+              </div>
+              <p className="wk-user-text">{message.content}</p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
-      className={cn(
-        "agent-message-row group/message flex w-full items-start gap-2 animate-message-in sm:gap-3",
-        isUser ? "flex-row-reverse" : "flex-row",
-      )}
+      className="wk-block wk-block--assistant animate-block-in group/message"
       style={{ animationDelay: `${Math.min(index * 30, 150)}ms` }}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <div
-        className={cn(
-          "agent-avatar-cube",
-          isUser ? "agent-avatar-cube--user" : "agent-avatar-cube--assistant",
-        )}
-      >
-        {isUser ? (
-          <User className="text-[var(--primary-foreground)]" />
-        ) : (
-          <Bot className="text-[var(--primary)]" />
+      <div className="wk-block-margin">
+        <span className="wk-block-marker">
+          {message.toolCalls && message.toolCalls.length > 0 ? "▸" : "▸"}
+        </span>
+        {message.model && (
+          <span className="wk-block-label">{message.model}</span>
         )}
       </div>
-
-      <div
-        className={cn(
-          "agent-message-body flex min-w-0 flex-col gap-2",
-          isUser ? "items-end" : "items-start",
-        )}
-      >
+      <div className="wk-block-body">
         {message.parentId && <ThreadIndicator parentMessage={{ id: message.parentId, content: message.content, role: message.role }} />}
-        {!isUser && message.model && (
-          <Badge variant="outline" className="agent-model-badge">
-            {message.model}
-          </Badge>
-        )}
 
-        <Card
-          data-role={isUser ? "user" : "assistant"}
-          className={cn(
-            "agent-message-card max-w-full gap-0 py-0",
-            isError && "agent-message-card--error",
-          )}
-        >
-          <CardContent className="px-5 py-3.5 text-sm">
-            {editing ? (
-              <div className="flex flex-col gap-3">
-                <Textarea
-                  ref={editRef}
-                  value={draft}
-                  onChange={(e) => {
-                    setDraft(e.target.value);
-                    autoSize(e.target);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      handleCancelEdit();
-                    } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                      e.preventDefault();
-                      handleSaveEdit();
-                    }
-                  }}
-                  className={cn(
-                    "min-h-20 max-h-[320px] resize-none rounded-none border-[var(--border)] bg-transparent font-mono text-sm",
-                    isUser
-                      ? "text-[var(--primary-foreground)]"
-                      : "text-[var(--foreground)]",
-                  )}
-                />
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancelEdit}
-                    aria-label="Cancel edit"
-                  >
-                    <X data-icon="inline-start" />
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleSaveEdit}
-                    aria-label="Save edit"
-                  >
-                    <Check data-icon="inline-start" />
-                    Save
-                  </Button>
-                </div>
-              </div>
-            ) : isUser ? (
-              <p className="whitespace-pre-wrap leading-relaxed">
-                {message.content}
-              </p>
-            ) : isError ? (
-              <div className="flex flex-col gap-3">
-                <p className="whitespace-pre-wrap leading-relaxed text-[var(--destructive)]">
-                  {message.content}
-                </p>
-                {onRetry && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={onRetry}
-                    className="w-fit"
-                  >
-                    <RefreshCw data-icon="inline-start" />
-                    Retry
-                  </Button>
-                )}
-              </div>
-            ) : message.content ? (
-              <div className="flex flex-col gap-2">
-                {message.toolCalls && message.toolCalls.length > 0 && (
-                  <div className="flex flex-col gap-1">
-                    {message.toolCalls.map((tc) => (
-                      <ToolCallCard key={tc.id} tc={tc} />
-                    ))}
-                  </div>
-                )}
-                <AssistantContent content={message.content} />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {message.toolCalls && message.toolCalls.length > 0 && (
-                  <div className="flex flex-col gap-1">
-                    {message.toolCalls.map((tc) => (
-                      <ToolCallCard key={tc.id} tc={tc} />
-                    ))}
-                  </div>
-                )}
-                {!message.content && (
-                  <span className="font-mono text-xs text-[var(--muted-foreground)]">
-                    Waiting for stream...
-                  </span>
-                )}
+        {editing ? (
+          <div className="flex flex-col gap-3">
+            <textarea
+              ref={editRef}
+              value={draft}
+              onChange={(e) => { setDraft(e.target.value); autoSize(e.target); }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
+                else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSaveEdit(); }
+              }}
+              className="min-h-20 max-h-[320px] w-full resize-none border border-[var(--rule)] bg-transparent font-mono text-sm text-[var(--ink)] px-3 py-2 focus:outline-none"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={handleCancelEdit} className="wk-starter">İptal</button>
+              <button onClick={handleSaveEdit} className="wk-send is-ready">Kaydet</button>
+            </div>
+          </div>
+        ) : isError ? (
+          <div className="space-y-2">
+            <p className="wk-text-line" style={{ color: 'var(--danger)' }}>{message.content}</p>
+            {onRetry && (
+              <button onClick={onRetry} className="signal-button">
+                <RefreshCw size={11} /> Tekrar dene
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <div className="flex flex-col gap-1.5 mb-2">
+                {message.toolCalls.map((tc) => (
+                  <ToolCallCard key={tc.id} tc={tc} />
+                ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+            {message.content ? (
+              <AssistantContent content={message.content} />
+            ) : (
+              <span className="text-xs italic text-[var(--ink-faint)]">Bekleniyor…</span>
+            )}
+          </>
+        )}
 
+        {/* Action bar */}
         {!editing && (
           <div
             className={cn(
-              "flex items-center gap-1 transition-all duration-200",
-              isUser ? "flex-row-reverse" : "flex-row",
-              showActions
-                ? "translate-y-0 opacity-100"
-                : "pointer-events-none -translate-y-1 opacity-0",
+              "flex items-center gap-1 mt-1 transition-all duration-200",
+              showActions ? "opacity-100" : "opacity-0 pointer-events-none",
             )}
           >
             {isUser && onEdit && !isError && (
-              <TooltipIconButton
-                type="button"
-                label="Edit message"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => {
-                  setDraft(message.content);
-                  setEditing(true);
-                }}
-                aria-label="Edit message"
+              <button
+                onClick={() => { setDraft(message.content); setEditing(true); }}
+                className="wk-composer-tool"
+                aria-label="Düzenle"
               >
-                <Pencil />
-              </TooltipIconButton>
+                <Pencil size={11} />
+              </button>
             )}
             {!isError && (
-              <TooltipIconButton
-                type="button"
-                label={copied ? "Copied" : "Copy message"}
-                variant="ghost"
-                size="icon-xs"
-                onClick={handleCopy}
-                aria-label="Copy message"
-              >
-                {copied ? <Check /> : <Copy />}
-              </TooltipIconButton>
+              <button onClick={handleCopy} className="wk-composer-tool" aria-label={copied ? "Kopyalandı" : "Kopyala"}>
+                {copied ? <Check size={11} /> : <Copy size={11} />}
+              </button>
             )}
             {!isUser && !isError && message.content && (
               <TtsButton text={message.content} />
             )}
             {!isUser && !isError && message.content && onMessageAction && (
-              <MessageActions
-                content={message.content}
-                onAction={onMessageAction}
-              />
+              <MessageActions content={message.content} onAction={onMessageAction} />
             )}
             {!isError && onBranch && (
-              <TooltipIconButton
-                type="button"
-                label="Branch from here"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => onBranch(message.id)}
-                aria-label="Branch from here"
-              >
-                <GitBranch />
-              </TooltipIconButton>
+              <button onClick={() => onBranch(message.id)} className="wk-composer-tool" aria-label="Dallandır">
+                <GitBranch size={11} />
+              </button>
             )}
             {!isError && <BranchIndicator messageId={message.id} />}
           </div>
@@ -782,54 +686,32 @@ function MessageBubble({
   );
 }
 
-// ===== Empty State =====
+// ===== Empty State (Workshop) =====
 function EmptyState({ onPrompt }: { onPrompt: (prompt: string) => void }) {
   return (
-    <div
-      className="flex min-h-[calc(100vh-var(--sidebar-width,56px))] flex-col items-center justify-center gap-6 px-4 py-8"
-      style={{
-        background: "radial-gradient(ellipse at 50% 40%, rgba(0,229,153,0.06) 0%, transparent 60%)",
-      }}
-    >
-      <div className="agent-empty-visual" aria-hidden="true">
-        <div className="agent-orbit agent-orbit--outer" />
-        <div className="agent-orbit agent-orbit--inner" />
-        <div className="agent-core-cube">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-      <div className="flex flex-col items-center gap-5 text-center">
-        <div className="signal-ready agent-ready-copy">
-          <span className="text-[var(--primary)]/60">&gt;</span> ready
-          <span className="signal-caret" />
-        </div>
-        <div className="flex max-w-lg flex-col gap-3">
-          {STARTER_PROMPTS.map((item) => {
-            const Icon = item.icon;
-            return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="wk-stream-inner">
+        <div className="wk-empty">
+          <div className="wk-empty-eyebrow">Agent Web · workshop</div>
+          <h1>
+            Bugün ne <em>inşa edelim?</em>
+          </h1>
+          <p>
+            Bir görev yaz — agent depoyu okuyacak, planı parçalayacak ve
+            dosyalara dokunmadan önce her adımı sana gösterecek.
+          </p>
+          <div className="wk-quick-grid">
+            {STARTER_PROMPTS.map((item) => (
               <button
-                key={item.prompt}
-                type="button"
+                key={item.key}
+                className="wk-quick"
                 onClick={() => onPrompt(item.prompt)}
-                className="flex items-center gap-3 border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-left transition-all hover:border-[var(--primary-dim)] hover:bg-[var(--overlay)] hover:translate-x-0.5 active:translate-y-px"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[var(--primary-muted)] text-[var(--primary)]">
-                  <Icon size={16} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-[var(--foreground)]">
-                    {item.label}
-                  </p>
-                  <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--muted-foreground)]">
-                    {item.prompt}
-                  </p>
-                </div>
-                <Sparkles size={14} className="shrink-0 text-[var(--dim-foreground)]" />
+                <span className="wk-quick-title">{item.label}</span>
+                <span className="wk-quick-desc">{item.desc}</span>
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -980,7 +862,7 @@ async function streamChat(
   }
 }
 
-// ===== Compare Row (renders two assistant messages side by side) =====
+// ===== Compare Row (Workshop) =====
 function CompareRow({
   left,
   right,
@@ -992,7 +874,7 @@ function CompareRow({
 }) {
   return (
     <div
-      className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-message-in"
+      className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-block-in"
       style={{ animationDelay: `${Math.min(index * 30, 150)}ms` }}
     >
       <CompareCell message={left} />
@@ -1004,47 +886,30 @@ function CompareRow({
 function CompareCell({ message }: { message: ChatMessage }) {
   const isError = message.content.startsWith("Error:");
   return (
-    <div className="agent-message-row flex w-full items-start gap-2">
-      <div className="agent-avatar-cube agent-avatar-cube--assistant agent-avatar-cube--sm">
-        <Bot className="text-[var(--primary)]" />
+    <div className="wk-block">
+      <div className="wk-block-margin">
+        <span className="wk-block-marker">▸</span>
+        {message.model && <span className="wk-block-label">{message.model}</span>}
       </div>
-      <div className="min-w-0 flex-1">
-        {message.model && (
-          <Badge variant="outline" className="agent-model-badge mb-2">
-            {message.model}
-          </Badge>
-        )}
-        <Card
-          className={cn(
-            "agent-message-card max-w-full gap-0 py-0",
-            isError && "agent-message-card--error",
-          )}
-        >
-          <CardContent className="px-3 py-2.5 text-sm">
-            {isError ? (
-              <p className="whitespace-pre-wrap text-[var(--destructive)]">
-                {message.content}
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {message.toolCalls && message.toolCalls.length > 0 && (
-                  <div className="flex flex-col gap-1">
-                    {message.toolCalls.map((tc) => (
-                      <ToolCallCard key={tc.id} tc={tc} />
-                    ))}
-                  </div>
-                )}
-                {message.content ? (
-                  <AssistantContent content={message.content} />
-                ) : (
-                  <span className="font-mono text-xs text-[var(--muted-foreground)]">
-                    Waiting for stream...
-                  </span>
-                )}
+      <div className="wk-block-body">
+        {isError ? (
+          <p className="text-sm text-[var(--danger)]">{message.content}</p>
+        ) : (
+          <>
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <div className="flex flex-col gap-1 mb-2">
+                {message.toolCalls.map((tc) => (
+                  <ToolCallCard key={tc.id} tc={tc} />
+                ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+            {message.content ? (
+              <AssistantContent content={message.content} />
+            ) : (
+              <span className="text-xs italic text-[var(--ink-faint)]">Bekleniyor…</span>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -1530,7 +1395,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="agent-chat-stage relative flex h-full min-w-0 flex-col overflow-hidden">
+    <div className="wk-main">
       <KeyboardShortcuts />
       {/* Messages Area */}
       {messages.length === 0 ? (
@@ -1539,9 +1404,9 @@ export function ChatInterface() {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="relative min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
+          className="wk-stream"
         >
-          <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6">
+          <div className="wk-stream-inner">
             {renderItems.map((item) =>
               item.kind === "single" ? (
                 <MessageBubble
@@ -1585,7 +1450,7 @@ export function ChatInterface() {
                 }
               />
             ) : null}
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} className="wk-stream-anchor" />
           </div>
         </div>
       )}
@@ -1593,161 +1458,150 @@ export function ChatInterface() {
       {/* Scroll to bottom button */}
       {showScrollBtn && (
         <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10">
-          <TooltipIconButton
-            type="button"
-            label="Scroll to bottom"
-            variant="outline"
-            size="icon-lg"
+          <button
             onClick={scrollToBottom}
-            className="agent-scroll-button animate-slide-up"
-            aria-label="Scroll to bottom"
+            className="wk-send is-ready animate-slide-up"
+            aria-label="Aşağı kaydır"
           >
-            <ArrowDown />
-          </TooltipIconButton>
+            <ArrowDown size={14} />
+          </button>
         </div>
       )}
 
-      {/* Input Area */}
-      <div className="w-full min-w-0 shrink-0 overflow-hidden border-t border-[var(--border)] bg-[var(--background)] safe-bottom">
-        <div className="mx-auto w-full min-w-0 max-w-4xl px-4 py-3 sm:px-6">
-          {compareMode && effectiveModels.length > 1 && (
-            <Badge variant="outline" className="agent-compare-badge mb-2">
-              <GitCompare data-icon="inline-start" />
-              Compare mode: {effectiveModels.join(" vs ")}
-            </Badge>
-          )}
-          {/* File previews (collapsible cards) */}
-          {filePreviews.size > 0 && (
-            <div className="mb-2 flex flex-col gap-2">
-              {Array.from(filePreviews.entries()).map(([name, preview]) => (
-                <FilePreviewCard
-                  key={name}
-                  preview={preview}
-                  onClose={() => removeFile(name)}
-                />
-              ))}
-            </div>
-          )}
-          {/* Attached file tags */}
-          {attachedFiles.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {attachedFiles.map((f) => (
-                <Badge
-                  key={f.name}
-                  variant="outline"
-                  className="agent-file-badge"
-                >
-                  <Paperclip
-                    data-icon="inline-start"
-                    className="text-[var(--accent)]"
-                  />
-                  {f.name}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={() => removeFile(f.name)}
-                    className="ml-0.5 size-5 hover:text-[var(--destructive)]"
-                    aria-label={`Remove ${f.name}`}
-                  >
-                    <X />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
-          )}
-          <Card className="agent-composer w-full min-w-0 gap-0 py-0">
-            <CardContent className="flex min-w-0 items-end gap-2 px-2 py-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                className="hidden"
-                aria-label="Upload files"
-              />
-              <TooltipIconButton
-                type="button"
-                label={uploading ? "Uploading files" : "Attach files"}
-                variant="ghost"
-                size="icon-lg"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!hasApiKey || uploading}
-                className="shrink-0"
-                aria-label="Upload files"
-              >
-                {uploading ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Paperclip />
-                )}
-              </TooltipIconButton>
-              <SttButton
-                onTranscript={(text) => {
-                  setInput(text);
+      {/* Composer — Workshop */}
+      <div className="wk-composer-wrap safe-bottom">
+        {!isLoading && input === "" && messages.length === 0 && (
+          <div className="wk-starters">
+            {STARTER_PROMPTS.slice(0, 4).map((item) => (
+              <button
+                key={item.key}
+                className="wk-starter"
+                onClick={() => {
+                  setInput(item.prompt);
                   requestAnimationFrame(() => {
                     const ta = document.querySelector<HTMLTextAreaElement>('[data-chat-input]');
                     if (ta) {
                       ta.style.height = "auto";
-                      ta.style.height = Math.min(ta.scrollHeight, 320) + "px";
+                      ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
                     }
                   });
                 }}
-                disabled={!hasApiKey}
-              />
-              <label htmlFor="chat-input" className="sr-only">
-                Message
-              </label>
-              <Textarea
-                ref={textareaRef}
-                id="chat-input"
-                data-chat-input
-                value={input}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  hasApiKey
-                    ? "Message Agent Web..."
-                    : "No API key configured on server"
-                }
-                disabled={!hasApiKey}
-                rows={1}
-                className="min-h-10 max-h-[320px] min-w-0 flex-1 resize-none border-0 bg-transparent px-2 py-2 font-mono text-xs shadow-none focus-visible:ring-0"
-              />
-              <TooltipIconButton
-                type="button"
-                label={isLoading ? "Sending" : "Send message"}
-                variant={
-                  input.trim() && hasApiKey && !isLoading ? "default" : "ghost"
-                }
-                size="icon-lg"
-                onClick={handleSend}
-                disabled={isLoading || !input.trim() || !hasApiKey}
-                className={cn(
-                  "shrink-0",
-                  input.trim() && hasApiKey && !isLoading
-                    ? "agent-send-button"
-                    : "text-[var(--muted-foreground)]",
-                )}
-                aria-label={isLoading ? "Sending..." : "Send message"}
               >
-                {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
-              </TooltipIconButton>
-            </CardContent>
-            <Separator />
-            <div className="flex items-center justify-between gap-3 px-3 py-2">
-              <p className="truncate font-mono text-[10px] text-[var(--dim-foreground)]">
-                {provider} /{" "}
-                {compareMode && effectiveModels.length > 1
-                  ? effectiveModels.join(", ")
-                  : model}
-              </p>
-              <p className="hidden shrink-0 items-center gap-1 font-mono text-[10px] text-[var(--dim-foreground)] sm:flex">
-                <CornerDownLeft />
-                Enter to send
-              </p>
-            </div>
-          </Card>
+                {item.desc}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {compareMode && effectiveModels.length > 1 && (
+          <div className="max-w-[880px] mx-auto px-8 pt-2">
+            <span className="font-mono text-[10px] text-[var(--accent)]">
+              Compare: {effectiveModels.join(" vs ")}
+            </span>
+          </div>
+        )}
+
+        {filePreviews.size > 0 && (
+          <div className="max-w-[880px] mx-auto px-8 pt-2 flex flex-col gap-2">
+            {Array.from(filePreviews.entries()).map(([name, preview]) => (
+              <FilePreviewCard key={name} preview={preview} onClose={() => removeFile(name)} />
+            ))}
+          </div>
+        )}
+
+        {attachedFiles.length > 0 && (
+          <div className="max-w-[880px] mx-auto px-8 pt-2 flex flex-wrap gap-1.5">
+            {attachedFiles.map((f) => (
+              <span key={f.name} className="wk-starter">
+                <Paperclip size={10} className="inline mr-1" />
+                {f.name}
+                <button onClick={() => removeFile(f.name)} className="ml-1 hover:text-[var(--danger)]" aria-label={`Kaldır ${f.name}`}>
+                  <X size={10} className="inline" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="wk-composer">
+          <span className="wk-composer-prompt">❯</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileUpload}
+            className="hidden"
+            aria-label="Dosya yükle"
+          />
+          <label htmlFor="chat-input" className="sr-only">Mesaj</label>
+          <textarea
+            ref={textareaRef}
+            id="chat-input"
+            data-chat-input
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              hasApiKey
+                ? isLoading
+                  ? "agent yanıtlıyor…"
+                  : "agent'a yaz…   ⇧⏎ yeni satır · ⌘⏎ gönder"
+                : "API anahtarı yapılandırılmamış"
+            }
+            disabled={!hasApiKey || isLoading}
+            rows={1}
+            className="wk-composer-input"
+          />
+          <div className="wk-composer-side">
+            <button
+              className="wk-composer-tool"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!hasApiKey || uploading}
+              aria-label="Dosya ekle"
+              title="Dosya ekle"
+            >
+              {uploading ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Paperclip size={13} />
+              )}
+            </button>
+            <SttButton
+              onTranscript={(text) => {
+                setInput(text);
+                requestAnimationFrame(() => {
+                  const ta = document.querySelector<HTMLTextAreaElement>('[data-chat-input]');
+                  if (ta) {
+                    ta.style.height = "auto";
+                    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+                  }
+                });
+              }}
+              disabled={!hasApiKey}
+            />
+            {isLoading ? (
+              <button className="wk-stop" onClick={() => abortRef.current?.abort()}>
+                <span className="wk-stop-square" />
+                <span>Dur</span>
+              </button>
+            ) : (
+              <button
+                className={cn("wk-send", input.trim() && hasApiKey && "is-ready")}
+                onClick={handleSend}
+                disabled={!input.trim() || !hasApiKey}
+              >
+                <span>Gönder</span>
+                <span className="wk-send-key">⌘⏎</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="wk-status-strip">
+          <span><span className="wk-led wk-led--on" /> {provider} · {model}</span>
+          <span>bağlam 14.2k/80k</span>
+          <span>11 araç</span>
+          <span className="wk-status-right">⌘K komut paleti</span>
         </div>
       </div>
 

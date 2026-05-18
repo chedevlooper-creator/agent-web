@@ -6,27 +6,32 @@ import { cn } from "@/lib/utils";
 
 const THEME_KEY = "agent-web-theme";
 
-function getInitialTheme(): "dark" | "light" {
+type Theme = "night" | "day";
+
+function getInitialTheme(): Theme {
   try {
     const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "day" || stored === "night") return stored;
+    // Map legacy values
+    if (stored === "light") return "day";
+    if (stored === "dark") return "night";
   } catch {}
   if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches) {
-    return "light";
+    return "day";
   }
-  return "dark";
+  return "night";
 }
 
-function applyTheme(theme: "dark" | "light") {
-  if (theme === "light") {
-    document.documentElement.setAttribute("data-theme", "light");
+function applyTheme(theme: Theme) {
+  if (theme === "day") {
+    document.documentElement.setAttribute("data-theme", "day");
   } else {
     document.documentElement.removeAttribute("data-theme");
   }
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<Theme>("night");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -38,11 +43,9 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   const toggle = useCallback(() => {
     setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
+      const next: Theme = prev === "night" ? "day" : "night";
       applyTheme(next);
-      try {
-        localStorage.setItem(THEME_KEY, next);
-      } catch {}
+      try { localStorage.setItem(THEME_KEY, next); } catch {}
       return next;
     });
   }, []);
@@ -52,10 +55,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       <button
         type="button"
         className={cn(
-          "flex h-7 w-7 items-center justify-center text-[var(--muted-foreground)] transition-colors hover:bg-[var(--overlay)] hover:text-[var(--foreground)]",
+          "flex h-7 w-7 items-center justify-center text-[var(--ink-faint)] transition-colors hover:bg-[var(--bg-elev)] hover:text-[var(--ink)]",
           className
         )}
-        aria-label="Toggle theme"
+        aria-label="Tema değiştir"
         disabled
       >
         <Sun size={14} />
@@ -68,13 +71,13 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggle}
       className={cn(
-        "flex h-7 w-7 items-center justify-center text-[var(--muted-foreground)] transition-colors hover:bg-[var(--overlay)] hover:text-[var(--foreground)]",
+        "flex h-7 w-7 items-center justify-center text-[var(--ink-faint)] transition-colors hover:bg-[var(--bg-elev)] hover:text-[var(--ink)]",
         className
       )}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-      title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      aria-label={`${theme === "night" ? "Gündüz" : "Gece"} moduna geç`}
+      title={`${theme === "night" ? "Gündüz" : "Gece"} moduna geç`}
     >
-      {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+      {theme === "night" ? <Sun size={14} /> : <Moon size={14} />}
     </button>
   );
 }

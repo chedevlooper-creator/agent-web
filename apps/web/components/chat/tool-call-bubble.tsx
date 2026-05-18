@@ -1,88 +1,77 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getToolIcon } from "@/lib/tool-icons";
 import type { ToolInvocation } from "@/lib/store";
 
 export function ToolCallBubble({ invocation }: { invocation: ToolInvocation }) {
   const [expanded, setExpanded] = useState(false);
-  const iconName = invocation.toolName;
-  const isPending = invocation.state === "pending";
+  const isPending = invocation.state === "pending" || invocation.state === "running";
+  const status = isPending ? "running" : "ok";
 
   const argsPreview = useMemo(() => {
     const entries = Object.entries(invocation.args);
     if (entries.length === 0) return "";
     const first = entries[0];
-    const val = typeof first[1] === "string" ? first[1] : JSON.stringify(first[1]);
+    const val =
+      typeof first[1] === "string" ? first[1] : JSON.stringify(first[1]);
     return val.length > 60 ? val.slice(0, 57) + "…" : val;
   }, [invocation.args]);
 
+  const glyphMap: Record<string, string> = {
+    terminal: "❯",
+    read_file: "◧",
+    write_file: "◨",
+    search_files: "⌕",
+    web_search: "◯",
+    git: "⌥",
+    db_query: "▤",
+    execute_code: "⌘",
+    knowledge_search: "◉",
+    api_test: "↗",
+    list_directory: "▤",
+  };
+
+  const glyph = glyphMap[invocation.toolName] || "▤";
+
   return (
-    <div className={cn(
-      "my-1 rounded-xl overflow-hidden text-xs transition-[border-color,background-color] duration-200 border-l-[3px]",
-      isPending
-        ? "border-l-warning bg-warning/5 border border-warning/15"
-        : "border-l-success bg-success/5 border border-success/15"
-    )}>
+    <div
+      className={cn(
+        "wk-tool-block",
+        status === "running" && "wk-tool-block--running",
+        status === "ok" && "wk-tool-block--ok"
+      )}
+    >
       <button
+        className="wk-tool-block-head"
         onClick={() => setExpanded((v) => !v)}
-        className="min-h-[48px] w-full flex items-center gap-2 px-3 hover:bg-muted/30 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-expanded={expanded}
       >
-        <div className={cn(
-          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
-          isPending
-            ? "bg-warning/12 text-warning"
-            : "bg-success/12 text-success"
-        )}>
-          {isPending ? (
-            <Loader2 size={12} className="animate-spin" />
-          ) : (
-            (() => {
-              const TheIcon = getToolIcon(iconName);
-              return <TheIcon size={12} />;
-            })()
+        <span className="wk-tool-block-glyph">{glyph}</span>
+        <span className="wk-tool-block-name">{invocation.toolName}</span>
+        <span className="wk-tool-block-args">{argsPreview}</span>
+        <span className="wk-tool-block-spacer" />
+        {status === "running" && <span className="wk-spinner" />}
+        {status === "ok" && <span className="wk-tool-block-tick">✓</span>}
+        <span
+          className={cn(
+            "wk-tool-block-caret",
+            expanded && "is-open"
           )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="font-medium text-foreground">
-            {invocation.toolName.replace(/_/g, " ")}
-          </span>
-          {argsPreview ? (
-            <span className="ml-1.5 text-muted-foreground truncate">
-              {argsPreview}
-            </span>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {isPending ? (
-            <span className="text-[10px] text-warning font-semibold">Çalışıyor…</span>
-          ) : (
-            <span className="text-[10px] text-success font-semibold">Tamam</span>
-          )}
-          {expanded ? <ChevronDown size={12} className="text-muted-foreground" /> : <ChevronRight size={12} className="text-muted-foreground" />}
-        </div>
+        >
+          ▾
+        </span>
       </button>
 
       {expanded && (
-        <div className="border-t border-border-muted/50 animate-slide-up">
+        <div className="wk-tool-block-body">
           {Object.keys(invocation.args).length > 0 && (
-            <div className="px-3 py-2 border-b border-border-muted/50">
-              <p className="section-label mb-1">Argümanlar</p>
-              <pre className="text-[11px] text-foreground bg-muted/50 rounded-lg px-2.5 py-1.5 overflow-x-auto max-h-40 whitespace-pre-wrap break-all border border-border-muted">
-                {JSON.stringify(invocation.args, null, 2)}
-              </pre>
-            </div>
+            <pre className="wk-tool-block-output">
+              {JSON.stringify(invocation.args, null, 2)}
+            </pre>
           )}
           {invocation.result != null && (
-            <div className="px-3 py-2">
-              <p className="section-label mb-1">Sonuç</p>
-              <pre className="text-[11px] text-foreground bg-muted/50 rounded-lg px-2.5 py-1.5 overflow-x-auto max-h-60 whitespace-pre-wrap break-all border border-border-muted">
-                {invocation.result}
-              </pre>
-            </div>
+            <pre className="wk-tool-block-output">{invocation.result}</pre>
           )}
         </div>
       )}
