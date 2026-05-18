@@ -98,12 +98,8 @@ export function DataManager({ expanded = true }: { expanded?: boolean }) {
 
       for (const session of sessions) {
         await fetch(
-          `/api/sessions/${encodeURIComponent(session.id)}/messages`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "clear" }),
-          }
+          `/api/sessions/${encodeURIComponent(session.id)}/messages?clear=true`,
+          { method: "DELETE" }
         );
       }
 

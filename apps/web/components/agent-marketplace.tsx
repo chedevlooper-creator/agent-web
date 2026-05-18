@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useCallback } from "react";
+import { AgentConfigEditor, type InstalledAgent } from "@/components/agent-config-editor";
 import {
   Bot,
   Search,
@@ -22,7 +23,9 @@ import {
   FileText,
   Library,
   Zap,
+  Settings,
 } from "lucide-react";
+
 
 // ===== Types =====
 interface AgentPreset {
@@ -41,18 +44,6 @@ interface AgentPreset {
   installs: number;
   createdAt: number;
   updatedAt: number;
-}
-
-interface InstalledAgent {
-  id: string;
-  userId: string;
-  presetId: string;
-  customName: string | null;
-  customPrompt: string | null;
-  enabled: boolean;
-  createdAt: number;
-  updatedAt: number;
-  preset: AgentPreset;
 }
 
 type MarketplaceTab = "marketplace" | "installed";
@@ -179,6 +170,7 @@ export function AgentMarketplace({
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editingAgent, setEditingAgent] = useState<InstalledAgent | null>(null);
 
   const loadMarketplace = useCallback(async () => {
     setLoading(true);
@@ -357,6 +349,21 @@ export function AgentMarketplace({
           onEditNameChange={setEditName}
           onRename={handleRename}
           onCancelEdit={() => { setEditingId(null); setEditName(""); }}
+          onConfigure={setEditingAgent}
+        />
+      )}
+
+      {/* Agent Config Editor Modal */}
+      {editingAgent && (
+        <AgentConfigEditor
+          agent={editingAgent}
+          onClose={() => setEditingAgent(null)}
+          onSave={(updated) => {
+            setInstalled((prev) =>
+              prev.map((a) => (a.id === updated.id ? updated : a))
+            );
+            setEditingAgent(null);
+          }}
         />
       )}
     </div>
@@ -702,6 +709,7 @@ function InstalledView({
   onEditNameChange,
   onRename,
   onCancelEdit,
+  onConfigure,
 }: {
   agents: InstalledAgent[];
   loading: boolean;
@@ -714,6 +722,7 @@ function InstalledView({
   onEditNameChange: (v: string) => void;
   onRename: (id: string) => void;
   onCancelEdit: () => void;
+  onConfigure: (agent: InstalledAgent) => void;
 }) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -832,6 +841,13 @@ function InstalledView({
                         aria-label={agent.enabled ? "Disable agent" : "Enable agent"}
                       >
                         {agent.enabled ? <Power size={10} /> : <PowerOff size={10} />}
+                      </button>
+                      <button
+                        onClick={() => onConfigure(agent)}
+                        className="flex h-6 w-6 items-center justify-center border border-[var(--border)] text-[var(--muted-foreground)] transition-all hover:border-[var(--primary)]/40 hover:bg-[var(--primary-muted)] hover:text-[var(--primary)]"
+                        aria-label="Configure agent"
+                      >
+                        <Settings size={10} />
                       </button>
                       <button
                         onClick={() => onStartEdit(agent.id, agent.customName || agent.preset.name)}
