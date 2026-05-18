@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/login", "/register", "/api/auth"];
+const PUBLIC_ROUTES = ["/login", "/register", "/api/auth", "/share"];
 
 // ===== In-memory rate limiter (sliding window) =====
 interface RateLimitEntry {
@@ -43,8 +43,32 @@ function checkRateLimit(
   return { allowed: true, remaining: maxRequests - count - 1, retryAfter: 0 };
 }
 
+// Simpler locale handling without next-intl middleware
+function getLocaleFromRequest(request: NextRequest): string {
+  // Check cookie first
+  const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+  if (cookieLocale === "en" || cookieLocale === "tr") return cookieLocale;
+
+  // Check Accept-Language header
+  const acceptLang = request.headers.get("Accept-Language");
+  if (acceptLang) {
+    if (acceptLang.startsWith("en")) return "en";
+    if (acceptLang.startsWith("tr")) return "tr";
+  }
+
+  return "tr";
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Allow static assets
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon")
+  ) {
+    return NextResponse.next();
+  }
 
   // Apply rate limiting to API routes
   const isApi = pathname.startsWith("/api/");
@@ -82,28 +106,30 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Allow static assets
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
-  ) {
-    return NextResponse.next();
-  }
+  // Set locale cookie for page routes
+  const locale = getLocaleFromRequest(request);
+  const response = NextResponse.next();
+  response.cookies.set("NEXT_LOCALE", locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+    sameSite: "lax",
+  });
 
-  // Allow public routes
+  // Allow public page routes
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
+    return response;
   }
 
-  // Check for session cookie on protected page routes
+  // Check for session cookie on protected page routes (custom cookie or NextAuth JWT)
   const sessionToken = request.cookies.get("session_token");
-  if (!sessionToken) {
+  const nextAuthToken = request.cookies.get("authjs.session-token") || request.cookies.get("__Secure-authjs.session-token");
+  if (!sessionToken && !nextAuthToken) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

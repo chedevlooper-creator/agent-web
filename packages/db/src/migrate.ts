@@ -228,8 +228,10 @@ export async function runMigrations(url?: string, authToken?: string) {
   await client.execute(CREATE_AUTH_TOKENS);
   await client.execute(CREATE_OBSIDIAN_CONFIG);
   await client.execute(CREATE_INDEX_USERNAME);
-  // Add userId columns to existing tables (idempotent — fails silently if already present)
-  try { await client.execute(CREATE_USERS_MIGRATE_V2); } catch { /* column may already exist */ }
+  // Add userId columns to existing tables (idempotent — each fails silently if already present)
+  for (const sql of CREATE_USERS_MIGRATE_V2.trim().split("\n")) {
+    try { await client.execute(sql); } catch { /* column may already exist */ }
+  }
   await client.execute(CREATE_INDEX_MESSAGES_SESSION);
   await client.execute(CREATE_INDEX_MESSAGES_TIMESTAMP);
   await client.execute(CREATE_INDEX_SESSIONS_UPDATED);
@@ -260,6 +262,91 @@ export async function runMigrations(url?: string, authToken?: string) {
   try { await client.execute("ALTER TABLE messages ADD COLUMN parent_id TEXT REFERENCES messages(id)"); } catch { /* column may already exist */ }
   try { await client.execute("ALTER TABLE messages ADD COLUMN branch_root_id TEXT"); } catch { /* column may already exist */ }
   try { await client.execute("ALTER TABLE sessions ADD COLUMN branch_id TEXT"); } catch { /* column may already exist */ }
+
+  // V7 migration: Agent groups table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS agent_groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      agents TEXT NOT NULL,
+      strategy TEXT NOT NULL DEFAULT 'parallel',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
+  // V8 migration: scheduled_tasks table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS scheduled_tasks (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      name TEXT NOT NULL,
+      agent_id TEXT,
+      prompt TEXT NOT NULL,
+      cron_expr TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_run_at INTEGER,
+      next_run_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
+  // V8: Setup user_id columns for tables that were created before V2 migration
+  // (already handled by V2 ALTER TABLE above — this slot preserved for future)
+
+  // V9: Teams and team members
+  try { await client.execute("SELECT 1 FROM teams LIMIT 1"); } catch {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS teams (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        created_by TEXT NOT NULL REFERENCES users(id),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS team_members (
+        team_id TEXT NOT NULL REFERENCES teams(id),
+        user_id TEXT NOT NULL REFERENCES users(id),
+        role TEXT NOT NULL DEFAULT 'member',
+        joined_at INTEGER NOT NULL,
+        PRIMARY KEY (team_id, user_id)
+      );
+    `);
+  }
+
+  // V10: Custom agent model/provider/temperature/tools
+  for (const col of ["custom_model TEXT", "custom_provider TEXT", "custom_temperature REAL", "custom_tools TEXT"]) {
+    try { await client.execute(`ALTER TABLE installed_agents ADD COLUMN ${col}`); } catch { /* column may already exist */ }
+  }
+
+  // V11: Shared sessions
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS shared_sessions (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES sessions(id),
+        user_id TEXT NOT NULL REFERENCES users(id),
+        share_token TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER
+      );
+    `);
+  } catch { /* table may already exist */ }
+
+  // V12: OAuth columns for users
+  // Note: SQLite ALTER TABLE ADD COLUMN does NOT support UNIQUE constraint.
+  // The UNIQUE is handled by the Drizzle schema definition.
+  try { await client.execute("ALTER TABLE users ADD COLUMN email TEXT"); } catch { /* column may already exist */ }
+  try { await client.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT"); } catch { /* column may already exist */ }
+  try { await client.execute("ALTER TABLE users ADD COLUMN provider TEXT DEFAULT 'credentials'"); } catch { /* column may already exist */ }
+  try { await client.execute("ALTER TABLE users ADD COLUMN provider_id TEXT"); } catch { /* column may already exist */ }
 
   migrated = true;
 }

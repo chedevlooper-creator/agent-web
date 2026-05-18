@@ -1269,3 +1269,47 @@ code, pre, .font-mono {
     scroll-behavior: auto !important;
   }
 }
+
+/* ===== MOBILE TOUCH TARGETS ===== */
+@media (max-width: 768px) {
+  .wk-iconbtn {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-delete-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Sidebar items - bigger touch area */
+  .wk-block-main {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .wk-block-main button,
+  .wk-block-main a {
+    min-height: 44px;
+  }
+}
+
+/* ===== SAFE AREA INSETS ===== */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .wk-composer-wrap {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .wk-sidebar {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .wk-topbar {
+    padding-top: env(safe-area-inset-top);
+  }
+}

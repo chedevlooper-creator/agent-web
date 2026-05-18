@@ -2,9 +2,11 @@
 
 import { WorkshopSidebar } from "@/components/layout/sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
+import { MobileMenuButton } from "@/components/mobile-menu-button";
 import { SettingsPanel } from "@/components/settings-panel";
 import { useChatStore, useActiveMessages } from "@/lib/store";
 import { useMemo } from "react";
+import { ShareButton } from "@/components/share-button";
 
 export default function Home() {
   const sidebarOpen = useChatStore((s) => s.sidebarOpen);
@@ -32,12 +34,13 @@ export default function Home() {
         {/* Top bar */}
         <header className="wk-top">
           <div className="wk-top-left">
+            <MobileMenuButton />
             <div className="wk-crumb">
-              <span>agent-web</span>
-              <span className="wk-crumb-sep">/</span>
-              <span>sohbet</span>
-              <span className="wk-crumb-sep">/</span>
-              <span className="wk-crumb-curr">
+              <span className="hidden sm:inline">agent-web</span>
+              <span className="wk-crumb-sep hidden sm:inline">/</span>
+              <span className="hidden sm:inline">sohbet</span>
+              <span className="wk-crumb-sep hidden sm:inline">/</span>
+              <span className="wk-crumb-curr max-w-[100px] sm:max-w-none">
                 {lastUserMsg
                   ? lastUserMsg.slice(0, 50) + (lastUserMsg.length > 50 ? "…" : "")
                   : "yeni sohbet"}
@@ -45,9 +48,8 @@ export default function Home() {
             </div>
           </div>
           <div className="wk-top-right">
-            <SettingsPanel trigger="model" />
-            <button className="wk-iconbtn" title="Dallandır">⌥</button>
-            <button className="wk-iconbtn" title="Paylaş">↗</button>
+            <button className="wk-iconbtn hidden sm:flex" title="Dallandır">⌥</button>
+            <ShareButton />
             <SettingsPanel />
           </div>
         </header>

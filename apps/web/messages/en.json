@@ -1,0 +1,101 @@
+{
+  "common": {
+    "appName": "Agent Web",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "close": "Close",
+    "confirm": "Confirm"
+  },
+  "sidebar": {
+    "files": "Files",
+    "sessions": "Sessions",
+    "tools": "Tools",
+    "knowledge": "Knowledge",
+    "agents": "Agents",
+    "memory": "Memory",
+    "mcp": "MCP",
+    "context": "Context",
+    "newChat": "New Chat",
+    "noSessions": "No sessions yet.",
+    "searchPlaceholder": "Search chats or files...",
+    "openSidebar": "Open sidebar",
+    "closeSidebar": "Close sidebar",
+    "deleteConfirm": "Are you sure you want to delete this chat?",
+    "deleteChat": "Delete chat",
+    "keyboardShortcuts": "Keyboard shortcuts",
+    "agentWeb": "Agent Web",
+    "workshop": "workshop",
+    "ready": "ready",
+    "changes": "changes",
+    "branch": "branch",
+    "contextLabel": "Context"
+  },
+  "chat": {
+    "emptyTitle": "What shall we build today?",
+    "emptyDesc": "Write a task — the agent will read the repo, break down the plan, and show you each step before touching files.",
+    "inputPlaceholder": "Type a message...",
+    "send": "Send",
+    "stop": "Stop",
+    "retry": "Retry",
+    "compare": "comparing",
+    "errorPrefix": "Error",
+    "sessionCreated": "Could not create session. Please try again.",
+    "responseError": "Error generating response"
+  },
+  "agent": {
+    "marketplace": "Agent Marketplace",
+    "install": "Install",
+    "uninstall": "Uninstall",
+    "installed": "Installed",
+    "configure": "Configure",
+    "noAgents": "No agents yet.",
+    "defaultAgent": "Default",
+    "searchAgents": "Search agents..."
+  },
+  "knowledge": {
+    "title": "Knowledge Base",
+    "createBase": "New Knowledge Base",
+    "baseName": "Base name",
+    "baseDescription": "Description",
+    "deleteBase": "Delete knowledge base",
+    "noBases": "No knowledge bases yet.",
+    "addDocument": "Add document",
+    "searchKnowledge": "Search knowledge base..."
+  },
+  "memory": {
+    "title": "Memory",
+    "noMemories": "No memories yet.",
+    "importance": "Importance",
+    "category": "Category",
+    "context": "Context",
+    "editMemory": "Edit memory",
+    "deleteMemory": "Delete memory",
+    "runMaintenance": "Run maintenance"
+  },
+  "settings": {
+    "title": "Settings",
+    "provider": "Provider",
+    "model": "Model",
+    "apiKey": "API Key",
+    "language": "Language",
+    "theme": "Theme",
+    "skills": "Skills",
+    "memory": "Memory"
+  },
+  "mcp": {
+    "title": "MCP Servers",
+    "addServer": "Add Server",
+    "serverName": "Server name",
+    "command": "Command",
+    "args": "Arguments",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "noServers": "No MCP servers yet."
+  }
+}

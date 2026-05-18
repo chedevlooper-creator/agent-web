@@ -12,6 +12,7 @@ import { apiTestTool } from "./api-test.js";
 import { knowledgeSearchTool } from "./knowledge-search.js";
 import { imageGenerateTool } from "./image-generate.js";
 import { mcpManager } from "./mcp/index.js";
+import { pluginManager } from "./plugin-gateway.js";
 
 export const tools = {
   image_generate: imageGenerateTool,
@@ -31,7 +32,7 @@ export const tools = {
 
 export type ToolName = keyof typeof tools;
 
-export { mcpManager };
+export { mcpManager, pluginManager };
 
 /**
  * Loads all built-in tools merged with MCP tools from connected servers.
@@ -44,11 +45,14 @@ export async function loadMcpTools(): Promise<Record<string, any>> {
 }
 
 /**
- * Returns the merged set of built-in tools + MCP tools.
- * The MCP tools are loaded on each call (they are cached by the manager).
+ * Returns the merged set of built-in tools + MCP tools + plugin tools.
+ * MCP/plugin tools are loaded on each call (they are cached by their managers).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getAllTools(): Promise<Record<string, any>> {
-  const mcpTools = await loadMcpTools();
-  return { ...tools, ...mcpTools };
+  const [mcpTools, pluginTools] = await Promise.all([
+    loadMcpTools(),
+    pluginManager.loadAllTools(),
+  ]);
+  return { ...tools, ...mcpTools, ...pluginTools };
 }

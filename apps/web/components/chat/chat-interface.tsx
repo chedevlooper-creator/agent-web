@@ -101,6 +101,11 @@ const PREVIEWABLE_EXTS = new Set([
   "ts",
   "py",
   "sh",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
 ]);
 
 function isPreviewable(filename: string): boolean {
@@ -735,6 +740,7 @@ async function streamChat(
     model: string;
     enabledSkills?: string[];
     files?: { name: string; path: string }[];
+    agentId?: string | null;
   },
   onText: (delta: string) => void,
   onToolCall?: (tc: ToolCallEvent) => void,
@@ -944,6 +950,11 @@ export function ChatInterface() {
   const contextPanelOpen = useChatStore((s) => s.contextPanelOpen);
   const setContextPanelOpen = useChatStore((s) => s.setContextPanelOpen);
 
+  const activeAgent = useChatStore((s) => s.activeAgent);
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
+  const setActiveAgent = useChatStore((s) => s.setActiveAgent);
+  const fetchAndSetActiveAgent = useChatStore((s) => s.fetchAndSetActiveAgent);
+
   const messages = useActiveMessages();
 
   const [input, setInput] = useState("");
@@ -962,6 +973,8 @@ export function ChatInterface() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldAutoScroll = useRef(true);
+
+  const [installedAgents, setInstalledAgents] = useState<Array<{id: string; presetId: string; preset: {id: string; name: string; description: string; category: string; avatar: string | null; systemPrompt: string; tools: string; model: string | null; provider: string | null; temperature: number | null}}>>([]);
 
   // Auto-scroll
   const scrollToBottom = useCallback(() => {
@@ -996,6 +1009,13 @@ export function ChatInterface() {
       return () => cancelAnimationFrame(frame);
     }
   }, [commandPrefill, setCommandPrefill]);
+
+  // Fetch installed agents on mount
+  useEffect(() => {
+    fetch('/api/agents/installed').then(r => r.json()).then(data => {
+      if (data.agents) setInstalledAgents(data.agents);
+    }).catch(() => {});
+  }, []);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -1034,6 +1054,7 @@ export function ChatInterface() {
           model: useModel,
           enabledSkills,
           files: currentFiles.length > 0 ? currentFiles : undefined,
+          agentId: useChatStore.getState().activeAgentId,
         },
         (delta) => {
           patchLocalMessage(
@@ -1501,6 +1522,30 @@ export function ChatInterface() {
           </div>
         )}
 
+        {/* Agent selector */}
+        {installedAgents.length > 0 && (
+          <div className="max-w-[880px] mx-auto px-8 pt-2 flex items-center gap-2">
+            <span className="text-[10px] font-mono text-[var(--ink-faint)] uppercase tracking-wider">Agent</span>
+            <select
+              value={activeAgentId || ''}
+              onChange={(e) => fetchAndSetActiveAgent(e.target.value || null)}
+              className="flex-1 h-7 rounded border border-[var(--rule-soft)] bg-[var(--bg-subtle)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+            >
+              <option value="">Default</option>
+              {installedAgents.map((a: { id: string; presetId: string; preset: { id: string; name: string } }) => (
+                <option key={a.id} value={a.presetId}>{a.preset.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => fetchAndSetActiveAgent(null)}
+              className="h-7 w-7 flex items-center justify-center rounded text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--bg-elev)] transition-colors"
+              title="Clear agent selection"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
+
         {filePreviews.size > 0 && (
           <div className="max-w-[880px] mx-auto px-8 pt-2 flex flex-col gap-2">
             {Array.from(filePreviews.entries()).map(([name, preview]) => (
@@ -1520,6 +1565,33 @@ export function ChatInterface() {
                 </button>
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Image previews */}
+        {attachedFiles.filter(f => /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name)).length > 0 && (
+          <div className="max-w-[880px] mx-auto px-8 pt-2 flex flex-wrap gap-2">
+            {attachedFiles
+              .filter(f => /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name))
+              .map((f) => (
+                <div key={f.name} className="group relative">
+                  <img
+                    src={`/api/upload/preview?path=${encodeURIComponent(f.path)}`}
+                    alt={f.name}
+                    className="h-20 w-20 rounded border border-[var(--rule-soft)] object-cover"
+                  />
+                  <button
+                    onClick={() => removeFile(f.name)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--ink-faint)] opacity-0 shadow-sm transition-opacity hover:text-[var(--danger)] group-hover:opacity-100"
+                    aria-label={`Remove ${f.name}`}
+                  >
+                    <X size={10} />
+                  </button>
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/70 px-1.5 py-0.5 text-[9px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    {f.name}
+                  </span>
+                </div>
+              ))}
           </div>
         )}
 
@@ -1596,6 +1668,27 @@ export function ChatInterface() {
             )}
           </div>
         </div>
+
+        {installedAgents.length > 0 && (
+          <div className="max-w-[880px] mx-auto px-8 py-1.5 flex items-center gap-2">
+            <Bot size={12} className="text-[var(--ink-faint)] shrink-0" />
+            <select
+              value={activeAgentId || ''}
+              onChange={(e) => fetchAndSetActiveAgent(e.target.value || null)}
+              className="text-[11px] bg-transparent border border-[var(--rule)] rounded px-2 py-0.5 text-[var(--ink)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]"
+            >
+              <option value="">Default Agent</option>
+              {installedAgents.map(a => (
+                <option key={a.id} value={a.presetId}>{a.preset.name}</option>
+              ))}
+            </select>
+            {activeAgent && (
+              <span className="text-[10px] text-[var(--accent)] truncate">
+                {activeAgent.name}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="wk-status-strip">
           <span><span className="wk-led wk-led--on" /> {provider} · {model}</span>

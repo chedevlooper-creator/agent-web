@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { getDb, ensureMigrated } from "@agent-web/db";
 import { users, authTokens } from "@agent-web/db";
 import { eq, and, gt } from "drizzle-orm";
+import { auth } from "./nextauth";
 
 const SALT_ROUNDS = 12;
 const TOKEN_LENGTH = 96;
@@ -82,6 +83,15 @@ export function isReservedUsername(username: string): boolean {
 // ===== Request Auth Helper =====
 
 export async function getUserIdFromRequest(request: Request): Promise<string | null> {
+  // Try NextAuth session first
+  try {
+    const session = await auth();
+    if (session?.user?.id) return session.user.id;
+  } catch {
+    // Fall through to custom cookie auth
+  }
+
+  // Fall back to custom cookie-based auth
   const cookieHeader = request.headers.get("cookie") || "";
   const match = cookieHeader.match(/session_token=([^;]+)/);
   if (!match) return null;

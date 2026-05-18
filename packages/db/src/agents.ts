@@ -130,7 +130,7 @@ const SEED_AGENTS: NewAgentPreset[] = [
     tools: "terminal,read_file,web_search,web_fetch",
     model: "gpt-4o",
     provider: "openai",
-    temperature: 7, // stored as integer (0.7 * 10)
+    temperature: 0.7,
     featured: true,
     installs: 0,
     createdAt: Date.now(),
@@ -147,7 +147,7 @@ const SEED_AGENTS: NewAgentPreset[] = [
     tools: "web_search,read_file",
     model: "gpt-4o",
     provider: "openai",
-    temperature: 7,
+    temperature: 0.7,
     featured: false,
     installs: 0,
     createdAt: Date.now(),
@@ -294,6 +294,10 @@ export async function updateInstalledAgent(
     customName?: string | null;
     customPrompt?: string | null;
     enabled?: boolean;
+    customModel?: string | null;
+    customProvider?: string | null;
+    customTemperature?: number | null;
+    customTools?: string | null;
   }
 ): Promise<InstalledAgent | null> {
   const db = getDb();
@@ -301,6 +305,10 @@ export async function updateInstalledAgent(
   if (data.customName !== undefined) updates.customName = data.customName;
   if (data.customPrompt !== undefined) updates.customPrompt = data.customPrompt;
   if (data.enabled !== undefined) updates.enabled = data.enabled;
+  if (data.customModel !== undefined) updates.customModel = data.customModel;
+  if (data.customProvider !== undefined) updates.customProvider = data.customProvider;
+  if (data.customTemperature !== undefined) updates.customTemperature = data.customTemperature;
+  if (data.customTools !== undefined) updates.customTools = data.customTools;
 
   await db.update(installedAgents).set(updates).where(eq(installedAgents.id, id));
 

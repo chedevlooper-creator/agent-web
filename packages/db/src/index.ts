@@ -29,4 +29,6 @@ export type {
   InstalledAgent,
   NewInstalledAgent,
   AgentCategory,
+  AgentGroup,
+  NewAgentGroup,
 } from "./schema.js";

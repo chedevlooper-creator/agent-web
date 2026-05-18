@@ -1,0 +1,101 @@
+{
+  "common": {
+    "appName": "Agent Web",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "search": "Ara",
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "close": "Kapat",
+    "confirm": "Onayla"
+  },
+  "sidebar": {
+    "files": "Dosyalar",
+    "sessions": "Sohbetler",
+    "tools": "Araçlar",
+    "knowledge": "Bilgi",
+    "agents": "Ajanlar",
+    "memory": "Bellek",
+    "mcp": "MCP",
+    "context": "Bağlam",
+    "newChat": "Yeni sohbet",
+    "noSessions": "Henüz sohbet yok.",
+    "searchPlaceholder": "Sohbet veya dosya ara...",
+    "openSidebar": "Sidebar'ı aç",
+    "closeSidebar": "Sidebar'ı kapat",
+    "deleteConfirm": "Bu sohbeti silmek istediğine emin misin?",
+    "deleteChat": "Sohbeti sil",
+    "keyboardShortcuts": "Klavye kısayolları",
+    "agentWeb": "Agent Web",
+    "workshop": "workshop",
+    "ready": "hazır",
+    "changes": "değişiklik",
+    "branch": "dal",
+    "contextLabel": "Bağlam"
+  },
+  "chat": {
+    "emptyTitle": "Bugün ne inşa edelim?",
+    "emptyDesc": "Bir görev yaz — agent depoyu okuyacak, planı parçalayacak ve dosyalara dokunmadan önce her adımı sana gösterecek.",
+    "inputPlaceholder": "Bir mesaj yaz...",
+    "send": "Gönder",
+    "stop": "Durdur",
+    "retry": "Yeniden dene",
+    "compare": "karşılaştırılıyor",
+    "errorPrefix": "Hata",
+    "sessionCreated": "Oturum oluşturulamadı. Lütfen tekrar deneyin.",
+    "responseError": "Yanıt oluşturulurken hata"
+  },
+  "agent": {
+    "marketplace": "Agent Market",
+    "install": "Yükle",
+    "uninstall": "Kaldır",
+    "installed": "Yüklü",
+    "configure": "Yapılandır",
+    "noAgents": "Henüz agent yok.",
+    "defaultAgent": "Varsayılan",
+    "searchAgents": "Agent ara..."
+  },
+  "knowledge": {
+    "title": "Bilgi Tabanı",
+    "createBase": "Yeni bilgi tabanı",
+    "baseName": "Taban adı",
+    "baseDescription": "Açıklama",
+    "deleteBase": "Bilgi tabanını sil",
+    "noBases": "Henüz bilgi tabanı yok.",
+    "addDocument": "Döküman ekle",
+    "searchKnowledge": "Bilgi tabanında ara..."
+  },
+  "memory": {
+    "title": "Bellek",
+    "noMemories": "Henüz bellek yok.",
+    "importance": "Önem",
+    "category": "Kategori",
+    "context": "Bağlam",
+    "editMemory": "Belleği düzenle",
+    "deleteMemory": "Belleği sil",
+    "runMaintenance": "Bakım çalıştır"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "provider": "Sağlayıcı",
+    "model": "Model",
+    "apiKey": "API Anahtarı",
+    "language": "Dil",
+    "theme": "Tema",
+    "skills": "Yetenekler",
+    "memory": "Bellek"
+  },
+  "mcp": {
+    "title": "MCP Sunucuları",
+    "addServer": "Sunucu Ekle",
+    "serverName": "Sunucu adı",
+    "command": "Komut",
+    "args": "Argümanlar",
+    "connect": "Bağlan",
+    "disconnect": "Bağlantıyı kes",
+    "noServers": "Henüz MCP sunucusu yok."
+  }
+}

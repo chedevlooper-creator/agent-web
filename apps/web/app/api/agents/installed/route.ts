@@ -58,18 +58,22 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, customName, customPrompt, enabled } = body as {
+    const { id, customName, customPrompt, enabled, customModel, customProvider, customTemperature, customTools } = body as {
       id?: string;
       customName?: string | null;
       customPrompt?: string | null;
       enabled?: boolean;
+      customModel?: string | null;
+      customProvider?: string | null;
+      customTemperature?: number | null;
+      customTools?: string | null;
     };
 
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    const agent = await dbUpdateInstalledAgent(id, { customName, customPrompt, enabled });
+    const agent = await dbUpdateInstalledAgent(id, { customName, customPrompt, enabled, customModel, customProvider, customTemperature, customTools });
     if (!agent) {
       return NextResponse.json({ error: "Installed agent not found" }, { status: 404 });
     }

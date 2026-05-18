@@ -40,6 +40,10 @@ export interface InstalledAgent {
   presetId: string;
   customName: string | null;
   customPrompt: string | null;
+  customModel: string | null;
+  customProvider: string | null;
+  customTemperature: number | null;
+  customTools: string | null;
   enabled: boolean;
   createdAt: number;
   updatedAt: number;
@@ -92,6 +96,10 @@ async function updateAgentApi(
     customName?: string | null;
     customPrompt?: string | null;
     enabled?: boolean;
+    customModel?: string | null;
+    customProvider?: string | null;
+    customTemperature?: number | null;
+    customTools?: string | null;
   }
 ): Promise<void> {
   const res = await fetch("/api/agents/installed", {
@@ -148,6 +156,10 @@ export function AgentConfigEditor({
       await updateAgentApi(agent.id, {
         customName: name !== agent.preset.name ? name : null,
         customPrompt: systemPrompt !== agent.preset.systemPrompt ? systemPrompt : null,
+        customModel: model !== (agent.preset.model || "") ? model || null : undefined,
+        customProvider: undefined,
+        customTemperature: temperature !== (agent.preset.temperature ?? 0.7) ? temperature : undefined,
+        customTools: [...enabledTools].join(",") || null,
       });
 
       onSave({

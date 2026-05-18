@@ -148,6 +148,20 @@ interface ChatStore {
   setObsidianVaultPath: (path: string | null) => void;
   setObsidianAutoSync: (enabled: boolean) => void;
   syncSessionToObsidian: (sessionId: string) => Promise<void>;
+
+  // Agent Marketplace
+  activeAgentId: string | null;
+  activeAgent: {
+    id: string;
+    name: string;
+    systemPrompt: string;
+    tools: string;
+    model: string | null;
+    provider: string | null;
+    temperature: number | null;
+  } | null;
+  setActiveAgent: (agent: ChatStore['activeAgent']) => void;
+  fetchAndSetActiveAgent: (agentId: string | null) => Promise<void>;
 }
 
 export function genId() {
@@ -157,6 +171,7 @@ export function genId() {
 async function apiFetch(input: string, init?: RequestInit) {
   const res = await fetch(input, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers || {}),
@@ -198,6 +213,8 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       directSend: null,
       obsidianVaultPath: null,
       obsidianAutoSync: false,
+      activeAgentId: null,
+      activeAgent: null,
 
       hydrate: async () => {
         try {
@@ -223,6 +240,11 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
           }
         } catch (e) {
           console.error("Failed to hydrate:", e);
+          const msg = e instanceof Error ? e.message : String(e);
+          if (msg.includes("Authentication required") || msg.includes("HTTP 401")) {
+            window.location.href = "/login";
+            return;
+          }
           set({ hydrated: true });
         }
       },
@@ -796,6 +818,21 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       setObsidianAutoSync: (enabled) => set({ obsidianAutoSync: enabled }),
       syncSessionToObsidian: async (_sessionId) => {
         // No-op by default; Obsidian sync is handled server-side
+      },
+
+      setActiveAgent: (agent) => set({ activeAgent: agent, activeAgentId: agent?.id || null }),
+      fetchAndSetActiveAgent: async (agentId) => {
+        if (!agentId) {
+          set({ activeAgentId: null, activeAgent: null });
+          return;
+        }
+        try {
+          const res = await fetch(`/api/agents/marketplace/${agentId}`);
+          const data = await res.json();
+          set({ activeAgentId: agentId, activeAgent: data.preset });
+        } catch (e) {
+          console.error("Failed to fetch agent", e);
+        }
       },
   })
 );

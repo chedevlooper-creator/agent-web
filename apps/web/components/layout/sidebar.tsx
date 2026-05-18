@@ -20,17 +20,25 @@ import {
   LogOut,
   Bot,
   Database,
+  Clock,
 } from "lucide-react";
 import { KnowledgePanel } from "@/components/knowledge-panel";
 import { AgentMarketplace } from "@/components/agent-marketplace";
 import { McpManager } from "@/components/mcp-manager";
+import { PluginManager } from "@/components/plugin-manager";
 import { DataManager } from "@/components/data-manager";
+import { MemoryManager } from "@/components/memory-manager";
+import { AgentGroupEditor } from "@/components/agent-group-editor";
+import { WorkspaceManager } from "@/components/workspace-manager";
+import { ScheduleManager } from "@/components/schedule-manager";
 import { SearchDialog } from "@/components/search-dialog";
 import { FileManager } from "@/components/file-manager";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { GatewayManager } from "@/components/gateway-manager";
 
-type SidebarTab = "files" | "sessions" | "tools" | "knowledge" | "agents" | "mcp" | "context";
+type SidebarTab = "files" | "sessions" | "tools" | "knowledge" | "agents" | "groups" | "memory" | "mcp" | "plugins" | "context" | "schedule" | "workspace" | "gateway";
 
 function statusClasses(running: boolean) {
   return cn(
@@ -202,6 +210,16 @@ export function WorkshopSidebar() {
           >
             <FolderOpen size={16} />
           </button>
+          <button
+            onClick={() => {
+              setSidebarOpen(true);
+              setTimeout(() => setActiveTab("schedule"), 100);
+            }}
+            className="flex h-9 w-9 items-center justify-center text-[var(--ink-faint)] hover:bg-[var(--bg-elev)] hover:text-[var(--ink)] transition-colors"
+            title="Zamanlama"
+          >
+            <Clock size={16} />
+          </button>
         </div>
         <div className="flex flex-col items-center gap-2 pb-3">
           <ThemeToggle />
@@ -255,11 +273,20 @@ export function WorkshopSidebar() {
         </div>
 
         {/* Tabs */}
-        <nav className="wk-tabs">
+        <nav className="wk-tabs overflow-y-auto">
           {[
             { id: "files" as SidebarTab, label: "Dosyalar", glyph: "▤" },
             { id: "sessions" as SidebarTab, label: "Sohbetler", glyph: "≡" },
+            { id: "schedule" as SidebarTab, label: "Zamanlama", glyph: "⏰" },
             { id: "tools" as SidebarTab, label: "Araçlar", glyph: "⌬" },
+            { id: "knowledge" as SidebarTab, label: "Bilgi", glyph: "◉" },
+            { id: "agents" as SidebarTab, label: "Ajanlar", glyph: "●" },
+            { id: "groups" as SidebarTab, label: "Gruplar", glyph: "◧" },
+            { id: "memory" as SidebarTab, label: "Bellek", glyph: "◎" },
+            { id: "mcp" as SidebarTab, label: "MCP", glyph: "⚡" },
+            { id: "plugins" as SidebarTab, label: "Eklentiler", glyph: "◈" },
+            { id: "workspace" as SidebarTab, label: "Takım", glyph: "♲" },
+            { id: "gateway" as SidebarTab, label: "Gateway", glyph: "⌗" },
           ].map((t) => (
             <button
               key={t.id}
@@ -339,6 +366,24 @@ export function WorkshopSidebar() {
               ))}
             </ul>
           )}
+
+          {activeTab === "knowledge" && <KnowledgePanel expanded={true} />}
+
+          {activeTab === "agents" && <AgentMarketplace expanded={true} />}
+
+          {activeTab === "groups" && <AgentGroupEditor expanded={true} />}
+
+          {activeTab === "memory" && <MemoryManager expanded={true} />}
+
+          {activeTab === "schedule" && <ScheduleManager expanded={true} />}
+
+          {activeTab === "plugins" && <PluginManager expanded={true} />}
+
+          {activeTab === "mcp" && <McpManager expanded={true} />}
+
+          {activeTab === "workspace" && <WorkspaceManager expanded={true} />}
+
+          {activeTab === "gateway" && <GatewayManager expanded={true} />}
         </div>
 
         {/* Footer */}
@@ -362,6 +407,7 @@ export function WorkshopSidebar() {
         {/* Bottom row */}
         <div className="flex items-center gap-1 border-t border-[var(--rule-soft)] px-2 py-1.5">
           <ThemeToggle />
+          <LanguageSwitcher />
           <KeyboardShortcuts>
             <button
               className="flex h-7 w-7 items-center justify-center text-[var(--ink-faint)] hover:bg-[var(--bg-elev)] hover:text-[var(--ink)] transition-colors"

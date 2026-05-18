@@ -768,6 +768,10 @@ export async function updateInstalledAgent(
     customName?: string | null;
     customPrompt?: string | null;
     enabled?: boolean;
+    customModel?: string | null;
+    customProvider?: string | null;
+    customTemperature?: number | null;
+    customTools?: string | null;
   }
 ): Promise<InstalledAgent | null> {
   await ready();

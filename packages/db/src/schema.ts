@@ -84,6 +84,10 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  email: text("email").unique(),
+  avatarUrl: text("avatar_url"),
+  provider: text("provider", { enum: ["google", "github", "credentials"] }).default("credentials"),
+  providerId: text("provider_id"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
@@ -224,6 +228,10 @@ export const installedAgents = sqliteTable("installed_agents", {
     .references(() => agentPresets.id, { onDelete: "cascade" }),
   customName: text("custom_name"),
   customPrompt: text("custom_prompt"),
+  customModel: text("custom_model"),
+  customProvider: text("custom_provider"),
+  customTemperature: real("custom_temperature"),
+  customTools: text("custom_tools"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
@@ -234,5 +242,80 @@ export type NewAgentPreset = typeof agentPresets.$inferInsert;
 export type InstalledAgent = typeof installedAgents.$inferSelect;
 export type NewInstalledAgent = typeof installedAgents.$inferInsert;
 
+// ===== Agent Groups =====
+
+export const agentGroups = sqliteTable("agent_groups", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  userId: text("user_id").notNull().references(() => users.id),
+  agents: text("agents").notNull(), // JSON array of { presetId, role, order }
+  strategy: text("strategy").notNull().default("parallel"), // parallel | sequential | debate
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export type AgentGroup = typeof agentGroups.$inferSelect;
+export type NewAgentGroup = typeof agentGroups.$inferInsert;
+
+// ===== Scheduled Tasks =====
+
+export const scheduledTasks = sqliteTable("scheduled_tasks", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  agentId: text("agent_id"),
+  prompt: text("prompt").notNull(),
+  cronExpr: text("cron_expr").notNull(),
+  enabled: integer("enabled").notNull().default(1),
+  lastRunAt: integer("last_run_at"),
+  nextRunAt: integer("next_run_at").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type NewScheduledTask = typeof scheduledTasks.$inferInsert;
+
+// ===== Teams / Workspace =====
+
+export const teams = sqliteTable("teams", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: text("created_by").notNull().references(() => users.id),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const teamMembers = sqliteTable("team_members", {
+  teamId: text("team_id").notNull().references(() => teams.id),
+  userId: text("user_id").notNull().references(() => users.id),
+  role: text("role").notNull().default("member"), // owner | admin | member
+  joinedAt: integer("joined_at").notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.teamId, table.userId] }),
+}));
+
+export type Team = typeof teams.$inferSelect;
+export type NewTeam = typeof teams.$inferInsert;
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type NewTeamMember = typeof teamMembers.$inferInsert;
+
 export type Memory = typeof memories.$inferSelect;
 export type NewMemory = typeof memories.$inferInsert;
+
+// ===== Shared Sessions =====
+
+export const sharedSessions = sqliteTable("shared_sessions", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => sessions.id),
+  userId: text("user_id").notNull().references(() => users.id),
+  shareToken: text("share_token").notNull().unique(),
+  title: text("title").notNull(),
+  createdAt: integer("created_at").notNull(),
+  expiresAt: integer("expires_at"),
+});
+
+export type SharedSession = typeof sharedSessions.$inferSelect;
+export type NewSharedSession = typeof sharedSessions.$inferInsert;
