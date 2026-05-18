@@ -1395,7 +1395,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="wk-main">
+    <div className="flex h-full min-h-0 flex-1 flex-col relative">
       <KeyboardShortcuts />
       {/* Messages Area */}
       {messages.length === 0 ? (

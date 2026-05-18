@@ -58,7 +58,11 @@ export function FileManager({ expanded }: FileManagerProps) {
   }, []);
 
   useEffect(() => {
-    fetchFiles();
+    const timeoutId = window.setTimeout(() => {
+      void fetchFiles();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchFiles]);
 
   const handleDelete = useCallback(
@@ -124,7 +128,7 @@ export function FileManager({ expanded }: FileManagerProps) {
         <div className="flex items-center gap-2">
           <Upload size={14} className="text-[var(--primary)]" />
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">
-            Files
+            Dosyalar
           </span>
           {!loading && (
             <span className="font-mono text-[9px] text-[var(--dim-foreground)]">
@@ -159,13 +163,13 @@ export function FileManager({ expanded }: FileManagerProps) {
             ))}
           </div>
         ) : files.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+          <div className="wk-file-empty">
             <Upload size={28} className="text-[var(--dim-foreground)]" />
             <span className="text-xs font-medium text-[var(--muted-foreground)]">
-              No files uploaded
+              Dosya yok
             </span>
             <span className="font-mono text-[10px] text-[var(--dim-foreground)]">
-              Upload files via the chat input to see them here
+              Sohbet kutusundan dosya ekleyebilirsin
             </span>
           </div>
         ) : (

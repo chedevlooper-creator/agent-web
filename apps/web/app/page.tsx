@@ -9,8 +9,6 @@ import { useMemo } from "react";
 export default function Home() {
   const sidebarOpen = useChatStore((s) => s.sidebarOpen);
   const toggleSidebar = useChatStore((s) => s.toggleSidebar);
-  const provider = useChatStore((s) => s.provider);
-  const model = useChatStore((s) => s.model);
   const messages = useActiveMessages();
 
   const lastUserMsg = useMemo(() => {
@@ -47,11 +45,7 @@ export default function Home() {
             </div>
           </div>
           <div className="wk-top-right">
-            <button className="wk-model">
-              <span className="wk-model-led" />
-              <span>{provider} · {model}</span>
-              <span style={{ opacity: 0.5 }}>▾</span>
-            </button>
+            <SettingsPanel trigger="model" />
             <button className="wk-iconbtn" title="Dallandır">⌥</button>
             <button className="wk-iconbtn" title="Paylaş">↗</button>
             <SettingsPanel />

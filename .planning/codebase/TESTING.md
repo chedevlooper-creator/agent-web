@@ -5,20 +5,20 @@
 ## Test Framework
 
 **Runner:** Vitest v4.1.6
-- Config: `apps/web/vitest.config.ts` (web app), `packages/core/vitest.config.ts` (core package)
-- Monorepo orchestration via `turbo run test` (root `turbo.json` defines `test` task with `dependsOn: ["^build"]`)
+- Config: `apps/web/vitest.config.ts` (web), `packages/core/vitest.config.ts` (core)
+- Turbo orchestration: `turbo run test` (dependsOn: `["^build"]`)
 
-**Assertion Library:** Built-in Vitest `expect` + `@testing-library/jest-dom/vitest` for DOM matchers.
+**Assertion:** Built-in Vitest `expect` + `@testing-library/jest-dom/vitest`
 
-**DOM Environment:** `happy-dom` v20.9.0 (web app only)
+**DOM env:** `happy-dom` v20.9.0 (web only)
 
-**Run Commands:**
+**Run commands:**
 ```bash
-pnpm test                    # Run all tests via Turbo
-pnpm --filter web test       # Web app tests only
-pnpm --filter web test:watch # Watch mode
-pnpm --filter web test:coverage # With coverage
-pnpm --filter core test      # Core package tests only
+pnpm test                    # All via Turbo
+pnpm --filter web test       # Web only
+pnpm --filter web test:watch # Watch
+pnpm --filter web test:coverage # Coverage
+pnpm --filter core test      # Core only
 ```
 
 ## Test Configurations
@@ -56,41 +56,38 @@ export default defineConfig({
 ### Test setup (`apps/web/vitest.setup.ts`)
 Provides:
 - `@testing-library/jest-dom/vitest` imports
-- Custom `localStorage` mock for happy-dom (missing by default)
-- API fetch blocker — any `fetch` call to `/api/` URLs is rejected with a `TypeError` to prevent accidental real API calls in tests
-- `FormData` is available natively in happy-dom
+- Custom `localStorage` mock for happy-dom
+- API fetch blocker — rejects `/api/` calls with `TypeError`
+- `FormData` native in happy-dom
 
 ## Test File Organization
 
-**Location:** `__tests__/` subdirectory co-located with the module under test
+**Location:** `__tests__/` subdir co-located with module
 
-**Naming:** `<source-file-name>.test.ts` or `.test.tsx`
+**Naming:** `<source>.test.ts` or `.test.tsx`
 
-**Discovered test files:**
+**Discovered files:**
 ```
 apps/web/
   lib/__tests__/
-    store.test.ts                # Zustand store (unit)
-    utils.test.ts                # Utility functions (unit)
-    rate-limit.test.ts           # Rate limiter (unit)
+    store.test.ts                # Zustand store
+    utils.test.ts                # Utility functions
+    rate-limit.test.ts           # Rate limiter
   components/chat/__tests__/
-    message-bubble.test.tsx      # React component (component test)
+    message-bubble.test.tsx      # Component test
   app/api/chat/__tests__/
-    route.test.ts                # Chat API request validation schema (unit)
+    route.test.ts                # Chat API schema validation
 
 packages/core/
   src/tools/__tests__/
-    path-security.test.ts        # Path security function (unit)
+    path-security.test.ts        # Path security
 ```
 
-**Total:** 6 test files across the monorepo
-- 5 in `apps/web/`
-- 1 in `packages/core/`
+**Total:** 6 test files — 5 in `apps/web/`, 1 in `packages/core/`
 
 ## Test Structure
 
-**Suite Organization:**
-All tests use Vitest's BDD-style `describe`/`it`/`expect` pattern with `beforeEach`/`afterEach` hooks:
+All use BDD-style `describe`/`it`/`expect` with `beforeEach`/`afterEach`:
 
 ```typescript
 import { describe, it, expect, beforeEach } from "vitest";
@@ -124,59 +121,38 @@ describe("MessageBubble", () => {
 });
 ```
 
-**React Testing Library queries used:** `screen.getByText()` — simple text matching for content verification.
+**Queries used:** `screen.getByText()` — simple text matching.
 
 ## Mocking
 
-**Framework:** No external mocking library used. The codebase relies on:
-1. **Direct Zustand state manipulation** for store tests:
+**No external mocking library.** Relies on:
+1. **Direct Zustand state manipulation:**
    ```typescript
    useChatStore.setState({ hydrated: false, sessions: [], activeSessionId: null });
    ```
-2. **Function replacement** for testing store methods:
+2. **Function replacement** for store methods:
    ```typescript
    const originalHydrate = useChatStore.getState().hydrate;
    useChatStore.setState({
-     hydrate: async () => {
-       callCount++;
-       useChatStore.setState({ hydrated: true });
-     },
+     hydrate: async () => { callCount++; useChatStore.setState({ hydrated: true }); },
    });
    ```
-3. **API call blocking** via global `fetch` override in `vitest.setup.ts`:
+3. **API call blocking** via global `fetch` override in `vitest.setup.ts`
+4. **DOM event simulation:**
    ```typescript
-   globalThis.fetch = ((input, init) => {
-     if (url.startsWith("/api/")) {
-       return Promise.reject(new TypeError(`Unit test API request blocked: ${url}`));
-     }
-     // ...
-   }) as typeof fetch;
-   ```
-4. **DOM event simulation** for keyboard interaction tests:
-   ```typescript
-   const div = document.createElement("div");
    div.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
    ```
-5. **No mocking for external dependencies** — `path-security.test.ts` relies on real filesystem behavior (process.cwd(), OS-specific paths)
+5. **No mocking for external deps** — `path-security.test.ts` uses real FS
 
-**What is NOT mocked:**
-- Filesystem calls (`fs` / `process.cwd()`)
-- `requestAnimationFrame` (works in happy-dom)
-- `setTimeout` / timers (used directly, no `vi.useFakeTimers`)
-- `crypto` (not needed)
+**Not mocked:** `fs`, `process.cwd()`, `requestAnimationFrame`, `setTimeout`, `crypto`
 
 ## Fixtures and Factories
 
-**Test Data:** Inline in test files — no dedicated fixtures directory.
+**Test data:** Inline in test files — no dedicated fixtures.
 
 ```typescript
-// In store.test.ts — inline session/message data
-const sessions = [
-  {
-    id: "s1", title: "React Setup", messages: [], createdAt: 1, updatedAt: 1,
-  },
-  // ...
-];
+// In store.test.ts — inline session data
+const sessions = [{ id: "s1", title: "React Setup", messages: [], createdAt: 1, updatedAt: 1 }];
 ```
 
 ```typescript
@@ -189,73 +165,66 @@ const validBody = {
 };
 ```
 
-**Location files:**
-- Not applicable — no external fixture files found.
+**Location files:** Not applicable — none found.
 
 ## Coverage
 
-**Requirements:** No coverage target enforced in configuration (no `vitest.config.ts` threshold settings).
+**Requirements:** No coverage target enforced (no threshold in config).
 
-**View Coverage:**
+**View:**
 ```bash
 pnpm --filter web test:coverage
 ```
-
-Coverage is opt-in via the `test:coverage` script — not run by default.
+Coverage opt-in via `test:coverage` script.
 
 ## Test Types
 
-### Unit Tests (6 test files, ~57 test cases)
+### Unit Tests (6 files, ~57 cases)
 
-**`apps/web/lib/__tests__/store.test.ts`** — 20 test cases across 10 `describe` blocks:
+**`apps/web/lib/__tests__/store.test.ts`** — 20 cases, 10 describe blocks:
 - `genId` — uniqueness, non-empty
-- `rollbackSessions` — restores original content, restores deleted sessions, restores new messages in existing sessions
-- `hydrate` — flag behavior, single call tracking
-- `createSession` — no ghost sessions on API failure, syncing flag reset
-- File persistence — `displayContent` vs `content` fields, fallback behavior
-- Session search — title-only filtering, empty search, message content exclusion
+- `rollbackSessions` — restore content, restore deleted, restore new messages
+- `hydrate` — flag behavior, single call
+- `createSession` — no ghost sessions on API failure, syncing flag
+- File persistence — `displayContent` vs `content`
+- Session search — title only, empty, message content exclusion
 - Settings panel — conditional `aria-modal`
-- SessionItem — `div[role="button"]` pattern, keyboard Enter/Space handling
-- Sessions — empty initialization, set active, sidebar toggle, compare mode, model cap at 2
-- Local messages — append, patch via `requestAnimationFrame`, setConfig
+- SessionItem — `div[role="button"]`, keyboard Enter/Space
+- Sessions — empty init, set active, sidebar toggle, compare mode, model cap at 2
+- Local messages — append, patch via RAF, setConfig
 
-**`apps/web/lib/__tests__/utils.test.ts`** — 12 test cases across 3 `describe` blocks:
-- `cn` — class merging, conflict resolution, conditionals, empty input
-- `estimateTokens` — empty array, character estimation, multiple messages
-- `getErrorMessage` — Error instances, strings, objects, unknown values
+**`apps/web/lib/__tests__/utils.test.ts`** — 12 cases, 3 describe blocks:
+- `cn` — merging, conflict resolution, conditionals, empty
+- `estimateTokens` — empty, character estimation, multiple messages
+- `getErrorMessage` — Error instances, strings, objects, unknown
 
-**`apps/web/lib/__tests__/rate-limit.test.ts`** — 4 test cases:
-- First request allowed, blocking at limit, window expiry reset, separate IP windows
+**`apps/web/lib/__tests__/rate-limit.test.ts`** — 4 cases:
+- First allowed, blocking at limit, window expiry reset, separate IP windows
 
-**`apps/web/app/api/chat/__tests__/route.test.ts`** — 9 test cases:
-- Zod schema validation: valid body, empty messages, invalid role, invalid provider, optional apiKey, missing messages, optional projectRootPath, max messages
+**`apps/web/app/api/chat/__tests__/route.test.ts`** — 9 cases:
+- Zod: valid body, empty messages, invalid role, invalid provider, optional apiKey, missing messages, optional projectRootPath, max messages
 
-**`packages/core/src/tools/__tests__/path-security.test.ts`** — 5 test cases:
-- Relative paths, absolute paths, paths outside workspace, `/proc` rejection, `/sys` rejection
+**`packages/core/src/tools/__tests__/path-security.test.ts`** — 5 cases:
+- Relative paths, absolute, outside workspace, `/proc` rejection, `/sys` rejection
 
-### Component Tests (1 test file, 4 test cases)
+### Component Tests (1 file, 4 cases)
 
-**`apps/web/components/chat/__tests__/message-bubble.test.tsx`** — 4 test cases:
-- Renders user message, renders assistant message, renders model label, renders error state
+**`apps/web/components/chat/__tests__/message-bubble.test.tsx`**:
+- Renders user message, renders assistant, renders model label, renders error state
 
-### Integration / E2E Tests
-- **Not present** in the codebase. No Playwright, Cypress, or any browser-level testing framework configured.
+### Integration / E2E
+- **None** — no Playwright/Cypress/browser-level testing.
 
 ## Common Patterns
 
-**Store reset pattern:**
+**Store reset:**
 ```typescript
 beforeEach(() => {
-  useChatStore.setState({
-    projects: [],
-    activeProjectId: null,
-    sessions: [],
-    // ...all initial state fields
-  });
+  useChatStore.setState({ projects: [], activeProjectId: null, sessions: [], /* ...all fields */ });
 });
 ```
 
-**Schema validation test pattern (route.test.ts):**
+**Schema validation (route.test.ts):**
 ```typescript
 const validBody = { messages: [...], provider: "...", model: "...", apiKey: "..." };
 
@@ -264,23 +233,20 @@ it("accepts valid request", () => {
 });
 
 it("rejects empty messages", () => {
-  expect(() =>
-    RequestSchema.parse({ ...validBody, messages: [] })
-  ).toThrow();
+  expect(() => RequestSchema.parse({ ...validBody, messages: [] })).toThrow();
 });
 ```
 
-**Error state test pattern:**
+**Error state:**
 ```typescript
 const errorMsg = { ...assistantMsg, content: "Error: API timeout" };
 render(<MessageBubble message={errorMsg} index={0} />);
 expect(screen.getByText("Error: API timeout")).toBeInTheDocument();
 ```
 
-**Async test pattern (using real timers):**
+**Async with real timers:**
 ```typescript
 it("resets after window expires", () => {
-  // ...
   return new Promise<void>((resolve) => {
     setTimeout(() => {
       const third = rateLimit(ip, { maxRequests: 3, windowMs: 10 });
@@ -291,10 +257,9 @@ it("resets after window expires", () => {
 });
 ```
 
-**Async test pattern (using requestAnimationFrame):**
+**Async with requestAnimationFrame:**
 ```typescript
 it("patchLocalMessage updates content via requestAnimationFrame", async () => {
-  // ...
   useChatStore.getState().patchLocalMessage("m1", "new");
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => {
@@ -309,30 +274,30 @@ it("patchLocalMessage updates content via requestAnimationFrame", async () => {
 
 | Area | Files | Current Tests | Risk |
 |------|-------|---------------|------|
-| **API routes** | 22 route files in `app/api/` | Only chat route schema validation tested | High — most routes have no tests |
-| **DB helpers** | `lib/db.ts` | None | High — core data access layer |
-| **Sidebar component** | `components/layout/sidebar.tsx` | None | Medium — session list, keyboard nav |
+| **API routes** | 22 route files | Only chat schema validated | High |
+| **DB helpers** | `lib/db.ts` | None | High |
+| **Sidebar** | `components/layout/sidebar.tsx` | None | Medium |
 | **Context panel** | `components/layout/context-panel.tsx` | None | Medium |
 | **File upload** | `components/chat/file-upload.tsx` | None | Medium |
 | **Chat input** | `components/chat/chat-input.tsx` | None | Medium |
-| **Settings panel** | `components/settings-panel.tsx` | Minimal (store state only) | Medium |
-| **Obsidian sync** | `lib/obsidian.ts` (implied) | None | Low (experimental feature) |
-| **Auth routes** | `app/api/auth/*` | None | High — security-critical |
-| **Core tools** | `packages/core/src/tools/*.ts` | Only `path-security.test.ts` | High — 10 of 11 tools untested |
+| **Settings panel** | `components/settings-panel.tsx` | Minimal | Medium |
+| **Obsidian sync** | `lib/obsidian.ts` | None | Low |
+| **Auth routes** | `app/api/auth/*` | None | High |
+| **Core tools** | `packages/core/src/tools/*.ts` | Only path-security | High |
 | **Context compression** | `packages/core/src/context.ts` | None | Medium |
 | **Terminal tool** | `packages/core/src/tools/terminal/` | None | Medium |
-| **Execute code tool** | `packages/core/src/tools/execute-code/` | None | Medium |
-| **Migration runner** | `packages/db/src/migrate.ts` | None | Low (Drizzle-managed) |
-| **E2E flows** | — | None | High — no browser tests |
+| **Execute code** | `packages/core/src/tools/execute-code/` | None | Medium |
+| **Migration runner** | `packages/db/src/migrate.ts` | None | Low |
+| **E2E flows** | — | None | High |
 
 ### Notable Gaps:
-1. **No API route integration tests** — Routes like `/api/sessions`, `/api/messages`, `/api/auth/*` are completely untested despite using complex data operations
-2. **No tool execution tests** — Only path security is tested; the actual tool implementations (terminal, file-read, file-write, web-search, etc.) have zero test coverage
-3. **No component interaction tests** — `MessageBubble` tests verify rendering but not user interactions (edit, copy, retry)
-4. **No snapshot tests** — No use of Vitest snapshot testing
-5. **No E2E tests** — No Playwright or Cypress setup
-6. **No fixture factories** — Test data is duplicated inline across files
-7. **No `vi.mock()` usage** — Mocking is done via direct state manipulation rather than Vitest's `vi.mock()`
+1. **No API route integration tests** — `/api/sessions`, `/api/messages`, `/api/auth/*` untested
+2. **No tool execution tests** — only path-security tested
+3. **No component interaction tests** — MessageBubble tests rendering only
+4. **No snapshot tests**
+5. **No E2E tests** — no Playwright/Cypress
+6. **No fixture factories** — data duplicated inline
+7. **No `vi.mock()` usage** — direct state manipulation instead
 
 ---
 

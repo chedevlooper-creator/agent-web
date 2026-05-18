@@ -229,7 +229,9 @@ code, pre, .font-mono {
 .wk-sidebar {
   display: flex;
   flex-direction: column;
-  background: var(--surface);
+  background:
+    linear-gradient(180deg, oklch(from var(--surface-elevated) l c h / 0.42), transparent 170px),
+    var(--surface);
   border-right: 1px solid var(--border);
   min-height: 0;
 }
@@ -318,28 +320,35 @@ code, pre, .font-mono {
 }
 .wk-tab {
   flex: 1;
+  min-width: 0;
   background: transparent;
   border: 0;
-  padding: 10px 6px 12px;
+  padding: 10px 4px 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 4px;
   font-family: var(--font-geist-mono), "JetBrains Mono", "Fira Code", monospace;
-  font-size: 11.5px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   color: var(--dim-foreground);
   cursor: pointer;
   border-bottom: 1.5px solid transparent;
   transition: color 120ms, border-color 120ms;
 }
 .wk-tab:hover { color: var(--muted-foreground); }
+.wk-tab span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .wk-tab.is-active {
   color: var(--foreground);
   border-bottom-color: var(--primary);
 }
-.wk-tab-glyph { font-size: 12px; color: var(--primary); }
+.wk-tab-glyph { flex-shrink: 0; font-size: 11px; color: var(--primary); }
 .wk-tab.is-active .wk-tab-glyph { color: var(--primary); }
 .wk-tab:not(.is-active) .wk-tab-glyph { opacity: 0.4; }
 
@@ -347,7 +356,7 @@ code, pre, .font-mono {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 0;
+  padding: 8px;
   min-height: 0;
 }
 
@@ -397,9 +406,26 @@ code, pre, .font-mono {
 .wk-tree-status--A { background: oklch(from oklch(0.78 0.13 145) l c h / 0.18); color: oklch(0.78 0.13 145); }
 .wk-tree-status--D { background: oklch(from oklch(0.72 0.16 25) l c h / 0.18); color: oklch(0.72 0.16 25); }
 .wk-tree-size { font-family: var(--font-geist-mono), "JetBrains Mono", "Fira Code", monospace; font-size: 10.5px; color: var(--dim-foreground); }
+.wk-file-empty {
+  min-height: 184px;
+  margin-top: 4px;
+  padding: 28px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  background: oklch(from var(--surface-elevated) l c h / 0.36);
+}
+.wk-file-empty span:last-child {
+  max-width: 22ch;
+  line-height: 1.45;
+}
 
 /* Sessions */
-.wk-session-list { list-style: none; margin: 0; padding: 6px 10px; }
+.wk-session-list { list-style: none; margin: 0; padding: 6px 2px; }
 .wk-new-session {
   width: 100%;
   background: var(--primary);
@@ -979,6 +1005,7 @@ code, pre, .font-mono {
   flex-shrink: 0;
   background: linear-gradient(180deg, transparent, var(--background) 40%);
   border-top: 1px solid var(--border);
+  padding-bottom: 8px;
 }
 .wk-starters {
   max-width: 880px;
@@ -1113,7 +1140,7 @@ code, pre, .font-mono {
 
 /* Status strip */
 .wk-status-strip {
-  border-top: 1px solid var(--dim-foreground);
+  border-top: 1px solid var(--border);
   padding: 7px 28px;
   margin-top: 12px;
   display: flex;

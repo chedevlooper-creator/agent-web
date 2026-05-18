@@ -1,60 +1,38 @@
 # AGENTS.md
 
-This file provides guidance to Verdent when working with code in this repository.
-
-## Table of Contents
-1. Commonly Used Commands
-2. High-Level Architecture & Structure
-3. Key Rules & Constraints
-4. Development Hints
+Guidance to Verdent when working in this repo.
 
 ## Commands
 
-- `pnpm dev` — Start the Next.js dev server (with webpack)
-- `pnpm build` — Build all packages and the Next.js app for production
-- `pnpm lint` — Run ESLint across the monorepo
-- `pnpm format` — Run Prettier on `**/*.{ts,tsx,md}`
-- `pnpm docker:dev` — Run the development environment in Docker Compose
-- `pnpm docker:prod` — Run the production environment in Docker Compose
-- `pnpm --filter @agent-web/core build` — Build the core package
-- `pnpm --filter @agent-web/db build` — Build the db package
+- `pnpm dev` — Next.js dev server (webpack)
+- `pnpm build` — Build all packages + Next.js prod
+- `pnpm lint` — ESLint monorepo
+- `pnpm format` — Prettier `**/*.{ts,tsx,md}`
+- `pnpm docker:dev` / `pnpm docker:prod` — Docker Compose dev/prod
+- `pnpm --filter @agent-web/core build` — Core pkg build
+- `pnpm --filter @agent-web/db build` — DB pkg build
 - `pnpm --filter @agent-web/db db:push` — Push Drizzle schema to SQLite
-- `pnpm --filter @agent-web/db db:studio` — Open Drizzle Studio
-- `pnpm test` — Run all tests with Vitest
+- `pnpm --filter @agent-web/db db:studio` — Drizzle Studio
+- `pnpm test` — Vitest
 
 ## Architecture
 
-- **Monorepo layout**: pnpm workspaces (`apps/*`, `packages/*`) orchestrated by Turbo.
-- **`apps/web`**: Next.js 16 App Router application. No `src/` folder; pages and API routes live directly under `app/`.
-- **`packages/core`**: Shared LLM client, tool registry, and TypeScript types. Built with `tsc` to `dist/`.
-- **`packages/db`**: Drizzle ORM schema and libsql client. Built with `tsc` to `dist/`.
+- **Monorepo**: pnpm workspaces + Turbo.
+- **`apps/web`**: Next.js 16 App Router. No `src/`. Pages/API routes under `app/`.
+- **`packages/core`**: LLM client, tool registry, types. `tsc` → `dist/`.
+- **`packages/db`**: Drizzle ORM + libsql. `tsc` → `dist/`.
 
-### Key Data Flows
+### Data Flows
 
-1. **Chat Request/Response**:
-   - `ChatInterface` (client) -> `useChatStore` (Zustand) -> POST `/api/chat` -> `streamText` (AI SDK v4) -> Vercel AI SDK data stream -> client manually parses stream chunks (`0:` text, `3:` error, `9:` tool call, `a:` tool result, `d:` done) and updates Zustand state.
-   - The frontend does **not** use `useChat` from `ai/react`; it uses a custom fetch + `getReader()` loop.
+1. **Chat**: `ChatInterface` → `useChatStore` → POST `/api/chat` → `streamText` (AI SDK v4) → Vercel data stream → client parse chunks (`0:` text, `3:` error, `9:` tool call, `a:` tool result, `d:` done) → Zustand update. No `useChat`.
+2. **Tools**: Define in `packages/core/src/tools/*.ts`, register in `registry.ts`. All 8 tools active + wired. File tools restricted to workspace via path traversal protection.
+3. **DB**: SQLite/libsql (`data/local.db`). Tables: `projects`, `sessions`, `messages`, `api_keys`. Sessions/messages persisted via REST API + optimistic UI. Only UI prefs in localStorage.
 
-2. **Tool System**:
-   - Tools are defined in `packages/core/src/tools/*.ts` and registered in `packages/core/src/tools/registry.ts`.
-   - All 8 tools (terminal, read_file, write_file, web_search, web_fetch, list_directory, search_files, execute_code) are **fully active and wired** into the chat API route at `apps/web/app/api/chat/route.ts`.
-   - File tools (`read_file`, `write_file`, `list_directory`, `search_files`) are restricted to the project workspace directory via path traversal protection.
+### Dependencies
 
-3. **Database**:
-   - SQLite via libsql (`data/local.db` by default). Schema defines `projects`, `sessions`, `messages`, and `api_keys` tables.
-   - The DB is **fully wired into the chat flow**: sessions and messages are persisted via REST API calls with optimistic UI updates.
-   - Only UI preferences (sidebar state, provider selection, theme) are persisted to `localStorage` under `"agent-web-ui-prefs"`.
+Next.js 16.2.6, React 19.2.4, AI SDK v4, Zustand v5, Drizzle ORM v0.36, Tailwind v3, `react-markdown` + `react-syntax-highlighter`.
 
-### External Dependencies
-
-- Next.js 16.2.6, React 19.2.4
-- AI SDK v4 (`ai`, `@ai-sdk/openai`)
-- Zustand v5 (client state)
-- Drizzle ORM v0.36 + `@libsql/client`
-- Tailwind CSS v3 (configured via `tailwind.config.ts`)
-- `react-markdown`, `react-syntax-highlighter` for message rendering
-
-### Development Entry Points
+### Entry Points
 
 - Web app: `apps/web/app/page.tsx`
 - API route: `apps/web/app/api/chat/route.ts`
@@ -84,46 +62,30 @@ graph TD
     K -->|UI prefs only| O[(localStorage)]
 ```
 
-## Key Rules & Constraints
+## Key Constraints
 
-- **Package manager**: pnpm@9.0.0 (enforced via `packageManager` field).
-- **Next.js 16 breaking changes**: This version has breaking API and convention changes vs. older Next.js versions. Read the relevant guide in `node_modules/next/dist/docs/` before writing code. Heed deprecation notices. (See also `apps/web/AGENTS.md`.)
-- **No `src/` in `apps/web`**: The Next.js app uses the App Router directly under `app/`, `components/`, `lib/`, etc.
-- **Packages must be built**: `@agent-web/core` and `@agent-web/db` are transpiled via `tsc` and consumed via `transpilePackages` in `next.config.ts`. Always build packages before the web app builds, or run `tsc --watch` in dev.
-- **Standalone output**: `next.config.ts` sets `output: "standalone"`. The production Docker image copies the standalone server bundle.
-- **Server externals**: `next.config.ts` marks `child_process` and `@libsql/client` as `serverExternalPackages`.
-- **Tailwind v3**: Configured via `tailwind.config.ts` with PostCSS plugin `tailwindcss`. Use `tailwind.config.ts` for custom theme values, not `@tailwindcss/postcss`.
-- **ESLint**: Uses the new ESLint v9 flat config (`eslint.config.mjs`) with `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`.
-- **Docker targets**: The `Dockerfile` has three targets: `development`, `production`, and `sandbox` (isolated Python / Node.js environment for code execution).
-- **Design system**: Follow `apps/web/DESIGN_SYSTEM.md` for colors, spacing, and animation specs. Dark-first design with glassmorphism accents.
-- **Path security**: File tools are restricted to the project workspace. Override with `TOOL_ALLOWED_BASE` env var if needed (not recommended for production).
+- **pnpm@9.0.0** via `packageManager`.
+- **Next.js 16** — breaking changes. Read `node_modules/next/dist/docs/`.
+- **No `src/`** in `apps/web`. App Router under `app/`, `components/`, `lib/`.
+- **Packages must be built** — `@agent-web/core` + `@agent-web/db` via `tsc`, transpiled via `transpilePackages`. Build before web app or run `tsc --watch`.
+- **`output: "standalone"`** — prod Docker copies `.next/standalone`.
+- **`serverExternalPackages`** — `child_process`, `@libsql/client`.
+- **Tailwind v3** — `tailwind.config.ts` + `tailwindcss` PostCSS plugin. Not v4.
+- **ESLint v9 flat config** — `eslint-config-next/core-web-vitals` + `typescript`.
+- **Dockerfile** targets: `development`, `production`, `sandbox`.
+- **Design system**: `apps/web/DESIGN_SYSTEM.md`. Dark-first, glassmorphism, WCAG 2.1 AA.
+- **Path security**: File tools restricted to workspace. Override with `TOOL_ALLOWED_BASE`.
 
-## Development Hints
+## Dev Hints
 
-- **Adding a new LLM provider**:
-  1. Add provider config to `packages/core/src/types.ts`.
-  2. Add provider branch in `packages/core/src/llm/client.ts` using `createOpenAI({ baseURL: ... })`.
-  3. Update the provider list in `apps/web/components/settings-panel.tsx`.
-  4. Update the API route (`apps/web/app/api/chat/route.ts`) to accept the new provider.
+**New LLM provider**: Add config in `types.ts`, provider branch in `llm/client.ts` via `createOpenAI({ baseURL })`, update `settings-panel.tsx` provider list, update chat route.
 
-- **Adding a new tool**:
-  1. Define the tool in `packages/core/src/tools/` (e.g., `my-tool.ts`) using `tool()` from the `ai` SDK with a Zod parameter schema.
-  2. Register it in `packages/core/src/tools/registry.ts`.
-  3. Tools are automatically wired into the chat route via the registry.
+**New tool**: Create `packages/core/src/tools/<name>.ts` with `tool()` + Zod. Register in `registry.ts`. Auto-wired.
 
-- **Working with the database**:
-  - The DB client and schema are ready in `packages/db`.
-  - Sessions and messages are persisted automatically through the Zustand store's API calls.
-  - To reset the database, delete `data/local.db` and restart.
+**DB**: Client + schema ready. Sessions/messages auto-persist via Zustand API calls. Reset: delete `data/local.db` and restart.
 
-- **Running in Docker on Windows/macOS**:
-  - The dev compose file sets `CHOKIDAR_USEPOLLING=true` and `WATCHPACK_POLLING=true` so file watching works inside bind mounts.
+**Docker on Windows/macOS**: Dev compose sets `CHOKIDAR_USEPOLLING=true` + `WATCHPACK_POLLING=true`.
 
-- **Testing**:
-  - Tests use Vitest with happy-dom.
-  - Run `pnpm test` to execute all tests.
-  - Run `pnpm test:watch` for watch mode.
-  - Run `pnpm test:coverage` for coverage report.
+**Tests**: Vitest + happy-dom. Commands: `pnpm test`, `pnpm test:watch`, `pnpm test:coverage`.
 
-- **Working with deleted files**:
-  - A large number of source files were deleted from the working tree but remain in Git history. If you need to reference or restore them, use `git show HEAD:<path>`.
+**Deleted files**: Many source files deleted from tree but remain in git history. Restore with `git show HEAD:<path>`.
