@@ -899,8 +899,8 @@ export function Sidebar() {
           className={cn(
             "shrink-0 border-b border-[var(--border)]",
             sidebarOpen
-              ? "flex gap-0.5 px-2 pb-1"
-              : "flex flex-col items-center gap-1 px-0 py-1",
+              ? "flex gap-0.5 overflow-x-auto scrollbar-none px-2 pb-1"
+              : "flex flex-col items-center gap-1 overflow-y-auto px-0 py-1",
           )}
         >
           {tabs.map((tab) => {
@@ -911,8 +911,8 @@ export function Sidebar() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "relative flex items-center justify-center gap-1.5 font-mono font-bold uppercase tracking-[0.08em] transition-colors",
-                  sidebarOpen ? "h-8 flex-1 text-[10px]" : "h-9 w-9 text-[0]",
+                  "relative flex items-center justify-center gap-1 font-mono font-bold uppercase tracking-[0.06em] transition-colors",
+                  sidebarOpen ? "h-8 flex-1 text-[9px] px-1" : "h-9 w-9 text-[0]",
                   selected
                     ? "text-[var(--primary)]"
                     : "text-[var(--muted-foreground)] hover:bg-[var(--overlay)] hover:text-[var(--foreground)]",
@@ -922,10 +922,10 @@ export function Sidebar() {
                 aria-pressed={activeTab === tab.id}
                 data-tooltip={tab.label}
               >
-                <Icon size={14} />
+                <Icon size={13} />
                 {sidebarOpen && <span>{tab.label}</span>}
                 {sidebarOpen && tab.badge && (
-                  <span className="flex h-4 min-w-4 items-center justify-center bg-[var(--primary-muted)] px-1 font-mono text-[9px] text-[var(--primary)]">
+                  <span className="flex h-4 min-w-4 items-center justify-center bg-[var(--primary-muted)] px-1 font-mono text-[8px] text-[var(--primary)]">
                     {tab.badge}
                   </span>
                 )}
@@ -934,7 +934,7 @@ export function Sidebar() {
                     className={cn(
                       "absolute bg-[var(--primary)] shadow-[0_1px_8px_rgba(0,229,153,0.4)]",
                       sidebarOpen
-                        ? "bottom-0 left-2 right-2 h-0.5"
+                        ? "bottom-0 left-1 right-1 h-0.5"
                         : "right-0 top-1.5 bottom-1.5 w-0.5",
                     )}
                   />

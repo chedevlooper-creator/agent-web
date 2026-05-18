@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
+import { ToasterProvider } from "@/components/toaster-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -49,14 +49,7 @@ export default function RootLayout({
           Ana içeriğe geç
         </a>
         {children}
-        <Toaster
-          position="bottom-right"
-          richColors
-          closeButton
-          toastOptions={{
-            duration: 4000,
-          }}
-        />
+        <ToasterProvider />
       </body>
     </html>
   );

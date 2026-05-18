@@ -52,6 +52,9 @@ import {
   Code2,
   FileJson,
   CornerDownLeft,
+  Lightbulb,
+  Target,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { TtsButton } from "@/components/tts-button";
@@ -107,10 +110,22 @@ function isPreviewable(filename: string): boolean {
 
 
 const STARTER_PROMPTS = [
-  "Review this interface and return three UX improvements.",
-  "Turn this idea into a polished execution plan.",
-  "Compare two approaches and recommend the stronger one.",
-];
+  {
+    icon: Lightbulb,
+    label: "Review UX",
+    prompt: "Review this interface and return three UX improvements.",
+  },
+  {
+    icon: Target,
+    label: "Execution Plan",
+    prompt: "Turn this idea into a polished execution plan.",
+  },
+  {
+    icon: Layers,
+    label: "Compare",
+    prompt: "Compare two approaches and recommend the stronger one.",
+  },
+] as const;
 
 function TooltipIconButton({
   label,
@@ -770,7 +785,12 @@ function MessageBubble({
 // ===== Empty State =====
 function EmptyState({ onPrompt }: { onPrompt: (prompt: string) => void }) {
   return (
-    <div className="agent-empty-state animate-fade-in">
+    <div
+      className="flex min-h-[calc(100vh-var(--sidebar-width,56px))] flex-col items-center justify-center gap-6 px-4 py-8"
+      style={{
+        background: "radial-gradient(ellipse at 50% 40%, rgba(0,229,153,0.06) 0%, transparent 60%)",
+      }}
+    >
       <div className="agent-empty-visual" aria-hidden="true">
         <div className="agent-orbit agent-orbit--outer" />
         <div className="agent-orbit agent-orbit--inner" />
@@ -780,24 +800,36 @@ function EmptyState({ onPrompt }: { onPrompt: (prompt: string) => void }) {
           <span />
         </div>
       </div>
-      <div className="flex flex-col items-center gap-4 text-center">
+      <div className="flex flex-col items-center gap-5 text-center">
         <div className="signal-ready agent-ready-copy">
           <span className="text-[var(--primary)]/60">&gt;</span> ready
           <span className="signal-caret" />
         </div>
-        <div className="flex max-w-2xl flex-wrap justify-center gap-2">
-          {STARTER_PROMPTS.map((prompt) => (
-            <Button
-              key={prompt}
-              type="button"
-              variant="outline"
-              size="sm"
-              className="agent-starter-prompt"
-              onClick={() => onPrompt(prompt)}
-            >
-              {prompt}
-            </Button>
-          ))}
+        <div className="flex max-w-lg flex-col gap-3">
+          {STARTER_PROMPTS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.prompt}
+                type="button"
+                onClick={() => onPrompt(item.prompt)}
+                className="flex items-center gap-3 border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-left transition-all hover:border-[var(--primary-dim)] hover:bg-[var(--overlay)] hover:translate-x-0.5 active:translate-y-px"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[var(--primary-muted)] text-[var(--primary)]">
+                  <Icon size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-[var(--foreground)]">
+                    {item.label}
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[var(--muted-foreground)]">
+                    {item.prompt}
+                  </p>
+                </div>
+                <Sparkles size={14} className="shrink-0 text-[var(--dim-foreground)]" />
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -1079,6 +1111,13 @@ export function ChatInterface() {
     shouldAutoScroll.current = nearBottom;
     setShowScrollBtn(!nearBottom);
   }, []);
+
+  // Auto-scroll to bottom when messages change (new message, stream update, etc.)
+  useEffect(() => {
+    if (shouldAutoScroll.current && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
 
   // Watch for commandPrefill from CommandRail, set input and focus
   useEffect(() => {

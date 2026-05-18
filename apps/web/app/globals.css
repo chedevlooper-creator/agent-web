@@ -657,16 +657,6 @@ code, pre, .font-mono {
   opacity: 0.055;
 }
 
-.agent-empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  padding: 32px 20px;
-}
-
 .agent-empty-visual {
   width: min(168px, 44vw);
   aspect-ratio: 1;
@@ -725,23 +715,6 @@ code, pre, .font-mono {
 .agent-ready-copy {
   min-height: 0;
   flex: none;
-}
-
-.agent-starter-prompt {
-  max-width: 230px;
-  height: auto;
-  min-height: 32px;
-  border-radius: 4px;
-  border-color: var(--border-strong);
-  background: var(--surface);
-  color: var(--muted-foreground);
-  white-space: normal;
-}
-
-.agent-starter-prompt:hover {
-  border-color: var(--primary-dim);
-  color: var(--foreground);
-  transform: translateY(-1px);
 }
 
 .agent-message-row {
@@ -948,11 +921,6 @@ code, pre, .font-mono {
 @media (max-width: 640px) {
   .agent-chat-stage::before {
     opacity: 0.04;
-  }
-
-  .agent-empty-state {
-    gap: 20px;
-    padding-inline: 12px;
   }
 
   .agent-empty-visual {

@@ -1,13 +1,17 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/login";
+  const [redirectTo, setRedirectTo] = useState("/login");
+
+  useEffect(() => {
+    setRedirectTo(searchParams.get("redirect") || "/login");
+  }, [searchParams]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -65,12 +69,12 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-[--void-deep] p-4">
+    <div className="min-h-dvh flex items-center justify-center bg-[var(--background)] p-4">
       <div className="w-full max-w-sm animate-fade-in">
-        <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">
+        <h1 className="text-2xl font-semibold text-[var(--foreground)] mb-2">
           Hesap Oluştur
         </h1>
-        <p className="text-sm text-[--fg-secondary] mb-8">
+        <p className="text-sm text-[var(--muted-foreground)] mb-8">
           Yeni bir hesap oluşturmak için bilgilerini gir
         </p>
 
@@ -84,7 +88,7 @@ function RegisterForm() {
           <div className="space-y-2">
             <label
               htmlFor="username"
-              className="block text-sm font-medium text-[--fg-secondary]"
+              className="block text-sm font-medium text-[var(--muted-foreground)]"
             >
               Kullanıcı Adı
             </label>
@@ -96,14 +100,14 @@ function RegisterForm() {
               placeholder="Kullanıcı adını gir"
               autoComplete="username"
               autoFocus
-              className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
+              className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] placeholder-[var(--dim-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200"
             />
           </div>
 
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-[--fg-secondary]"
+              className="block text-sm font-medium text-[var(--muted-foreground)]"
             >
               Şifre
             </label>
@@ -114,14 +118,14 @@ function RegisterForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Şifreni gir"
               autoComplete="new-password"
-              className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
+              className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] placeholder-[var(--dim-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200"
             />
           </div>
 
           <div className="space-y-2">
             <label
               htmlFor="confirmPassword"
-              className="block text-sm font-medium text-[--fg-secondary]"
+              className="block text-sm font-medium text-[var(--muted-foreground)]"
             >
               Şifre Tekrar
             </label>
@@ -132,24 +136,24 @@ function RegisterForm() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Şifreni tekrar gir"
               autoComplete="new-password"
-              className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
+              className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] placeholder-[var(--dim-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-[--electric] text-[--void-deep] font-medium hover:bg-[--electric-hover] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-full py-2.5 rounded-lg bg-[var(--primary)] text-[var(--background)] font-medium hover:bg-[var(--primary-dim)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {loading ? "Kaydediliyor..." : "Kaydol"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-[--fg-muted]">
+        <p className="mt-6 text-center text-sm text-[var(--dim-foreground)]">
           Zaten hesabın var mı?{" "}
           <Link
             href={redirectTo}
-            className="text-[--electric] hover:text-[--electric-hover] transition-colors"
+            className="text-[var(--primary)] hover:text-[var(--primary-dim)] transition-colors"
           >
             Giriş Yap
           </Link>

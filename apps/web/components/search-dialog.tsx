@@ -170,7 +170,7 @@ export function SearchDialog({
       className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh]"
       onClick={() => onOpenChange(false)}
     >
-      <div className="fixed inset-0 bg-black/60" />
+      <div className="fixed inset-0 bg-black/60" onClick={() => onOpenChange(false)} />
       <div
         className="relative z-10 w-full max-w-lg animate-scale-in border border-[var(--border-strong)] bg-[var(--surface)] shadow-[0_24px_64px_rgba(0,0,0,0.5)]"
         onClick={(e) => e.stopPropagation()}

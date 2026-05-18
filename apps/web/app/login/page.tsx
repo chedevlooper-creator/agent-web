@@ -1,13 +1,17 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  const [redirectTo, setRedirectTo] = useState("/");
+
+  useEffect(() => {
+    setRedirectTo(searchParams.get("redirect") || "/");
+  }, [searchParams]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -42,12 +46,12 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-[--void-deep] p-4">
+    <div className="min-h-dvh flex items-center justify-center bg-[var(--background)] p-4">
       <div className="w-full max-w-sm animate-fade-in">
-        <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">
+        <h1 className="text-2xl font-semibold text-[var(--foreground)] mb-2">
           Tekrar Hoş Geldin
         </h1>
-        <p className="text-sm text-[--fg-secondary] mb-8">
+        <p className="text-sm text-[var(--muted-foreground)] mb-8">
           Hesabına giriş yap
         </p>
 
@@ -61,7 +65,7 @@ function LoginForm() {
           <div className="space-y-2">
             <label
               htmlFor="username"
-              className="block text-sm font-medium text-[--fg-secondary]"
+              className="block text-sm font-medium text-[var(--muted-foreground)]"
             >
               Kullanıcı Adı
             </label>
@@ -73,14 +77,14 @@ function LoginForm() {
               placeholder="Kullanıcı adını gir"
               autoComplete="username"
               autoFocus
-              className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
+              className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] placeholder-[var(--dim-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200"
             />
           </div>
 
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-[--fg-secondary]"
+              className="block text-sm font-medium text-[var(--muted-foreground)]"
             >
               Şifre
             </label>
@@ -91,24 +95,24 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Şifreni gir"
               autoComplete="current-password"
-              className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
+              className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] placeholder-[var(--dim-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-[--electric] text-[--void-deep] font-medium hover:bg-[--electric-hover] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-full py-2.5 rounded-lg bg-[var(--primary)] text-[var(--background)] font-medium hover:bg-[var(--primary-dim)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-[--fg-muted]">
+        <p className="mt-6 text-center text-sm text-[var(--dim-foreground)]">
           Hesabın yok mu?{" "}
           <Link
             href="/register?redirect=/login"
-            className="text-[--electric] hover:text-[--electric-hover] transition-colors"
+            className="text-[var(--primary)] hover:text-[var(--primary-dim)] transition-colors"
           >
             Oluştur
           </Link>
