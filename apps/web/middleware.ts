@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/login", "/api/auth"];
+const PUBLIC_ROUTES = ["/login", "/register", "/api/auth"];
 
 // ===== In-memory rate limiter (sliding window) =====
 interface RateLimitEntry {
