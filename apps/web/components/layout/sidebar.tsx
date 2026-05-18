@@ -987,7 +987,6 @@ export function Sidebar() {
                 System ready
               </span>
             )}
-            <ThemeToggle className={cn(sidebarOpen && "ml-auto")} />
           </div>
           {sidebarOpen && (
             <>
