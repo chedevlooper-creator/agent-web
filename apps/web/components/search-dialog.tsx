@@ -169,6 +169,9 @@ export function SearchDialog({
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh]"
       onClick={() => onOpenChange(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search messages and sessions"
     >
       <div className="fixed inset-0 bg-black/60" onClick={() => onOpenChange(false)} />
       <div

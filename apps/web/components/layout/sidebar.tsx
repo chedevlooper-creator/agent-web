@@ -836,11 +836,12 @@ export function Sidebar() {
               </button>
             </>
           ) : (
-            <button
-              onClick={toggleSidebar}
-              className="flex h-9 w-9 items-center justify-center text-[var(--muted-foreground)] transition-colors hover:bg-[var(--overlay)] hover:text-[var(--foreground)]"
-              aria-label="Expand sidebar"
-            >
+              <button
+                onClick={toggleSidebar}
+                className="flex h-9 w-9 items-center justify-center text-[var(--muted-foreground)] transition-colors hover:bg-[var(--overlay)] hover:text-[var(--foreground)]"
+                aria-label="Expand sidebar"
+                title="Expand sidebar"
+              >
               <PanelLeft size={18} />
             </button>
           )}
@@ -902,6 +903,8 @@ export function Sidebar() {
               ? "flex gap-0.5 overflow-x-auto scrollbar-none px-2 pb-1"
               : "flex flex-col items-center gap-1 overflow-y-auto px-0 py-1",
           )}
+          role="tablist"
+          aria-label="Sidebar sections"
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -910,6 +913,8 @@ export function Sidebar() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                role="tab"
+                aria-selected={selected}
                 className={cn(
                   "relative flex items-center justify-center gap-1 font-mono font-bold uppercase tracking-[0.06em] transition-colors",
                   sidebarOpen ? "h-8 flex-1 text-[9px] px-1" : "h-9 w-9 text-[0]",
@@ -919,7 +924,6 @@ export function Sidebar() {
                 )}
                 title={tab.label}
                 aria-label={tab.label}
-                aria-pressed={activeTab === tab.id}
                 data-tooltip={tab.label}
               >
                 <Icon size={13} />
