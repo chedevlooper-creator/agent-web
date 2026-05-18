@@ -4,23 +4,35 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-function LoginForm() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  const redirectTo = searchParams.get("redirect") || "/login";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (password !== confirmPassword) {
+      setError("Şifreler eşleşmiyor");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Şifre en az 6 karakter olmalıdır");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -29,11 +41,22 @@ function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Giriş başarısız");
+        setError(data.error || "Kayıt başarısız");
         return;
       }
 
-      router.push(redirectTo);
+      // Auto-login after successful registration
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (loginRes.ok) {
+        router.push("/");
+      } else {
+        router.push(redirectTo);
+      }
     } catch {
       setError("Ağ hatası. Lütfen tekrar deneyin.");
     } finally {
@@ -45,10 +68,10 @@ function LoginForm() {
     <div className="min-h-dvh flex items-center justify-center bg-[--void-deep] p-4">
       <div className="w-full max-w-sm animate-fade-in">
         <h1 className="text-2xl font-semibold text-[--fg-primary] mb-2">
-          Tekrar Hoş Geldin
+          Hesap Oluştur
         </h1>
         <p className="text-sm text-[--fg-secondary] mb-8">
-          Hesabına giriş yap
+          Yeni bir hesap oluşturmak için bilgilerini gir
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -90,7 +113,25 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Şifreni gir"
-              autoComplete="current-password"
+              autoComplete="new-password"
+              className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-[--fg-secondary]"
+            >
+              Şifre Tekrar
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Şifreni tekrar gir"
+              autoComplete="new-password"
               className="w-full px-3 py-2.5 rounded-lg bg-[--chrome] border border-[--border] text-[--fg-primary] placeholder-[--fg-muted] focus:outline-none focus:ring-2 focus:ring-[--electric] focus:border-transparent transition-all duration-200"
             />
           </div>
@@ -100,17 +141,17 @@ function LoginForm() {
             disabled={loading}
             className="w-full py-2.5 rounded-lg bg-[--electric] text-[--void-deep] font-medium hover:bg-[--electric-hover] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
-            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
+            {loading ? "Kaydediliyor..." : "Kaydol"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[--fg-muted]">
-          Hesabın yok mu?{" "}
+          Zaten hesabın var mı?{" "}
           <Link
-            href="/register?redirect=/login"
+            href={redirectTo}
             className="text-[--electric] hover:text-[--electric-hover] transition-colors"
           >
-            Oluştur
+            Giriş Yap
           </Link>
         </p>
       </div>
@@ -118,10 +159,10 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      <RegisterForm />
     </Suspense>
   );
 }
